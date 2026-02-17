@@ -1,0 +1,32 @@
+---
+// src/pages/index.astro
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout title="Accueil">
+	<div class="max-w-7xl mx-auto px-6 py-20">
+		<div class="glass p-12 rounded-3xl text-center max-w-3xl mx-auto">
+			<h1
+				class="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white"
+			>
+				L'excellence du VTC
+			</h1>
+			<p class="text-slate-400 text-lg mb-10">
+				Une plateforme premium pour les chauffeurs d'exception.
+			</p>
+			<div class="flex gap-4 justify-center">
+				<a
+					href="/signup"
+					class="px-8 py-4 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20"
+				>
+					S'inscrire
+				</a>
+				<button
+					class="px-8 py-4 glass rounded-xl font-bold hover:bg-white/5 transition-all"
+				>
+					En savoir plus
+				</button>
+			</div>
+		</div>
+	</div>
+</MainLayout>

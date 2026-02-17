@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* src/styles/global.css */
+
+:root {
+  --park-colors-accent-default: #6366f1;
+  --park-colors-bg-canvas: #0a0a0c;
+  --park-colors-bg-default: #111114;
+  --park-colors-fg-default: #ffffff;
+}
+
+body {
+  background-color: var(--park-colors-bg-canvas);
+  color: var(--park-colors-fg-default);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.premium-gradient {
+  background: radial-gradient(circle at top left, #1a1a2e, #0a0a0c);
+}

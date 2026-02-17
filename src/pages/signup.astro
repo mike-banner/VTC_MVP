@@ -1,0 +1,157 @@
+---
+// src/pages/signup.astro
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout title="Inscription">
+	<div
+		class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4"
+	>
+		<div
+			class="glass p-10 rounded-3xl w-full max-w-md shadow-2xl border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700"
+		>
+			<div class="text-center mb-8">
+				<h1
+					class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white"
+				>
+					Rejoins l'aventure
+				</h1>
+				<p class="text-slate-400">
+					Crée ton compte pour commencer ton onboarding
+				</p>
+			</div>
+
+			<form id="signup-form" class="space-y-6">
+				<div class="space-y-2">
+					<label
+						for="email"
+						class="text-sm font-medium text-slate-300"
+						>Email professionnel</label
+					>
+					<input
+						type="email"
+						id="email"
+						name="email"
+						required
+						placeholder="nom@entreprise.fr"
+						class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-inter"
+					/>
+				</div>
+
+				<div class="space-y-2">
+					<label
+						for="password"
+						class="text-sm font-medium text-slate-300"
+						>Mot de passe</label
+					>
+					<input
+						type="password"
+						id="password"
+						name="password"
+						required
+						placeholder="••••••••"
+						class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-inter"
+					/>
+				</div>
+
+				<button
+					type="submit"
+					id="submit-btn"
+					class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden group"
+				>
+					<span
+						class="btn-text group-hover:tracking-wider transition-all duration-300"
+						>S'inscrire</span
+					>
+					<div
+						class="loader-container hidden absolute inset-0 flex items-center justify-center bg-indigo-600"
+					>
+						<svg
+							class="animate-spin h-5 w-5 text-white"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+					</div>
+				</button>
+			</form>
+
+			<div
+				id="message"
+				class="mt-6 text-center text-sm font-medium min-h-[20px]"
+			>
+			</div>
+		</div>
+	</div>
+</MainLayout>
+
+<script>
+	import { supabase } from "../lib/supabase";
+
+	const form = document.querySelector("#signup-form") as HTMLFormElement;
+	const messageEl = document.querySelector("#message") as HTMLDivElement;
+	const submitBtn = document.querySelector(
+		"#submit-btn",
+	) as HTMLButtonElement;
+	const loader = document.querySelector(
+		".loader-container",
+	) as HTMLDivElement;
+	const btnText = document.querySelector(".btn-text") as HTMLSpanElement;
+
+	form?.addEventListener("submit", async (e) => {
+		e.preventDefault();
+
+		const formData = new FormData(form);
+		const email = formData.get("email") as string;
+		const password = formData.get("password") as string;
+
+		// UI State: Loading
+		submitBtn.disabled = true;
+		loader.classList.remove("hidden");
+		btnText.style.opacity = "0";
+		messageEl.textContent = "";
+
+		try {
+			const { data, error } = await supabase.auth.signUp({
+				email,
+				password,
+			});
+
+			if (error) {
+				messageEl.textContent = "Erreur : " + error.message;
+				messageEl.className =
+					"mt-6 text-center text-sm font-medium text-red-400";
+				submitBtn.disabled = false;
+				loader.classList.add("hidden");
+				btnText.style.opacity = "1";
+			} else {
+				messageEl.textContent = "Compte créé ! Redirection...";
+				messageEl.className =
+					"mt-6 text-center text-sm font-medium text-emerald-400";
+
+				setTimeout(() => {
+					window.location.href = "/onboarding";
+				}, 1500);
+			}
+		} catch (err) {
+			console.error(err);
+			messageEl.textContent = "Une erreur technique est survenue.";
+			messageEl.className =
+				"mt-6 text-center text-sm font-medium text-red-400";
+			submitBtn.disabled = false;
+			loader.classList.add("hidden");
+			btnText.style.opacity = "1";
+		}
+	});
+</script>

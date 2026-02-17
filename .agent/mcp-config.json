@@ -1,0 +1,36 @@
+{
+    "/* .agent/mcp-config.json */": "",
+    "mcpServers": {
+        "supabase": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-postgres",
+                "postgresql://postgres:[000%3Dvtchubb]@db.kpnkhmtxzigxtfnkmzru.supabase.co:5432/postgres"
+            ],
+            "description": "Permet de gérer la base de données, les migrations et les Edge Functions."
+        },
+        "notion": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-notion"
+            ],
+            "env": {
+                "NOTION_API_KEY": "TON_NOTION_TOKEN"
+            },
+            "description": "Permet de lire et d'écrire dans tes pages et bases de données Notion."
+        },
+        "github": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-github"
+            ],
+            "env": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "TON_GITHUB_TOKEN"
+            },
+            "description": "Permet de gérer les repositories, les issues et les pull requests."
+        }
+    }
+}
