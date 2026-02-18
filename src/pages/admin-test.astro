@@ -1,0 +1,25 @@
+---
+const onboardingId = "813c1332-5039-41ed-a20b-1ea19c63ce34";
+---
+
+<button id="approveBtn">Test Approve</button>
+
+<script>
+    const btn = document.getElementById("approveBtn");
+
+    btn.addEventListener("click", async () => {
+        const res = await fetch("/api/approve-test", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                onboarding_id: "{{onboardingId}}",
+            }),
+        });
+
+        const text = await res.text();
+        console.log(text);
+        alert(text);
+    });
+</script>

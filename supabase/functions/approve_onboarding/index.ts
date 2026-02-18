@@ -20,71 +20,21 @@ serve(async (req) => {
     return new Response("Invalid onboarding", { status: 400 })
   }
 
-  try {
-    // 2️⃣ Créer tenant
-    const { data: tenant, error: tenantError } = await supabase
-      .from("tenants")
-      .insert({
-        name: onboarding.company_name,
-        primary_domain: onboarding.primary_domain,
-        commission_rate: 0
-      })
-      .select()
-      .single()
+try {
+  const { error } = await supabase.rpc("approve_onboarding_tx", {
+    onboarding_uuid: onboarding_id
+  })
 
-    if (tenantError) throw tenantError
+  if (error) throw error
 
-    // 3️⃣ Lier profile
-    await supabase
-      .from("profiles")
-      .update({ tenant_id: tenant.id })
-      .eq("id", onboarding.profile_id)
+  return new Response("Onboarding approved", { status: 200 })
 
-    // 4️⃣ Créer driver
-    const { data: driver, error: driverError } = await supabase
-      .from("drivers")
-      .insert({
-        tenant_id: tenant.id,
-        phone: onboarding.phone,
-        license_number: onboarding.vtc_license_number
-      })
-      .select()
-      .single()
+} catch (err) {
+  console.error("Approve error:", err)
+  return new Response(
+    JSON.stringify({ error: err?.message ?? err }),
+    { status: 500 }
+  )
+}
 
-    if (driverError) throw driverError
-
-    // 5️⃣ Créer vehicle
-    await supabase.from("vehicles").insert({
-      tenant_id: tenant.id,
-      driver_id: driver.id,
-      brand: onboarding.vehicle_brand,
-      model: onboarding.vehicle_model,
-      plate_number: onboarding.plate_number,
-      capacity: onboarding.capacity
-    })
-
-    // 6️⃣ Créer pricing_rules
-    for (const category of onboarding.service_categories) {
-      await supabase.from("pricing_rules").insert({
-        tenant_id: tenant.id,
-        service_category: category,
-        base_price: onboarding.default_base_price,
-        price_per_km: onboarding.default_price_per_km,
-        minimum_fare: onboarding.default_minimum_fare,
-        active: true
-      })
-    }
-
-    // 7️⃣ Finaliser
-    await supabase
-      .from("onboarding")
-      .update({ status: "processed" })
-      .eq("id", onboarding_id)
-
-    return new Response("Onboarding approved", { status: 200 })
-
-  } catch (err) {
-    console.error(err)
-    return new Response("Transaction failed", { status: 500 })
-  }
 })

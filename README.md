@@ -1,43 +1,64 @@
-# Astro Starter Kit: Minimal
+# 🚖 VTC HUB — SaaS Multi-Tenant pour Chauffeurs VTC
 
-```sh
-npm create astro@latest -- --template minimal
+VTC HUB est une plateforme SaaS "Premium" permettant aux chauffeurs VTC de gérer leur activité, leurs tarifs et leurs courses dans un environnement multi-tenant sécurisé.
+
+---
+
+## 🚀 Stack Technique
+
+- **Frontend & SSR** : [Astro](https://astro.build/) (Output: Server)
+- **Design** : Tailwind CSS + Park UI (Glassmorphism & Premium Dark Theme)
+- **Infrastructure** : [Cloudflare Pages](https://pages.cloudflare.com/)
+- **Backend & Database** : [Supabase](https://supabase.com/) (Postgres + Auth + RLS)
+- **Logique Métier** : Edge Functions & RPC Transactionnelles (PL/pgSQL)
+
+---
+
+## 🏗️ Architecture & Sécurité
+
+- **Isolation Multi-Tenant** : Chaque chauffeur possède son propre `tenant_id`. L'isolation est garantie par des **Policies RLS** au niveau de la base de données.
+- **Middleware SSR** : Protection des routes en temps réel (Auth check, Onboarding status).
+- **Activation Atomique** : Le passage de l'onboarding au mode actif est géré par une transaction SQL unique pour garantir l'intégrité des données (Zéro création partielle).
+
+---
+
+## 🔄 Flux Utilisateur
+
+1. **Inscription** : Création du compte via Supabase Auth.
+2. **Onboarding** : Tunnel Premium en 3 étapes (Profil, Véhicule, Tarification).
+3. **Attente** : Dossier en staging (`status: pending`) en attente de validation admin.
+4. **Activation** : Création automatique du Tenant, Driver et Véhicule.
+5. **Dashboard** : Accès complet aux outils de gestion.
+
+---
+
+## 📂 Documentation
+
+Pour plus de détails techniques, consulte le dossier [docs/](./docs) :
+
+- [🏗️ Architecture](./docs/architecture.md)
+- [🗄️ Base de données](./docs/database.md)
+- [🔐 Sécurité](./docs/security.md)
+- [🔄 Flux Systèmes](./docs/flows.md)
+- [🧠 Décisions d'Architecture](./docs/decisions.md)
+- [🔎 Checklist Audit](./docs/cheklist_audit.md)
+
+---
+
+## 🛠️ Installation & Développement
+
+```bash
+# Installation des dépendances
+npm install
+
+# Lancement du serveur local
+npm run dev
+
+# Déploiement (Cloudflare)
+npm run build
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+---
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## 📜 Licence
+Projet privé — Tous droits réservés.

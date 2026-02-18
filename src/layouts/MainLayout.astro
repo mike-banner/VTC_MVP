@@ -1,5 +1,6 @@
 ---
 // src/layouts/MainLayout.astro
+import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import "../styles/global.css";
 
 interface Props {
@@ -7,6 +8,34 @@ interface Props {
 }
 
 const { title } = Astro.props;
+
+// Initialisation du client Supabase pour vérifier l'état d'auth côté serveur
+const supabaseServer = createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+    {
+        cookies: {
+            getAll() {
+                const cookies = parseCookieHeader(
+                    Astro.request.headers.get("Cookie") ?? "",
+                );
+                return cookies.map((c) => ({
+                    name: c.name,
+                    value: c.value ?? "",
+                }));
+            },
+            setAll(cookiesToSet) {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                    Astro.cookies.set(name, value, options),
+                );
+            },
+        },
+    },
+);
+
+const {
+    data: { user },
+} = await supabaseServer.auth.getUser();
 ---
 
 <!doctype html>
@@ -36,9 +65,12 @@ const { title } = Astro.props;
             class="sticky top-0 z-50 w-full glass border-b border-white/5 px-6 py-4"
         >
             <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <div class="flex items-center gap-2">
+                <a
+                    href="/"
+                    class="flex items-center gap-2 group transition-opacity hover:opacity-80"
+                >
                     <div
-                        class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20"
+                        class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform"
                     >
                         <span class="text-white font-bold text-xl">V</span>
                     </div>
@@ -47,19 +79,26 @@ const { title } = Astro.props;
                     >
                         VTC HUB
                     </span>
-                </div>
+                </a>
 
                 <div class="flex items-center gap-6">
-                    <a
-                        href="/login"
-                        class="text-sm font-bold text-slate-400 hover:text-white transition-colors"
-                        >Connexion</a
-                    >
-                    <a
-                        href="/signup"
-                        class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
-                        >S'inscrire</a
-                    >
+                    {
+                        user ? (
+                            <button
+                                id="logout-btn"
+                                class="text-sm font-bold text-red-400/80 hover:text-red-400 transition-colors"
+                            >
+                                Déconnexion
+                            </button>
+                        ) : (
+                            <a
+                                href="/login"
+                                class="text-sm font-bold text-slate-400 hover:text-white transition-colors"
+                            >
+                                Connexion
+                            </a>
+                        )
+                    }
                 </div>
             </div>
         </nav>
@@ -73,5 +112,16 @@ const { title } = Astro.props;
                 &copy; {new Date().getFullYear()} VTC HUB. Précision. Luxe. Excellence.
             </div>
         </footer>
+
+        <script>
+            import { supabase } from "../lib/supabase";
+
+            const logoutBtn = document.querySelector("#logout-btn");
+
+            logoutBtn?.addEventListener("click", async () => {
+                await supabase.auth.signOut();
+                window.location.href = "/";
+            });
+        </script>
     </body>
 </html>

@@ -10,6 +10,13 @@ import MainLayout from "../layouts/MainLayout.astro";
         <div
             class="glass p-10 rounded-3xl w-full max-w-md shadow-2xl border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700"
         >
+            <div class="flex justify-center mb-6">
+                <span
+                    class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-[0.2em] text-emerald-400 uppercase"
+                >
+                    Connexion
+                </span>
+            </div>
             <div class="text-center mb-8">
                 <h1
                     class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white"
@@ -149,7 +156,7 @@ import MainLayout from "../layouts/MainLayout.astro";
             if (error) {
                 messageEl.textContent = "Erreur : " + error.message;
                 messageEl.className =
-                    "mt-6 text-center text-sm font-medium text-red-400";
+                    "mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-center text-sm font-medium text-red-400";
                 submitBtn.disabled = false;
                 loader.classList.add("hidden");
                 btnText.style.opacity = "1";
