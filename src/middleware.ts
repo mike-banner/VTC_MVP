@@ -8,7 +8,7 @@ export const onRequest = defineMiddleware(async ({ cookies, request, redirect, l
   const path = url.pathname
 
   // Ne protéger que les routes SaaS sensibles
-  const authRoutes = ['/app', '/admin', '/onboarding', '/waiting-approval']
+  const authRoutes = ['/app', '/admin', '/onboarding', '/waiting-approval', '/dashboard']
   const isAuthRoute = authRoutes.some(route => path.startsWith(route))
 
   if (!isAuthRoute) {
