@@ -52,25 +52,30 @@ const navItems = [
         />
     </head>
     <body
-        class="bg-black min-h-screen text-slate-50 selection:bg-indigo-500/30"
+        class="bg-black h-screen overflow-hidden text-slate-50 selection:bg-indigo-500/30 font-inter"
     >
-        <div class="flex">
-            <!-- Sidebar simple -->
+        <div class="flex h-full">
+            <!-- Sidebar Fixe -->
             <aside
-                class="w-64 min-h-screen glass border-r border-white/5 hidden md:flex flex-col p-6 sticky top-0"
+                class="w-72 h-full glass border-r border-white/5 hidden md:flex flex-col p-6 flex-shrink-0"
             >
                 <div class="mb-10 flex items-center gap-3">
                     <div
-                        class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center"
+                        class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20"
                     >
-                        <span class="text-white font-black text-xl">V</span>
+                        <span class="text-white font-black text-2xl italic"
+                            >V</span
+                        >
                     </div>
-                    <span class="text-xl font-black tracking-tighter italic"
+                    <span
+                        class="text-2xl font-black tracking-tighter italic uppercase bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-500"
                         >VTC HUB</span
                     >
                 </div>
 
-                <nav class="flex-1 space-y-2">
+                <nav
+                    class="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar"
+                >
                     {
                         navItems.map(
                             (item) =>
@@ -79,9 +84,9 @@ const navItems = [
                                 ) && (
                                     <a
                                         href={item.href}
-                                        class={`flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                                        class={`flex items-center px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${
                                             pathname === item.href
-                                                ? "bg-white/10 text-indigo-400 border border-white/5 shadow-xl"
+                                                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
                                                 : "text-slate-400 hover:bg-white/5 hover:text-white"
                                         }`}
                                     >
@@ -92,14 +97,14 @@ const navItems = [
                     }
                 </nav>
 
-                <div class="pt-6 border-t border-white/5 space-y-2">
+                <div class="pt-6 mt-6 border-t border-white/5 space-y-3">
                     {
                         safeProfile.tenant_role === "owner" && (
                             <a
                                 href="/app/settings"
-                                class={`flex items-center px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                class={`flex items-center px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     pathname === "/app/settings"
-                                        ? "bg-white/10 text-white border border-white/5"
+                                        ? "bg-white/10 text-white border border-white/10"
                                         : "text-slate-500 hover:bg-white/5 hover:text-white"
                                 }`}
                             >
@@ -109,26 +114,33 @@ const navItems = [
                     }
                     <button
                         id="logout-btn"
-                        class="w-full flex items-center px-4 py-3 rounded-xl hover:bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left"
-                        >Déconnexion</button
+                        class="w-full flex items-center px-4 py-4 rounded-2xl hover:bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left group"
                     >
+                        <span>Se déconnecter</span>
+                    </button>
                 </div>
             </aside>
 
-            <main class="flex-1 min-h-screen">
-                <!-- Top Nav Mobile -->
-                <nav
-                    class="md:hidden glass border-b border-white/5 p-4 flex justify-between items-center sticky top-0 z-50"
-                >
-                    <span class="font-black italic">VTC HUB</span>
-                    <button class="p-2 glass rounded-lg">MENU</button>
-                </nav>
-
-                <div class="p-8">
+            <!-- Contenu Principal Scrollable -->
+            <main class="flex-1 h-full overflow-y-auto relative bg-[#050505]">
+                <div class="max-w-7xl mx-auto p-12 min-h-full">
                     <slot />
                 </div>
             </main>
         </div>
+
+        <style is:global>
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 10px;
+            }
+        </style>
 
         <script>
             import { supabase } from "../lib/supabase";

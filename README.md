@@ -1,64 +1,195 @@
-# 🚖 VTC HUB — SaaS Multi-Tenant pour Chauffeurs VTC
+Parfait.
+Voici la **version propre et alignée V1** du `README.md`, sans section “reste à faire”, avec roadmap claire par versions.
 
-VTC HUB est une plateforme SaaS "Premium" permettant aux chauffeurs VTC de gérer leur activité, leurs tarifs et leurs courses dans un environnement multi-tenant sécurisé.
-
----
-
-## 🚀 Stack Technique
-
-- **Frontend & SSR** : [Astro](https://astro.build/) (Output: Server)
-- **Design** : Tailwind CSS + Park UI (Glassmorphism & Premium Dark Theme)
-- **Infrastructure** : [Cloudflare Pages](https://pages.cloudflare.com/)
-- **Backend & Database** : [Supabase](https://supabase.com/) (Postgres + Auth + RLS)
-- **Logique Métier** : Edge Functions & RPC Transactionnelles (PL/pgSQL)
+Tu peux remplacer ton README actuel par ceci.
 
 ---
 
-## 🏗️ Architecture & Sécurité
+# 🚖 VTC HUB — ERP SaaS pour Chauffeurs VTC
 
-- **Isolation Multi-Tenant** : Chaque chauffeur possède son propre `tenant_id`. L'isolation est garantie par des **Policies RLS** au niveau de la base de données.
-- **Middleware SSR** : Protection des routes en temps réel (Auth check, Onboarding status).
-- **Activation Atomique** : Le passage de l'onboarding au mode actif est géré par une transaction SQL unique pour garantir l'intégrité des données (Zéro création partielle).
+VTC HUB est un **ERP SaaS multi-tenant** conçu pour les chauffeurs VTC souhaitant structurer, piloter et développer leur activité.
 
----
+La plateforme fournit :
 
-## 🔄 Flux Utilisateur
+* Un **backoffice professionnel**
+* Un **moteur de réservation**
+* Une gestion tarifaire simple
+* Un site de réservation optionnel
+* Une architecture évolutive vers un ERP complet
 
-1. **Inscription** : Création du compte via Supabase Auth.
-2. **Onboarding** : Tunnel Premium en 3 étapes (Profil, Véhicule, Tarification).
-3. **Attente** : Dossier en staging (`status: pending`) en attente de validation admin.
-4. **Activation** : Création automatique du Tenant, Driver et Véhicule.
-5. **Dashboard** : Accès complet aux outils de gestion.
-
----
-
-## 📂 Documentation
-
-Pour plus de détails techniques, consulte le dossier [docs/](./docs) :
-
-- [🏗️ Architecture](./docs/architecture.md)
-- [🗄️ Base de données](./docs/database.md)
-- [🔐 Sécurité](./docs/security.md)
-- [🔄 Flux Systèmes](./docs/flows.md)
-- [🧠 Décisions d'Architecture](./docs/decisions.md)
-- [🔎 Checklist Audit](./docs/cheklist_audit.md)
+VTC HUB n’est pas une marketplace.
+Chaque chauffeur reste indépendant et encaisse directement ses paiements.
 
 ---
 
-## 🛠️ Installation & Développement
+# 🎯 Positionnement Produit
+
+VTC HUB est un **ERP VTC évolutif** :
+
+> Organisation, gestion et performance — sans intermédiaire financier.
+
+Chaque entreprise :
+
+* Possède son propre tenant sécurisé
+* Connecte son propre Stripe (optionnel)
+* Gère ses courses et son activité de manière autonome
+
+---
+
+# 🚀 Stack Technique
+
+* **Frontend & SSR** : Astro (Output: Server)
+* **Design** : Tailwind CSS
+* **Infrastructure** : Cloudflare Pages
+* **Backend & Database** : Supabase (Postgres + Auth + RLS)
+* **Logique métier critique** : RPC SQL transactionnelles (PL/pgSQL)
+
+---
+
+# 🏗️ Architecture & Sécurité
+
+## Multi-Tenant Strict
+
+Chaque entreprise est isolée via :
+
+```
+tenant_id
+```
+
+Isolation garantie par :
+
+* Row Level Security (RLS)
+* Middleware SSR
+* Guards backend
+* SERVICE_ROLE non exposée
+
+---
+
+## Activation Sécurisée
+
+Le passage de l’onboarding au statut actif est géré par une **transaction SQL atomique**, garantissant :
+
+* Création cohérente du tenant
+* Mise à jour du profile
+* Intégrité complète des données
+
+---
+
+# 🔄 Flux Utilisateur (V1)
+
+1. Inscription
+2. Onboarding (profil + véhicule + tarification)
+3. Validation admin
+4. Création automatique du tenant
+5. Accès au backoffice
+
+---
+
+# 📦 Fonctionnalités Actuelles — V1
+
+## 🔐 Auth & Structure
+
+* Multi-tenant sécurisé
+* Owner par défaut
+* Support multi-driver (structure prête)
+
+---
+
+## 🚗 Booking Engine V1
+
+* Création de course
+* Calcul automatique du prix (validation backend)
+* Statuts : pending / confirmed / completed / cancelled
+* Liste des courses
+* Historique complet
+
+---
+
+## 💰 Pricing
+
+* Base price
+* Price per km
+* Minimum fare
+
+---
+
+## 🚘 Véhicule
+
+* Catégorie
+* Capacité
+
+---
+
+## 💳 Paiement
+
+* Stripe optionnel
+* Chaque chauffeur connecte son propre compte Stripe
+* Aucun encaissement par la plateforme
+
+---
+
+## 📊 Dashboard V1
+
+* Courses du jour
+* Courses du mois
+* Chiffre brut
+* Historique des courses
+
+---
+
+# 🗺️ Roadmap Produit
+
+## 🚀 V1 — Base ERP Stable (Actuelle)
+
+* Multi-tenant sécurisé
+* Booking Engine fonctionnel
+* Pricing simple
+* Dashboard KPI
+* Stripe optionnel
+
+---
+
+## 📦 V2 — ERP Professionnel
+
+* Multi-driver avancé
+* Permissions fines
+* Assignation chauffeur
+* Facturation automatique
+* Génération PDF
+* Export comptable
+* Rapports mensuels
+
+---
+
+## 📊 V3 — ERP Financier Avancé
+
+* Suivi cash journalier / mensuel / annuel
+* Comptes rendus automatiques
+* Analytics détaillés
+* Gestion dépenses
+
+---
+
+## 🌐 V4 — Réseau & Cercle
+
+* Parrainage contrôlé
+* Cercle d’entreprises
+* Partage de courses
+* Commission réseau
+
+---
+
+# 🛠️ Installation & Développement
 
 ```bash
-# Installation des dépendances
 npm install
-
-# Lancement du serveur local
 npm run dev
-
-# Déploiement (Cloudflare)
 npm run build
 ```
 
 ---
 
-## 📜 Licence
-Projet privé — Tous droits réservés.
+# 📜 Licence
+
+Projet privé — ERP propriétaire.
+
