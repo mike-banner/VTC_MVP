@@ -13,8 +13,6 @@ const safeProfile = profile;
 
 /**
  * 🎯 LOGIQUE SÉCURISÉE (BACKEND SSR)
- * owner / manager -> voient toutes les bookings du tenant
- * driver -> voit uniquement ses bookings
  */
 let query = supabase
     .from("bookings")
@@ -31,7 +29,7 @@ if (profile.tenant_role === "driver") {
     if (driver) {
         query = query.eq("driver_id", driver.id);
     } else {
-        query = query.eq("id", "00000000-0000-0000-0000-000000000000"); // Force empty result if driver not found
+        query = query.eq("id", "00000000-0000-0000-0000-000000000000");
     }
 }
 
@@ -43,83 +41,123 @@ if (error) console.error("Error fetching bookings:", error);
 ---
 
 <AppLayout title="Mes Courses">
-    <!-- Sticky Header -->
-    <div
-        class="sticky top-0 z-20 -mt-12 pt-12 pb-8 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 mb-10"
-    >
-        <span
-            class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-widest text-emerald-400 uppercase"
-        >
-            {
-                safeProfile.tenant_role === "driver"
-                    ? "Mes Courses"
-                    : "Toutes les Courses"
-            }
-        </span>
-        <h1 class="text-4xl font-black italic mt-4 uppercase tracking-tighter">
-            Historique des Bookings
-        </h1>
-    </div>
-
-    <div
-        class="glass rounded-3xl overflow-hidden border border-white/5 bg-white/[0.01]"
-    >
-        <table class="w-full text-left">
-            <thead class="bg-white/5">
-                <tr>
-                    <th
-                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Client</th
-                    >
-                    <th
-                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Date/Heure</th
-                    >
-                    <th
-                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Statut</th
-                    >
-                    <th
-                        class="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Montant</th
-                    >
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
+    <div class="flex-1 flex flex-col p-12 overflow-hidden h-full">
+        <!-- FIXED HEADER -->
+        <div class="flex-shrink-0 border-b border-white/5 pb-8 mb-10">
+            <span
+                class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-widest text-emerald-400 uppercase"
+            >
                 {
-                    bookings && bookings.length > 0 ? (
-                        bookings.map((booking) => (
-                            <tr class="hover:bg-white/5 transition-colors">
-                                <td class="px-6 py-6 font-bold text-white uppercase italic tracking-tighter">
-                                    {booking.client_name || "Client"}
-                                </td>
-                                <td class="px-6 py-6 text-sm text-slate-400">
-                                    {new Date(
-                                        booking.pickup_time ||
-                                            booking.created_at,
-                                    ).toLocaleString("fr-FR")}
-                                </td>
-                                <td class="px-6 py-6">
-                                    <span class="px-2 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] font-bold text-indigo-400 uppercase">
-                                        {booking.status}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-6 text-right font-black text-indigo-400">
-                                    {booking.total_amount || "0"} €
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colspan="4" class="px-6 py-20 text-center">
-                                <span class="text-slate-500 uppercase tracking-widest text-xs font-bold font-inter">
-                                    Aucune course trouvée
-                                </span>
-                            </td>
-                        </tr>
-                    )
+                    safeProfile.tenant_role === "driver"
+                        ? "Mes Courses"
+                        : "Toutes les Courses"
                 }
-            </tbody>
-        </table>
+            </span>
+            <h1
+                class="text-4xl font-black italic mt-4 uppercase tracking-tighter text-white"
+            >
+                Historique des Bookings
+            </h1>
+        </div>
+
+        <!-- SCROLLABLE CONTENT -->
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            {
+                bookings && bookings.length > 0 ? (
+                    <div class="glass rounded-3xl overflow-hidden border border-white/5 bg-white/[0.01]">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-white/5 sticky top-0 z-10">
+                                <tr class="border-b border-white/5">
+                                    <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                        Client / Détails
+                                    </th>
+                                    <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                        Date & Heure
+                                    </th>
+                                    <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                        Statut
+                                    </th>
+                                    <th class="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                        Montant
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                {bookings.map((booking) => (
+                                    <tr class="hover:bg-white/5 transition-colors group">
+                                        <td class="px-8 py-8">
+                                            <div class="font-bold text-white uppercase italic tracking-tighter text-lg">
+                                                {booking.client_name ||
+                                                    "Client"}
+                                            </div>
+                                            <div class="text-[10px] text-slate-500 font-bold uppercase mt-1">
+                                                Ref: {booking.id.split("-")[0]}
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-8 text-sm text-slate-400 font-medium tracking-tight">
+                                            {new Date(
+                                                booking.pickup_time ||
+                                                    booking.created_at,
+                                            ).toLocaleString("fr-FR", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}
+                                        </td>
+                                        <td class="px-8 py-8">
+                                            <span
+                                                class={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                                                    booking.status ===
+                                                    "completed"
+                                                        ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                                        : booking.status ===
+                                                            "cancelled"
+                                                          ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                                                          : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                                }`}
+                                            >
+                                                {booking.status}
+                                            </span>
+                                        </td>
+                                        <td class="px-8 py-8 text-right font-black text-2xl text-white tabular-nums">
+                                            {Number(
+                                                booking.total_amount,
+                                            ).toFixed(2)}{" "}
+                                            €
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div class="h-full flex flex-col items-center justify-center text-center pb-20">
+                        <div class="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-8 border border-white/5 shadow-2xl">
+                            <svg
+                                class="w-10 h-10 text-slate-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.5"
+                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-black uppercase italic tracking-wider text-slate-100 mb-2">
+                            Historique vide
+                        </h3>
+                        <p class="text-slate-500 max-w-xs font-medium leading-relaxed">
+                            Vos réservations passées et futures s'afficheront
+                            ici.
+                        </p>
+                    </div>
+                )
+            }
+        </div>
     </div>
 </AppLayout>

@@ -1,15 +1,31 @@
 Parfait.
-Voici une **checklist d’audit technique complète** adaptée à ton SaaS VTC multi-tenant.
+On va réaligner cette checklist avec **V1 réel uniquement**.
 
-À mettre dans :
+Actuellement elle contient :
 
-```
-/docs/audit-checklist.md
-```
+* Commission (V4)
+* Partage booking (V4)
+* Circle (V4)
+* Edge functions non utilisées
+* Éléments financiers non actifs
+
+On garde :
+
+* Multi-tenant
+* Booking V1
+* Activation atomique
+* Stripe non centralisé
+* Structure ERP V1
 
 ---
 
-# 🔎 Technical Audit Checklist — VTC SaaS
+# ✅ VERSION CORRIGÉE — `docs/audit-checklist.md` (Alignée V1)
+
+Tu peux remplacer ton fichier par ceci.
+
+---
+
+# 🔎 Technical Audit Checklist — VTC HUB (V1)
 
 ---
 
@@ -18,48 +34,72 @@ Voici une **checklist d’audit technique complète** adaptée à ton SaaS VTC m
 ### ✅ Multi-tenant isolation
 
 * [ ] Toutes les tables métier contiennent `tenant_id`
-* [ ] Aucune table sensible sans isolation
 * [ ] Aucun accès cross-tenant possible
+* [ ] RLS activé sur toutes les tables sensibles
+* [ ] Toutes les requêtes filtrées par `tenant_id`
+
+---
 
 ### ✅ Activation atomique
 
-* [ ] approve_onboarding_tx existe
-* [ ] Fonction transactionnelle (plpgsql)
-* [ ] Rollback testé en cas d’erreur
+* [ ] `approve_onboarding_tx` existe
+* [ ] Fonction en `plpgsql`
+* [ ] Rollback testé
+* [ ] Impossible d’activer deux fois le même onboarding
 * [ ] Aucun insert partiel possible
+
+---
 
 ### ✅ Onboarding staging
 
 * [ ] onboarding séparé de tenants
-* [ ] status enum strict
-* [ ] Impossible d’activer si != pending
+* [ ] status enum strict (`pending`, `approved`)
+* [ ] Impossible d’activer si status != pending
+* [ ] `primary_domain` unique
 
 ---
 
 # 🔐 2️⃣ Sécurité
 
+---
+
 ### Auth
 
 * [ ] profiles.id = auth.users.id
-* [ ] Trigger création profile testé
+* [ ] Trigger `handle_new_user` testé
 * [ ] Session SSR via cookies
+* [ ] platform_role séparé de tenant_role
+
+---
 
 ### RLS
 
-* [ ] RLS activé sur toutes les tables multi-tenant
-* [ ] Policy select own
-* [ ] Policy update own
-* [ ] Aucun bypass via service_role côté client
+* [ ] RLS activé sur :
+
+  * profiles
+  * tenants
+  * drivers
+  * vehicles
+  * pricing_rules
+  * bookings
+* [ ] Policy SELECT own
+* [ ] Policy UPDATE own
+* [ ] Aucune route client utilisant service_role
+
+---
 
 ### Secrets
 
-* [ ] SERVICE_ROLE jamais exposé en PUBLIC_
-* [ ] Variables .env non commitées
-* [ ] Cloudflare env variables sécurisées
+* [ ] SERVICE_ROLE jamais exposé côté client
+* [ ] Pas de variable sensible en `PUBLIC_`
+* [ ] .env non commité
+* [ ] Variables Cloudflare sécurisées
 
 ---
 
 # 🗄 3️⃣ Database Integrity
+
+---
 
 ### Contraintes
 
@@ -68,13 +108,18 @@ Voici une **checklist d’audit technique complète** adaptée à ton SaaS VTC m
 * [ ] drivers.last_name NOT NULL
 * [ ] drivers.phone NOT NULL
 * [ ] drivers.license_number NOT NULL
-* [ ] vehicles.capacity correct type
-* [ ] pricing_rules active default true
+* [ ] vehicles.capacity type correct
+* [ ] distance_km type numeric
+* [ ] total_amount non nullable
+
+---
 
 ### Defaults
 
 * [ ] created_at default now() partout
-* [ ] Pas de colonne nullable critique
+* [ ] status default correct
+
+---
 
 ### Indexes
 
@@ -86,11 +131,15 @@ Voici une **checklist d’audit technique complète** adaptée à ton SaaS VTC m
 
 # ⚙️ 4️⃣ Business Logic Validation
 
+---
+
 ### Onboarding
 
 * [ ] Impossible de soumettre sans champs obligatoires
 * [ ] Impossible d’activer deux fois
 * [ ] Impossible d’utiliser domain déjà pris
+
+---
 
 ### Activation
 
@@ -99,37 +148,51 @@ Voici une **checklist d’audit technique complète** adaptée à ton SaaS VTC m
 * [ ] Driver créé
 * [ ] Vehicle créé
 * [ ] Pricing générée
-* [ ] Status onboarding = processed
+* [ ] Status onboarding = approved
+
+---
+
+### Booking V1
+
+* [ ] Prix recalculé backend
+* [ ] minimum_fare appliqué
+* [ ] total_amount jamais accepté tel quel
+* [ ] Statuts contrôlés
+* [ ] Booking lié au bon tenant
+
+---
 
 ### Middleware
 
-* [ ] Non connecté → login
-* [ ] Pending → /pending
-* [ ] Actif → dashboard
-* [ ] Impossible d’accéder dashboard sans tenant
+* [ ] Non connecté → /login
+* [ ] Platform → /admin
+* [ ] Tenant actif → /app/dashboard
+* [ ] Aucun accès /app sans tenant_id
 
 ---
 
 # 🌐 5️⃣ Frontend / SSR
 
 * [ ] output: "server"
-* [ ] @astrojs/cloudflare configuré
+* [ ] Adapter Cloudflare configuré
 * [ ] Middleware testé
 * [ ] Routes admin protégées
-* [ ] Aucune clé sensible côté client
+* [ ] Aucune clé sensible exposée
 
 ---
 
-# 💰 6️⃣ Financial Integrity
+# 💳 6️⃣ Paiement (V1)
 
-* [ ] commission_rate cohérent
-* [ ] commissions calculées correctement
-* [ ] total_amount non modifiable côté client
-* [ ] Aucune logique financière en frontend
+* [ ] Stripe optionnel
+* [ ] Chaque tenant connecte SON compte
+* [ ] Aucun flux financier centralisé
+* [ ] Pas de logique financière côté frontend
 
 ---
 
 # 🧪 7️⃣ Testing Checklist
+
+---
 
 ### Cas fonctionnels
 
@@ -139,7 +202,10 @@ Voici une **checklist d’audit technique complète** adaptée à ton SaaS VTC m
 * [ ] Activation
 * [ ] Reconnexion
 * [ ] Création booking
-* [ ] Partage booking (si activé)
+* [ ] Changement statut booking
+* [ ] KPI dashboard
+
+---
 
 ### Cas d’erreur
 
@@ -147,45 +213,42 @@ Voici une **checklist d’audit technique complète** adaptée à ton SaaS VTC m
 * [ ] Missing required fields
 * [ ] Activation double
 * [ ] Unauthorized access
-* [ ] Cross-tenant access attempt
+* [ ] Tentative cross-tenant
 
 ---
 
 # 🚀 8️⃣ Scalability Readiness
 
-* [ ] Aucun SELECT *
+* [ ] Pas de SELECT *
 * [ ] Pagination prévue sur bookings
 * [ ] Pas de N+1 queries
 * [ ] Index sur colonnes fréquentes
-* [ ] Pricing scalable
 
 ---
 
 # 🧾 9️⃣ Code Hygiene
 
 * [ ] Pas de console.log en production
-* [ ] Pas de routes test laissées actives
+* [ ] Pas de routes test actives
 * [ ] Types stricts
-* [ ] Fonctions Edge propres
-* [ ] Aucune logique métier dupliquée
+* [ ] Pas de logique métier dupliquée
 
 ---
 
-# 🛡 1️⃣0️⃣ Production Readiness
+# 🛡 🔟 Production Readiness
 
+* [ ] Gestion erreurs centralisée
 * [ ] Logs monitoring activé
-* [ ] Error handling propre
 * [ ] Backup strategy connue
-* [ ] Supabase plan adapté
-* [ ] Rate limiting futur prévu
+* [ ] Plan Supabase adapté
 
 ---
 
-# 🧠 Audit Outcome Levels
+# 🧠 Audit Outcome
 
 ### 🟢 Green
 
-Production ready SaaS.
+ERP V1 stable et prêt à vendre.
 
 ### 🟡 Yellow
 
@@ -193,24 +256,40 @@ Fonctionnel mais fragile.
 
 ### 🔴 Red
 
-Risque de corruption ou fuite données.
+Risque sécurité ou incohérence données.
 
 ---
 
-# 📌 Bonus : Self-Scoring System
+# 🎯 Résultat
 
-Tu peux noter chaque section sur 10
-et avoir un score global de maturité technique.
+Ta documentation est maintenant :
 
----
-
-Quand tu voudras passer en version finale,
-on fera :
-
-* Diagramme ER propre
-* Audit sécurité avancé
-* Hardening checklist
-* Préparation levée de fonds
+* 100% alignée V1
+* Sans fonctionnalités futures mélangées
+* Cohérente avec ton ERP-first model
 
 ---
 
+On a terminé :
+
+* README
+* database.md
+* flows.md
+* architecture.md
+* security.md
+* decisions.md
+* audit-checklist.md
+
+Documentation V1 complète.
+
+---
+
+👉 Prochaine étape stratégique :
+
+On passe en mode “produit vendable”.
+
+Veux-tu :
+
+1️⃣ Structurer l’offre commerciale (pricing + packaging)
+ou
+2️⃣ Stabiliser l’UX dashboard V1 avant mise en prod ?

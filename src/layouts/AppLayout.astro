@@ -121,11 +121,11 @@ const navItems = [
                 </div>
             </aside>
 
-            <!-- Contenu Principal Scrollable -->
-            <main class="flex-1 h-full overflow-y-auto relative bg-[#050505]">
-                <div class="max-w-7xl mx-auto p-12 min-h-full">
-                    <slot />
-                </div>
+            <!-- Contenu Principal -->
+            <main
+                class="flex-1 h-full relative bg-[#050505] flex flex-col overflow-hidden"
+            >
+                <slot />
             </main>
         </div>
 

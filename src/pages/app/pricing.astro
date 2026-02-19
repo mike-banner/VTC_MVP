@@ -14,62 +14,80 @@ try {
 ---
 
 <AppLayout title="Gestion Pricing">
-    <div class="flex items-center justify-between mb-12">
-        <div>
-            <span
-                class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
-                >Gestion</span
-            >
-            <h1
-                class="text-4xl font-black italic mt-4 uppercase tracking-tighter"
-            >
-                Grille Tarifaire
-            </h1>
-        </div>
-        <button
-            class="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all"
-            >Ajouter une règle</button
+    <div class="flex-1 flex flex-col p-12 overflow-hidden h-full">
+        <!-- FIXED TOP SECTION -->
+        <div
+            class="flex items-center justify-between mb-12 flex-shrink-0 border-b border-white/5 pb-10"
         >
-    </div>
+            <div>
+                <span
+                    class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
+                    >Gestion</span
+                >
+                <h1
+                    class="text-4xl font-black italic mt-4 uppercase tracking-tighter text-white"
+                >
+                    Grille Tarifaire
+                </h1>
+            </div>
+            <button
+                class="px-6 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all"
+            >
+                Ajouter une règle
+            </button>
+        </div>
 
-    <div class="glass rounded-3xl overflow-hidden border border-white/5">
-        <table class="w-full text-left">
-            <thead class="bg-white/5">
-                <tr>
-                    <th
-                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Nom</th
-                    >
-                    <th
-                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Base</th
-                    >
-                    <th
-                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Prix/KM</th
-                    >
-                    <th
-                        class="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Actions</th
-                    >
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5 text-sm text-slate-300">
-                <tr class="hover:bg-white/5 transition-colors">
-                    <td
-                        class="px-6 py-6 font-bold text-white uppercase italic tracking-tighter"
-                        >Tarif Standard</td
-                    >
-                    <td class="px-6 py-6">10.00 €</td>
-                    <td class="px-6 py-6">2.50 €</td>
-                    <td class="px-6 py-6 text-right">
-                        <button
-                            class="text-indigo-400 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
-                            >Modifier</button
-                        >
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <!-- SCROLLABLE CONTENT -->
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div
+                class="glass rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/[0.01]"
+            >
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-white/5 sticky top-0 z-10">
+                        <tr class="border-b border-white/5">
+                            <th
+                                class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                                >Nom du Tarif</th
+                            >
+                            <th
+                                class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                                >Prise en Charge</th
+                            >
+                            <th
+                                class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                                >Prix au Kilomètre</th
+                            >
+                            <th
+                                class="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
+                                >Actions</th
+                            >
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td
+                                class="px-8 py-8 font-bold text-white uppercase italic tracking-tighter text-lg"
+                                >Tarif Standard</td
+                            >
+                            <td
+                                class="px-8 py-8 text-white font-medium tabular-nums text-lg"
+                                >10.00 €</td
+                            >
+                            <td
+                                class="px-8 py-8 text-white font-medium tabular-nums text-lg"
+                                >2.50 €</td
+                            >
+                            <td class="px-8 py-8 text-right">
+                                <button
+                                    class="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5"
+                                >
+                                    Modifier
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </AppLayout>
