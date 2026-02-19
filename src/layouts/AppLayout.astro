@@ -9,11 +9,31 @@ interface Props {
 
 const { title } = Astro.props;
 const { profile } = Astro.locals;
+const pathname = new URL(Astro.request.url).pathname;
 
 // Sécurité supplémentaire au niveau du layout
 if (!isTenant(profile)) {
     return Astro.redirect("/onboarding");
 }
+
+// Pour satisfaire TypeScript car isTenant garantit qu'il n'est pas nul
+const safeProfile = profile!;
+
+const navItems = [
+    {
+        label: "Tableau de bord",
+        href: "/app/dashboard",
+        roles: ["owner", "manager", "driver"],
+    },
+    {
+        label: "Courses",
+        href: "/app/bookings",
+        roles: ["owner", "manager", "driver"],
+    },
+    { label: "Chauffeurs", href: "/app/drivers", roles: ["owner", "manager"] },
+    { label: "Véhicules", href: "/app/vehicles", roles: ["owner", "manager"] },
+    { label: "Pricing", href: "/app/pricing", roles: ["owner", "manager"] },
+];
 ---
 
 <!doctype html>
@@ -51,42 +71,45 @@ if (!isTenant(profile)) {
                 </div>
 
                 <nav class="flex-1 space-y-2">
-                    <a
-                        href="/app/dashboard"
-                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
-                        >Tableau de bord</a
-                    >
-                    <a
-                        href="/app/bookings"
-                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
-                        >Courses</a
-                    >
-                    <a
-                        href="/app/drivers"
-                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
-                        >Chauffeurs</a
-                    >
-                    <a
-                        href="/app/vehicles"
-                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
-                        >Véhicules</a
-                    >
-                    <a
-                        href="/app/pricing"
-                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
-                        >Pricing</a
-                    >
+                    {
+                        navItems.map(
+                            (item) =>
+                                item.roles.includes(
+                                    safeProfile.tenant_role,
+                                ) && (
+                                    <a
+                                        href={item.href}
+                                        class={`flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                                            pathname === item.href
+                                                ? "bg-white/10 text-indigo-400 border border-white/5 shadow-xl"
+                                                : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                        }`}
+                                    >
+                                        {item.label}
+                                    </a>
+                                ),
+                        )
+                    }
                 </nav>
 
                 <div class="pt-6 border-t border-white/5 space-y-2">
-                    <a
-                        href="/app/settings"
-                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
-                        >Paramètres</a
-                    >
+                    {
+                        safeProfile.tenant_role === "owner" && (
+                            <a
+                                href="/app/settings"
+                                class={`flex items-center px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    pathname === "/app/settings"
+                                        ? "bg-white/10 text-white border border-white/5"
+                                        : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                }`}
+                            >
+                                Paramètres
+                            </a>
+                        )
+                    }
                     <button
                         id="logout-btn"
-                        class="w-full flex items-center px-4 py-3 rounded-xl hover:bg-red-500/10 text-xs font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left"
+                        class="w-full flex items-center px-4 py-3 rounded-xl hover:bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left"
                         >Déconnexion</button
                     >
                 </div>
