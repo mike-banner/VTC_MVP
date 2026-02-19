@@ -108,7 +108,7 @@ if (!isTenant(profile)) {
         </div>
 
         <script>
-            import { supabase } from "../../lib/supabase";
+            import { supabase } from "../lib/supabase";
             const logoutBtn = document.querySelector("#logout-btn");
             logoutBtn?.addEventListener("click", async () => {
                 await supabase.auth.signOut();
