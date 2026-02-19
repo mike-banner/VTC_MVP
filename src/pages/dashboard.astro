@@ -1,21 +1,49 @@
 ---
 // src/pages/dashboard.astro
 import MainLayout from "../layouts/MainLayout.astro";
+import { hasTenantRole } from "../lib/rbac";
+
+const { profile } = Astro.locals;
 ---
 
 <MainLayout title="Dashboard">
     <div class="max-w-7xl mx-auto px-6 py-12">
         <div class="flex items-center justify-between mb-12">
-            <h1 class="text-3xl font-black">Tableau de bord</h1>
+            <div>
+                <span
+                    class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
+                    >{profile?.tenant_role || "Chauffeur"}</span
+                >
+                <h1 class="text-3xl font-black mt-2">Tableau de bord</h1>
+            </div>
             <div class="flex gap-4">
-                <button
-                    class="px-6 py-2 glass rounded-xl text-sm font-bold hover:bg-white/5 transition-all"
-                    >Statistiques</button
+                <a
+                    href="/bookings"
+                    class="px-6 py-2 glass rounded-xl text-sm font-bold hover:bg-white/5 transition-all flex items-center"
+                    >Mes Courses</a
                 >
-                <button
-                    class="px-6 py-2 bg-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20"
-                    >Nouvelle Course</button
-                >
+
+                {
+                    hasTenantRole(profile, ["owner", "manager"]) && (
+                        <a
+                            href="/pricing"
+                            class="px-6 py-2 glass rounded-xl text-sm font-bold hover:bg-white/5 transition-all flex items-center"
+                        >
+                            Pricing
+                        </a>
+                    )
+                }
+
+                {
+                    hasTenantRole(profile, ["owner"]) && (
+                        <a
+                            href="/settings"
+                            class="px-6 py-2 glass rounded-xl text-sm font-bold hover:bg-white/5 transition-all flex items-center border border-indigo-500/20"
+                        >
+                            Settings
+                        </a>
+                    )
+                }
             </div>
         </div>
 

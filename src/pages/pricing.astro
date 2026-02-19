@@ -1,0 +1,77 @@
+---
+// src/pages/pricing.astro
+import MainLayout from "../layouts/MainLayout.astro";
+import { requireTenantRole } from "../lib/rbac";
+
+const { profile } = Astro.locals;
+
+// Protection Guard : Owner + Manager
+try {
+    requireTenantRole(profile, ["owner", "manager"]);
+} catch (e) {
+    return Astro.redirect("/dashboard");
+}
+---
+
+<MainLayout title="Gestion Pricing">
+    <div class="max-w-5xl mx-auto px-6 py-12">
+        <div class="flex items-center justify-between mb-12">
+            <div>
+                <span
+                    class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
+                    >Gestion</span
+                >
+                <h1
+                    class="text-4xl font-black italic mt-4 uppercase tracking-tighter"
+                >
+                    Grille Tarifaire
+                </h1>
+            </div>
+            <button
+                class="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all"
+                >Ajouter une règle</button
+            >
+        </div>
+
+        <div class="glass rounded-3xl overflow-hidden border border-white/5">
+            <table class="w-full text-left">
+                <thead class="bg-white/5">
+                    <tr>
+                        <th
+                            class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                            >Nom</th
+                        >
+                        <th
+                            class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                            >Base</th
+                        >
+                        <th
+                            class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                            >Prix/KM</th
+                        >
+                        <th
+                            class="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
+                            >Actions</th
+                        >
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-sm text-slate-300">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td
+                            class="px-6 py-6 font-bold text-white uppercase italic tracking-tighter"
+                            >Tarif Standard</td
+                        >
+                        <td class="px-6 py-6">10.00 €</td>
+                        <td class="px-6 py-6">2.50 €</td>
+                        <td class="px-6 py-6 text-right">
+                            <button
+                                class="text-indigo-400 hover:text-white transition-colors"
+                                >Modifier</button
+                            >
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</MainLayout>

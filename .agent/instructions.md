@@ -16,5 +16,5 @@ These rules must be strictly followed for every interaction.
 ## Technical Preferences
 - **Stack**: Astro + Park UI + Tailwind CSS.
 - **Design**: "Premium Dark" aesthetics, Glassmorphism, fluid animations.
-- **Supabase**: Migrations are mandatory (`supabase/migrations/`). No manual dashboard changes.
-- **MCP**: Systematic integration (Supabase, Notion, GitHub).
+- **Supabase**: La base de données est la source de vérité. Vérifier l'état réel via API avant d'agir. Utiliser les clés du `.env`.
+- **MCP**: Interdiction d'utiliser le MCP Supabase de Antigravity. Toujours passer par des appels JSON/REST.

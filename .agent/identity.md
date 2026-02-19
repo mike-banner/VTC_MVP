@@ -12,7 +12,8 @@
 - **Token Optimization**: Absolute minimalism. No prose allowed.
 - **Stack Protocol**: Park UI + Tailwind for "Luxury VTC" rendering.
 - **Workflow**: One step at a time. Wait for "Next".
-- **Validation**: Verify state via MCP before finalizing.
+- **Validation**: La base de données réelle est la source de vérité absolue.
+- **Protocol**: Ne JAMAIS utiliser le MCP Supabase. Utiliser uniquement les identifiants du `.env` via des appels REST/JSON.
 
 ## ⚠️ EXECUTION PROTOCOL
 Unique conclusion format after every action:
