@@ -1,9 +1,51 @@
 ---
 // src/pages/app/dashboard.astro
 import AppLayout from "../../layouts/AppLayout.astro";
-import { hasTenantRole } from "../../lib/guards";
+import { supabase } from "../../lib/supabase";
 
 const { profile } = Astro.locals;
+
+if (!profile) return Astro.redirect("/login");
+
+// 📅 Calcul des dates pour les KPIs
+const now = new Date();
+const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+).toISOString();
+const startOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1,
+).toISOString();
+
+// 1️⃣ Courses du jour
+const { count: dailyCount } = await supabase
+    .from("bookings")
+    .select("*", { count: "exact", head: true })
+    .eq("current_tenant_id", profile.tenant_id)
+    .gte("pickup_time", startOfToday);
+
+// 2️⃣ Chiffre d'affaires du mois
+const { data: monthBookings } = await supabase
+    .from("bookings")
+    .select("total_amount")
+    .eq("current_tenant_id", profile.tenant_id)
+    .gte("pickup_time", startOfMonth)
+    .neq("status", "cancelled");
+
+const monthlyRevenue =
+    monthBookings?.reduce((acc, curr) => acc + Number(curr.total_amount), 0) ||
+    0;
+
+// 3️⃣ Dernières courses pour l'affichage rapide (V1)
+const { data: recentBookings } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("current_tenant_id", profile.tenant_id)
+    .order("created_at", { ascending: false })
+    .limit(5);
 ---
 
 <AppLayout title="Dashboard">
@@ -18,22 +60,42 @@ const { profile } = Astro.locals;
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div
+            class="glass p-8 rounded-3xl border border-white/5 transition-all hover:border-indigo-500/30 group"
+        >
+            <p
+                class="text-slate-500 text-sm font-bold uppercase tracking-widest mb-2 group-hover:text-indigo-400 transition-colors"
+            >
+                CA du Mois
+            </p>
+            <p class="text-4xl font-black">
+                {
+                    monthlyRevenue.toLocaleString("fr-FR", {
+                        minimumFractionDigits: 2,
+                    })
+                } €
+            </p>
+            <div
+                class="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-tighter"
+            >
+                Cumul depuis le 1er du mois
+            </div>
+        </div>
+
         <div class="glass p-8 rounded-3xl border border-white/5">
             <p
                 class="text-slate-500 text-sm font-bold uppercase tracking-widest mb-2"
             >
-                Chiffre d'Affaires
+                Courses du Jour
             </p>
-            <p class="text-4xl font-black">0.00 €</p>
-        </div>
-        <div class="glass p-8 rounded-3xl border border-white/5">
-            <p
-                class="text-slate-500 text-sm font-bold uppercase tracking-widest mb-2"
+            <p class="text-4xl font-black">{dailyCount || 0}</p>
+            <div
+                class="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-tighter"
             >
-                Courses Terminées
-            </p>
-            <p class="text-4xl font-black">0</p>
+                Aujourd'hui
+            </div>
         </div>
+
         <div class="glass p-8 rounded-3xl border border-white/5">
             <p
                 class="text-slate-500 text-sm font-bold uppercase tracking-widest mb-2"
@@ -43,35 +105,81 @@ const { profile } = Astro.locals;
             <p class="text-4xl font-black">
                 5.0 <span class="text-indigo-500 text-xl">★</span>
             </p>
+            <div
+                class="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-tighter"
+            >
+                Basé sur les derniers avis
+            </div>
         </div>
     </div>
 
-    <div
-        class="mt-12 glass p-10 rounded-3xl border border-white/5 min-h-[400px] flex flex-col items-center justify-center text-center"
-    >
-        <div
-            class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6"
-        >
-            <svg
-                class="w-8 h-8 text-slate-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                ></path>
-            </svg>
-        </div>
-        <h3 class="text-xl font-bold mb-2 uppercase italic tracking-wider">
-            Aucune course pour le moment
-        </h3>
-        <p class="text-slate-500 max-w-sm">
-            Votre compte est actif. Vos futures courses s'afficheront ici en
-            temps réel.
-        </p>
-    </div>
+    {
+        recentBookings && recentBookings.length > 0 ? (
+            <div class="mt-12">
+                <h3 class="text-xl font-bold mb-6 uppercase italic tracking-tighter">
+                    Dernières Activités
+                </h3>
+                <div class="glass rounded-3xl overflow-hidden border border-white/5">
+                    <table class="w-full text-left">
+                        <tbody class="divide-y divide-white/5">
+                            {recentBookings.map((booking) => (
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    <td class="px-8 py-6">
+                                        <div class="font-bold text-white uppercase italic tracking-tighter">
+                                            {booking.client_name}
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 font-bold uppercase mt-1">
+                                            {booking.pickup_address}
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <span
+                                            class={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${
+                                                booking.status === "completed"
+                                                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                                    : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                            }`}
+                                        >
+                                            {booking.status}
+                                        </span>
+                                        <div class="mt-2 font-black text-white">
+                                            {Number(
+                                                booking.total_amount,
+                                            ).toFixed(2)}{" "}
+                                            €
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        ) : (
+            <div class="mt-12 glass p-10 rounded-3xl border border-white/5 min-h-[400px] flex flex-col items-center justify-center text-center">
+                <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6">
+                    <svg
+                        class="w-8 h-8 text-slate-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold mb-2 uppercase italic tracking-wider">
+                    Aucune course pour le moment
+                </h3>
+                <p class="text-slate-500 max-w-sm">
+                    Votre compte est actif. Vos futures courses s'afficheront
+                    ici en temps réel.
+                </p>
+            </div>
+        )
+    }
 </AppLayout>

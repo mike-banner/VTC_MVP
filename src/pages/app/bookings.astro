@@ -9,20 +9,35 @@ if (!profile || !user) {
     return Astro.redirect("/login");
 }
 
-// Récupération des bookings avec filtrage intelligent selon le rôle
+/**
+ * 🎯 LOGIQUE SÉCURISÉE (BACKEND SSR)
+ * owner / manager -> voient toutes les bookings du tenant
+ * driver -> voit uniquement ses bookings
+ */
 let query = supabase
     .from("bookings")
-    .select("*, drivers!inner(*)")
-    .eq("tenant_id", profile.tenant_id);
+    .select("*")
+    .eq("current_tenant_id", profile.tenant_id);
 
-// Si l'utilisateur est un simple chauffeur (driver), il ne voit QUE ses courses
 if (profile.tenant_role === "driver") {
-    query = query.eq("driver_id", user.id);
+    const { data: driver } = await supabase
+        .from("drivers")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+    if (driver) {
+        query = query.eq("driver_id", driver.id);
+    } else {
+        query = query.eq("id", "00000000-0000-0000-0000-000000000000"); // Force empty result if driver not found
+    }
 }
 
-const { data: bookings } = await query.order("created_at", {
+const { data: bookings, error } = await query.order("created_at", {
     ascending: false,
 });
+
+if (error) console.error("Error fetching bookings:", error);
 ---
 
 <AppLayout title="Mes Courses">
@@ -47,7 +62,7 @@ const { data: bookings } = await query.order("created_at", {
                 <tr>
                     <th
                         class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Passager</th
+                        >Client</th
                     >
                     <th
                         class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
@@ -59,7 +74,7 @@ const { data: bookings } = await query.order("created_at", {
                     >
                     <th
                         class="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
-                        >Prix est.</th
+                        >Montant</th
                     >
                 </tr>
             </thead>
@@ -69,11 +84,12 @@ const { data: bookings } = await query.order("created_at", {
                         bookings.map((booking) => (
                             <tr class="hover:bg-white/5 transition-colors">
                                 <td class="px-6 py-6 font-bold text-white uppercase italic tracking-tighter">
-                                    {booking.passenger_name || "Anonyme"}
+                                    {booking.client_name || "Client"}
                                 </td>
                                 <td class="px-6 py-6 text-sm text-slate-400">
                                     {new Date(
-                                        booking.created_at,
+                                        booking.pickup_time ||
+                                            booking.created_at,
                                     ).toLocaleString("fr-FR")}
                                 </td>
                                 <td class="px-6 py-6">
@@ -82,7 +98,7 @@ const { data: bookings } = await query.order("created_at", {
                                     </span>
                                 </td>
                                 <td class="px-6 py-6 text-right font-black text-indigo-400">
-                                    {booking.total_price || "0"} €
+                                    {booking.total_amount || "0"} €
                                 </td>
                             </tr>
                         ))
