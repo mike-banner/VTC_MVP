@@ -1,56 +1,34 @@
 // src/middleware.ts
 import { createServerClient, parseCookieHeader } from '@supabase/ssr'
 import { defineMiddleware } from 'astro:middleware'
+import { isPlatform, isTenant } from './lib/guards'
 
 export const onRequest = defineMiddleware(async ({ cookies, request, redirect, locals }, next) => {
   const url = new URL(request.url)
-  const authRoutes = ['/app/', '/admin/', '/onboarding', '/waiting-approval']
-  const isAuthRoute = authRoutes.some(route => url.pathname.startsWith(route))
+  const path = url.pathname
+
+  // Ne protéger que les routes SaaS sensibles
+  const authRoutes = ['/app', '/admin', '/onboarding', '/waiting-approval']
+  const isAuthRoute = authRoutes.some(route => path.startsWith(route))
 
   if (!isAuthRoute) {
     return next()
   }
 
-  // 1. Initialiser le client Supabase SSR
   const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        getAll() {
-          return parseCookieHeader(request.headers.get("Cookie") ?? "").map(
-            (c) => ({
-              name: c.name,
-              value: c.value ?? "",
-            }),
-          );
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookies.set(name, value, options),
-          );
-        },
+        getAll: () => parseCookieHeader(request.headers.get("Cookie") ?? "").map(c => ({ name: c.name, value: c.value ?? "" })),
+        setAll: (cookiesToSet) => cookiesToSet.forEach(({ name, value, options }) => cookies.set(name, value, options)),
       },
     },
   )
 
-  // 2. Vérifier la session
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return redirect("/login")
 
-  // Routes d'authentification (accessibles uniquement si non connecté)
-  const isAuthPage = url.pathname === '/login' || url.pathname === '/signup'
-
-  // Si pas de session et tente d'accéder à une route SaaS -> Login
-  if (!user && isAuthRoute) {
-    return redirect("/login");
-  }
-
-  // Si pas de session et pas une route protégée -> OK
-  if (!user) {
-    return next();
-  }
-
-  // 3. Récupérer le profil et l'onboarding en PARALLÈLE pour gagner en vitesse
   const [profileResult, onboardingResult] = await Promise.all([
     supabase.from("profiles").select("tenant_id, platform_role, tenant_role").eq("id", user.id).maybeSingle(),
     supabase.from("onboarding").select("status").eq("profile_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle()
@@ -59,48 +37,33 @@ export const onRequest = defineMiddleware(async ({ cookies, request, redirect, l
   const profile = profileResult.data;
   const onboarding = onboardingResult.data;
 
-  // 📦 Stocker dans locals pour accès direct dans les pages .astro
   (locals as any).user = user;
   (locals as any).profile = profile;
 
-  // 🧱 LOGIQUE DE REDIRECTION INTELLIGENTE
-  
-  // Cas 1 : Administrateur Plateforme (Priorité Haute)
-  if (profile?.platform_role) {
-    if (isAuthPage || (isAuthRoute && !url.pathname.startsWith('/admin'))) {
-      return redirect('/admin');
-    }
-    return next();
+  // 1. Logique Plateforme (Priorité 1)
+  if (isPlatform(profile)) {
+    if (path.startsWith('/admin')) return next();
+    return redirect('/admin');
   }
 
-  // Cas 2 : Chauffeur avec Tenant Actif
-  if (profile?.tenant_id) {
-    if (isAuthPage || url.pathname === '/onboarding' || url.pathname === '/waiting-approval' || url.pathname === '/admin') {
-      return redirect('/app/dashboard');
-    }
-    return next();
+  // 2. Logique Tenant (Priorité 2)
+  if (isTenant(profile)) {
+    if (path.startsWith('/app')) return next();
+    return redirect('/app/dashboard');
   }
 
-  // 🧱 PROTECTION STRICTE /DASHBOARD ET AUTRES ROUTES
-  // Si on essaie d'accéder au dashboard (ou autre route protégée) sans tenant_id
-  if (!profile?.tenant_id) {
-    // Cas A : Aucun onboarding commencé -> DIRECTION ONBOARDING
-    if (!onboarding) {
-      if (url.pathname !== '/onboarding') return redirect('/onboarding');
-      return next();
-    }
-
-    // Cas B : Dossier soumis et en cours de vérification -> DIRECTION ATTENTE
-    if (onboarding.status === 'pending') {
-      if (url.pathname !== '/waiting-approval') return redirect('/waiting-approval');
-      return next();
-    }
-
-    // Cas C : Le dossier est traité mais pas encore synchronisé ou autre état
-    if (url.pathname !== '/onboarding') {
-      return redirect('/onboarding');
-    }
+  // 3. Logique Onboarding (Priorité 3)
+  if (!onboarding) {
+    if (path === '/onboarding') return next();
+    return redirect('/onboarding');
   }
+
+  if (onboarding.status === 'pending') {
+    if (path === '/waiting-approval') return next();
+    return redirect('/waiting-approval');
+  }
+
+  if (path !== '/onboarding') return redirect('/onboarding');
 
   return next()
 })

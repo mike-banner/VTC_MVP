@@ -1,0 +1,81 @@
+---
+// src/layouts/AdminLayout.astro
+import "../styles/global.css";
+import { isPlatform } from "../lib/guards";
+
+interface Props {
+    title: string;
+}
+
+const { title } = Astro.props;
+const { profile } = Astro.locals;
+
+// Sécurité supplémentaire au niveau du layout
+if (!isPlatform(profile)) {
+    return Astro.redirect("/");
+}
+---
+
+<!doctype html>
+<html lang="fr" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="generator" content={Astro.generator} />
+        <title>{title} | Admin Plateforme</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body
+        class="bg-[#050505] min-h-screen text-slate-50 selection:bg-indigo-500/30"
+    >
+        <!-- Sidebar ou Nav spécifique Admin -->
+        <nav
+            class="sticky top-0 z-50 w-full glass border-b border-indigo-500/20 px-6 py-4"
+        >
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center"
+                    >
+                        <span class="text-white font-black text-xl">A</span>
+                    </div>
+                    <div>
+                        <span
+                            class="text-lg font-black tracking-tighter uppercase italic"
+                            >VTC HUB <span class="text-indigo-500">ADMIN</span
+                            ></span
+                        >
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <button
+                        id="logout-btn"
+                        class="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20"
+                    >
+                        Quitter Admin
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="relative z-10 py-12">
+            <slot />
+        </main>
+
+        <script>
+            import { supabase } from "../lib/supabase";
+            const logoutBtn = document.querySelector("#logout-btn");
+            logoutBtn?.addEventListener("click", async () => {
+                await supabase.auth.signOut();
+                window.location.href = "/";
+            });
+        </script>
+    </body>
+</html>

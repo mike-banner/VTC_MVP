@@ -1,22 +1,27 @@
 import type { APIRoute } from "astro";
 import { createClient } from "@supabase/supabase-js";
+import { isPlatform } from "../../../lib/guards";
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
     try {
+        const { profile } = locals as any;
+
+        // Double vérification de sécurité (Shield)
+        if (!isPlatform(profile)) {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+        }
+
         const { onboarding_id } = await request.json();
 
         if (!onboarding_id) {
             return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
         }
 
-        // Initialisation avec la SERVICE_ROLE_KEY pour l'exécution admin
-        // Note: On utilise createClient direct car c'est un call backend-to-backend
         const supabase = createClient(
             import.meta.env.PUBLIC_SUPABASE_URL,
             import.meta.env.SUPABASE_SERVICE_ROLE_KEY
         );
 
-        // Appel direct de la fonction SQL transactionnelle
         const { error } = await supabase.rpc("approve_onboarding_tx", {
             onboarding_uuid: onboarding_id
         });

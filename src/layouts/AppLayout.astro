@@ -1,0 +1,119 @@
+---
+// src/layouts/AppLayout.astro
+import "../styles/global.css";
+import { isTenant } from "../lib/guards";
+
+interface Props {
+    title: string;
+}
+
+const { title } = Astro.props;
+const { profile } = Astro.locals;
+
+// Sécurité supplémentaire au niveau du layout
+if (!isTenant(profile)) {
+    return Astro.redirect("/onboarding");
+}
+---
+
+<!doctype html>
+<html lang="fr" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="generator" content={Astro.generator} />
+        <title>{title} | VTC App</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body
+        class="bg-black min-h-screen text-slate-50 selection:bg-indigo-500/30"
+    >
+        <div class="flex">
+            <!-- Sidebar simple -->
+            <aside
+                class="w-64 min-h-screen glass border-r border-white/5 hidden md:flex flex-col p-6 sticky top-0"
+            >
+                <div class="mb-10 flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center"
+                    >
+                        <span class="text-white font-black text-xl">V</span>
+                    </div>
+                    <span class="text-xl font-black tracking-tighter italic"
+                        >VTC HUB</span
+                    >
+                </div>
+
+                <nav class="flex-1 space-y-2">
+                    <a
+                        href="/app/dashboard"
+                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
+                        >Tableau de bord</a
+                    >
+                    <a
+                        href="/app/bookings"
+                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
+                        >Courses</a
+                    >
+                    <a
+                        href="/app/drivers"
+                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
+                        >Chauffeurs</a
+                    >
+                    <a
+                        href="/app/vehicles"
+                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
+                        >Véhicules</a
+                    >
+                    <a
+                        href="/app/pricing"
+                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-sm font-bold text-slate-400 hover:text-white transition-all"
+                        >Pricing</a
+                    >
+                </nav>
+
+                <div class="pt-6 border-t border-white/5 space-y-2">
+                    <a
+                        href="/app/settings"
+                        class="flex items-center px-4 py-3 rounded-xl hover:bg-white/5 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+                        >Paramètres</a
+                    >
+                    <button
+                        id="logout-btn"
+                        class="w-full flex items-center px-4 py-3 rounded-xl hover:bg-red-500/10 text-xs font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left"
+                        >Déconnexion</button
+                    >
+                </div>
+            </aside>
+
+            <main class="flex-1 min-h-screen">
+                <!-- Top Nav Mobile -->
+                <nav
+                    class="md:hidden glass border-b border-white/5 p-4 flex justify-between items-center sticky top-0 z-50"
+                >
+                    <span class="font-black italic">VTC HUB</span>
+                    <button class="p-2 glass rounded-lg">MENU</button>
+                </nav>
+
+                <div class="p-8">
+                    <slot />
+                </div>
+            </main>
+        </div>
+
+        <script>
+            import { supabase } from "../../lib/supabase";
+            const logoutBtn = document.querySelector("#logout-btn");
+            logoutBtn?.addEventListener("click", async () => {
+                await supabase.auth.signOut();
+                window.location.href = "/";
+            });
+        </script>
+    </body>
+</html>

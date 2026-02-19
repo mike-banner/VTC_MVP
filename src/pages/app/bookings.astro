@@ -1,9 +1,13 @@
 ---
-// src/pages/bookings.astro
-import MainLayout from "../../layouts/MainLayout.astro";
+// src/pages/app/bookings.astro
+import AppLayout from "../../layouts/AppLayout.astro";
 import { supabase } from "../../lib/supabase";
 
 const { profile, user } = Astro.locals;
+
+if (!profile || !user) {
+    return Astro.redirect("/login");
+}
 
 // Récupération des bookings avec filtrage intelligent selon le rôle
 let query = supabase
@@ -21,82 +25,78 @@ const { data: bookings } = await query.order("created_at", {
 });
 ---
 
-<MainLayout title="Mes Courses">
-    <div class="max-w-7xl mx-auto px-6 py-12">
-        <div class="mb-12">
-            <span
-                class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-widest text-emerald-400 uppercase"
-            >
-                {
-                    profile.tenant_role === "driver"
-                        ? "Mes Courses"
-                        : "Toutes les Courses"
-                }
-            </span>
-            <h1
-                class="text-4xl font-black italic mt-4 uppercase tracking-tighter"
-            >
-                Historique des Bookings
-            </h1>
-        </div>
+<AppLayout title="Mes Courses">
+    <div class="mb-12">
+        <span
+            class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-widest text-emerald-400 uppercase"
+        >
+            {
+                profile.tenant_role === "driver"
+                    ? "Mes Courses"
+                    : "Toutes les Courses"
+            }
+        </span>
+        <h1 class="text-4xl font-black italic mt-4 uppercase tracking-tighter">
+            Historique des Bookings
+        </h1>
+    </div>
 
-        <div class="glass rounded-3xl overflow-hidden border border-white/5">
-            <table class="w-full text-left">
-                <thead class="bg-white/5">
-                    <tr>
-                        <th
-                            class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                            >Passager</th
-                        >
-                        <th
-                            class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                            >Date/Heure</th
-                        >
-                        <th
-                            class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                            >Statut</th
-                        >
-                        <th
-                            class="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
-                            >Prix est.</th
-                        >
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    {
-                        bookings && bookings.length > 0 ? (
-                            bookings.map((booking) => (
-                                <tr class="hover:bg-white/5 transition-colors">
-                                    <td class="px-6 py-6 font-bold text-white uppercase italic tracking-tighter">
-                                        {booking.passenger_name || "Anonyme"}
-                                    </td>
-                                    <td class="px-6 py-6 text-sm text-slate-400">
-                                        {new Date(
-                                            booking.created_at,
-                                        ).toLocaleString("fr-FR")}
-                                    </td>
-                                    <td class="px-6 py-6">
-                                        <span class="px-2 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] font-bold text-indigo-400 uppercase">
-                                            {booking.status}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-6 text-right font-black text-indigo-400">
-                                        {booking.total_price || "0"} €
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colspan="4" class="px-6 py-20 text-center">
-                                    <span class="text-slate-500 uppercase tracking-widest text-xs font-bold font-inter">
-                                        Aucune course trouvée
+    <div class="glass rounded-3xl overflow-hidden border border-white/5">
+        <table class="w-full text-left">
+            <thead class="bg-white/5">
+                <tr>
+                    <th
+                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        >Passager</th
+                    >
+                    <th
+                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        >Date/Heure</th
+                    >
+                    <th
+                        class="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        >Statut</th
+                    >
+                    <th
+                        class="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
+                        >Prix est.</th
+                    >
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {
+                    bookings && bookings.length > 0 ? (
+                        bookings.map((booking) => (
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="px-6 py-6 font-bold text-white uppercase italic tracking-tighter">
+                                    {booking.passenger_name || "Anonyme"}
+                                </td>
+                                <td class="px-6 py-6 text-sm text-slate-400">
+                                    {new Date(
+                                        booking.created_at,
+                                    ).toLocaleString("fr-FR")}
+                                </td>
+                                <td class="px-6 py-6">
+                                    <span class="px-2 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] font-bold text-indigo-400 uppercase">
+                                        {booking.status}
                                     </span>
                                 </td>
+                                <td class="px-6 py-6 text-right font-black text-indigo-400">
+                                    {booking.total_price || "0"} €
+                                </td>
                             </tr>
-                        )
-                    }
-                </tbody>
-            </table>
-        </div>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colspan="4" class="px-6 py-20 text-center">
+                                <span class="text-slate-500 uppercase tracking-widest text-xs font-bold font-inter">
+                                    Aucune course trouvée
+                                </span>
+                            </td>
+                        </tr>
+                    )
+                }
+            </tbody>
+        </table>
     </div>
-</MainLayout>
+</AppLayout>
