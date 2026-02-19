@@ -165,9 +165,7 @@ import MainLayout from "../layouts/MainLayout.astro";
                 messageEl.className =
                     "mt-6 text-center text-sm font-medium text-emerald-400";
 
-                setTimeout(() => {
-                    window.location.href = "/dashboard";
-                }, 1000);
+                window.location.href = "/app/dashboard";
             }
         } catch (err) {
             console.error(err);

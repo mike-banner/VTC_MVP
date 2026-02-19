@@ -1,7 +1,7 @@
 ---
 // src/pages/pricing.astro
-import MainLayout from "../layouts/MainLayout.astro";
-import { requireTenantRole } from "../lib/rbac";
+import MainLayout from "../../layouts/MainLayout.astro";
+import { requireTenantRole } from "../../lib/rbac";
 
 const { profile } = Astro.locals;
 
@@ -9,7 +9,7 @@ const { profile } = Astro.locals;
 try {
     requireTenantRole(profile, ["owner", "manager"]);
 } catch (e) {
-    return Astro.redirect("/dashboard");
+    return Astro.redirect("/app/dashboard");
 }
 ---
 

@@ -4,7 +4,7 @@ import { defineMiddleware } from 'astro:middleware'
 
 export const onRequest = defineMiddleware(async ({ cookies, request, redirect, locals }, next) => {
   const url = new URL(request.url)
-  const authRoutes = ['/dashboard', '/bookings', '/settings', '/onboarding', '/waiting-approval', '/admin']
+  const authRoutes = ['/app/', '/admin/', '/onboarding', '/waiting-approval']
   const isAuthRoute = authRoutes.some(route => url.pathname.startsWith(route))
 
   if (!isAuthRoute) {
@@ -76,7 +76,7 @@ export const onRequest = defineMiddleware(async ({ cookies, request, redirect, l
   // Cas 2 : Chauffeur avec Tenant Actif
   if (profile?.tenant_id) {
     if (isAuthPage || url.pathname === '/onboarding' || url.pathname === '/waiting-approval' || url.pathname === '/admin') {
-      return redirect('/dashboard');
+      return redirect('/app/dashboard');
     }
     return next();
   }

@@ -563,17 +563,19 @@ import MainLayout from "../layouts/MainLayout.astro";
 
             if (obError) throw obError;
 
+            /* Désactivation de l'auto-activation pour passer par le flux Admin
             await supabase.functions.invoke("approve_onboarding", {
                 body: { onboarding_id: obData.id },
             });
+            */
 
             // Nettoyage de la sauvegarde locale après succès
             localStorage.removeItem(`${STORAGE_KEY}_${user.id}`);
 
-            statusEl.textContent = "SUCCESS - REDIRECTION";
+            statusEl.textContent = "DOSSIER SOUMIS - EN ATTENTE";
             statusEl.className =
                 "mt-6 text-center text-[10px] font-bold uppercase tracking-widest text-emerald-400";
-            setTimeout(() => (window.location.href = "/dashboard"), 1500);
+            window.location.href = "/waiting-approval";
         } catch (err: any) {
             statusEl.textContent = "ERROR: " + err.message;
             statusEl.className =

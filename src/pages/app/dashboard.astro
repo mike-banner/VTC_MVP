@@ -1,7 +1,7 @@
 ---
 // src/pages/dashboard.astro
-import MainLayout from "../layouts/MainLayout.astro";
-import { hasTenantRole } from "../lib/rbac";
+import MainLayout from "../../layouts/MainLayout.astro";
+import { hasTenantRole } from "../../lib/rbac";
 
 const { profile } = Astro.locals;
 ---
@@ -18,7 +18,7 @@ const { profile } = Astro.locals;
             </div>
             <div class="flex gap-4">
                 <a
-                    href="/bookings"
+                    href="/app/bookings"
                     class="px-6 py-2 glass rounded-xl text-sm font-bold hover:bg-white/5 transition-all flex items-center"
                     >Mes Courses</a
                 >
@@ -26,7 +26,7 @@ const { profile } = Astro.locals;
                 {
                     hasTenantRole(profile, ["owner", "manager"]) && (
                         <a
-                            href="/pricing"
+                            href="/app/pricing"
                             class="px-6 py-2 glass rounded-xl text-sm font-bold hover:bg-white/5 transition-all flex items-center"
                         >
                             Pricing
@@ -37,7 +37,7 @@ const { profile } = Astro.locals;
                 {
                     hasTenantRole(profile, ["owner"]) && (
                         <a
-                            href="/settings"
+                            href="/app/settings"
                             class="px-6 py-2 glass rounded-xl text-sm font-bold hover:bg-white/5 transition-all flex items-center border border-indigo-500/20"
                         >
                             Settings

@@ -108,8 +108,19 @@ const {
         </main>
 
         <footer class="mt-20 border-t border-white/5 py-12 px-6 glass">
-            <div class="max-w-7xl mx-auto text-center text-slate-500 text-sm">
-                &copy; {new Date().getFullYear()} VTC HUB. Précision. Luxe. Excellence.
+            <div
+                class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-sm"
+            >
+                <div>
+                    &copy; {new Date().getFullYear()} VTC HUB. Précision. Luxe. Excellence.
+                </div>
+                <div class="flex items-center gap-4">
+                    <a
+                        href="/admin"
+                        class="hover:text-indigo-400 transition-colors text-[10px] font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5"
+                        >Admin</a
+                    >
+                </div>
             </div>
         </footer>
 
