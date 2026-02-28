@@ -1,10 +1,7 @@
-
 ---
-
 # ✅ VERSION CORRIGÉE — `docs/architecture.md` (Alignée V1)
 
 Tu peux remplacer ton fichier par ceci.
-
 ---
 
 # 🏗 Architecture — VTC HUB (V1)
@@ -17,30 +14,52 @@ VTC HUB est un ERP SaaS multi-tenant pour chauffeurs VTC.
 
 Architecture basée sur :
 
-* Astro SSR (`output: "server"`)
-* Supabase (Postgres + Auth + RLS)
-* RPC SQL transactionnelles
-* Cloudflare Adapter
+- Astro SSR (`output: "server"`)
+- Supabase (Postgres + Auth + RLS)
+- RPC SQL transactionnelles
+- Cloudflare Adapter
 
 La plateforme est conçue pour :
 
-* Isolation stricte des tenants
-* Activation atomique
-* Séparation plateforme / entreprise
+- Isolation stricte des tenants
+- Activation atomique
+- Séparation plateforme / entreprise
 
 ---
 
 # 🧱 Architecture Logique
 
 ```
-Client
+Client (SaaS Multi-tenant)
    ↓
 Astro SSR (Routes + API)
    ↓
+Edge Functions (Stripe Webhooks & Business Logic)
+   ↓
 Supabase Auth
    ↓
-Postgres (RLS + Multi-tenant)
+Postgres (RLS + Multi-tenant + Financial Engine)
 ```
+
+---
+
+# 💹 Audit Comptable & Layer Financière
+
+VTC HUB intègre un moteur financier transactionnel. Chaque flux d'argent (paiement, commission, refund) est immutablement tracé.
+
+- **Idempotence** : Aucun événement Stripe n'est traité deux fois (`stripe_events`).
+- **Audit-Trail** : La table `financial_movements` contient l'historique brut des flux pour chaque tenant.
+- **Vues Fiscales** : Les résumés mensuels et annuels sont calculés dynamiquement via des vues SQL (`financial_monthly_summary`).
+
+---
+
+# ⚡ Stripe Edge Integration
+
+Le traitement des paiements est déporté dans des Edge Functions pour :
+
+- **Sécurité** : Validation de signature Stripe.
+- **Isolation** : Séparation de la logique de paiement du reste de l'ERP.
+- **Performance** : Exécution rapide au plus proche de l'utilisateur.
 
 ---
 
@@ -78,16 +97,16 @@ tenant_id != NULL
 
 ## Couche Plateforme
 
-* super_admin
-* platform_staff
+- super_admin
+- platform_staff
 
 ---
 
 ## Couche Tenant
 
-* owner
-* manager
-* driver
+- owner
+- manager
+- driver
 
 Les rôles hiérarchiques sont stockés dans :
 
@@ -128,10 +147,10 @@ approve_onboarding_tx(uuid)
 
 Caractéristiques :
 
-* Transaction atomique
-* Rollback automatique en cas d’erreur
-* Création cohérente des entités
-* Mise à jour profile centralisée
+- Transaction atomique
+- Rollback automatique en cas d’erreur
+- Création cohérente des entités
+- Mise à jour profile centralisée
 
 ---
 
@@ -145,32 +164,18 @@ tenant_id uuid
 
 Isolation assurée par :
 
-* Row Level Security (RLS)
-* Middleware SSR
-* Guards backend
-* Filtrage systématique par tenant_id
+- Row Level Security (RLS)
+- Middleware SSR
+- Guards backend
+- Filtrage systématique par tenant_id
 
 ---
 
-# 🚗 Booking Engine V1
+# 🚗 Booking Engine & Annulation
 
-## Calcul
+## Statuts Financiers
 
-* Estimation frontend
-* Validation et recalcul backend
-* Application minimum_fare
-* Sauvegarde en base
-
----
-
-## Statuts
-
-```
-pending
-confirmed
-completed
-cancelled
-```
+Les bookings supportent désormais les statuts `paid`, `refunded` et `accepted_pending_payment`.
 
 ---
 
@@ -195,10 +200,10 @@ Cas possibles :
 
 # ☁️ Infrastructure
 
-* `output: "server"`
-* Adapter Cloudflare
-* Supabase Postgres
-* RPC SQL transactionnelles
+- `output: "server"`
+- Adapter Cloudflare
+- Supabase Postgres
+- RPC SQL transactionnelles
 
 Aucune logique critique côté client.
 
@@ -206,11 +211,11 @@ Aucune logique critique côté client.
 
 # 📌 Design Principles
 
-* Isolation stricte des données
-* Séparation plateforme / entreprise
-* Activation atomique
-* Calcul métier validé backend
-* Stripe non centralisé (chaque tenant indépendant)
+- Isolation stricte des données
+- Séparation plateforme / entreprise
+- Activation atomique
+- Calcul métier validé backend
+- Stripe non centralisé (chaque tenant indépendant)
 
 ---
 
@@ -218,19 +223,23 @@ Aucune logique critique côté client.
 
 ## V2
 
-* Multi-driver avancé
-* Assignation chauffeur
-* Facturation
+- Multi-driver avancé
+- Assignation chauffeur
+- Facturation
+- Moteur de règles d'annulation (Moteur simple plateforme vs Configurable tenant).
+- Refund automatique via backend.
+- Dashboard financier agrégé.
 
 ## V3
 
-* ERP financier complet
-* Rapports avancés
+- ERP financier complet
+- Rapports avancés
 
 ## V4
 
-* Réseau / Cercle
-* Partage de courses
+- Réseau / Cercle
+- Partage de courses
+- Cercle & Réseau de chauffeurs avec commissions croisées.
 
 ---
 
@@ -238,19 +247,19 @@ Aucune logique critique côté client.
 
 Ton architecture documentée correspond maintenant :
 
-* À V1 réel
-* À la séparation `/admin` / `/app`
-* À la logique ERP
-* À ta vision long terme
+- À V1 réel
+- À la séparation `/admin` / `/app`
+- À la logique ERP
+- À ta vision long terme
 
 ---
 
 Nous avons maintenant :
 
-* README aligné
-* database.md aligné
-* flows.md aligné
-* architecture.md aligné
+- README aligné
+- database.md aligné
+- flows.md aligné
+- architecture.md aligné
 
 Base documentaire propre.
 

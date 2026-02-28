@@ -1,11 +1,11 @@
 Parfait.
 On aligne ce `security.md` avec :
 
-* V1 réel
-* Séparation plateforme / tenant
-* Booking engine validé backend
-* Service role uniquement serveur
-* Architecture SSR
+- V1 réel
+- Séparation plateforme / tenant
+- Booking engine validé backend
+- Service role uniquement serveur
+- Architecture SSR
 
 On garde le futur hardening en section séparée.
 
@@ -23,11 +23,11 @@ Tu peux remplacer ton fichier par ceci.
 
 # 🎯 Core Principles
 
-* Isolation multi-tenant stricte
-* Aucun accès cross-tenant
-* Calcul métier validé backend
-* Activation contrôlée
-* Séparation plateforme / entreprise
+- Isolation multi-tenant stricte
+- Aucun accès cross-tenant
+- Calcul métier validé backend
+- Activation contrôlée
+- Séparation plateforme / entreprise
 
 ---
 
@@ -35,10 +35,10 @@ Tu peux remplacer ton fichier par ceci.
 
 ## Supabase Auth
 
-* `auth.users` = identité technique
-* `profiles.id = auth.users.id`
-* Session JWT gérée via cookies SSR
-* Aucun token exposé côté client
+- `auth.users` = identité technique
+- `profiles.id = auth.users.id`
+- Session JWT gérée via cookies SSR
+- Aucun token exposé côté client
 
 ---
 
@@ -46,10 +46,9 @@ Tu peux remplacer ton fichier par ceci.
 
 ## Couche Plateforme
 
-* `platform_role`
-
-  * super_admin
-  * platform_staff
+- `platform_role`
+  - super_admin
+  - platform_staff
 
 Accès uniquement :
 
@@ -61,11 +60,10 @@ Accès uniquement :
 
 ## Couche Tenant
 
-* `tenant_role`
-
-  * owner
-  * manager
-  * driver
+- `tenant_role`
+  - owner
+  - manager
+  - driver
 
 Accès uniquement :
 
@@ -79,12 +77,12 @@ Accès uniquement :
 
 RLS activé sur les tables multi-tenant :
 
-* profiles
-* tenants
-* drivers
-* vehicles
-* pricing_rules
-* bookings
+- profiles
+- tenants
+- drivers
+- vehicles
+- pricing_rules
+- bookings
 
 Isolation basée sur :
 
@@ -98,116 +96,73 @@ Aucun accès inter-entreprise possible.
 
 ---
 
-# 🚗 Booking Integrity
+# 🚗 Booking & Financial Integrity
 
 ## Calcul Prix
 
-* Estimation frontend possible
-* Recalcul obligatoire backend
-* Minimum fare appliqué côté serveur
-* `total_amount` jamais accepté tel quel du client
+- Estimation frontend possible
+- Recalcul obligatoire backend
+- Minimum fare appliqué côté serveur
+- `total_amount` jamais accepté tel quel du client
 
----
-
-## Statut Booking
+## Statuts Financiers & Booking
 
 Statuts contrôlés :
 
 ```
 pending
-confirmed
+accepted_pending_payment
+paid
+refunded
 completed
 cancelled
 ```
 
-Les mises à jour passent par des routes backend protégées.
+---
+
+# 💳 Stripe Webhook Security
+
+Le traitement des paiements et refunds via Edge Functions est hautement sécurisé :
+
+- **Validation Signature** : Chaque requête Stripe est validée avec le secret webhook.
+- **Idempotence** : Utilisation de la table `stripe_events` pour empêcher le rejeu d'un événement.
+- **Sanity Check** : Vérification systématique du `booking_id` envoyé par Stripe avant mise à jour.
+- **Unicité transactionnelle** : Protection SQL contre la double génération de mouvements financiers.
 
 ---
 
-# 🔒 Activation Protection
+# ⚖️ Audit Trail (Immutabilité)
 
-Activation gérée exclusivement par :
-
-```
-approve_onboarding_tx(uuid)
-```
-
-Caractéristiques :
-
-* Vérification status = pending
-* Transaction atomique
-* Rollback automatique si erreur
-* Aucune création partielle possible
-
----
-
-# 🏢 Tenant Isolation
-
-* `primary_domain` UNIQUE
-* Chaque tenant possède son propre `tenant_id`
-* Aucune collision possible entre entreprises
-
----
-
-# 🧩 Middleware SSR
-
-Middleware global vérifie :
-
-1. Session valide
-2. `platform_role`
-3. `tenant_id`
-
-Redirections automatiques :
-
-* Non connecté → /login
-* Platform → /admin
-* Tenant actif → /app/dashboard
-* Aucun tenant → /onboarding
-
----
-
-# 🔐 Service Role Protection
-
-* `SUPABASE_SERVICE_ROLE_KEY` utilisée uniquement côté serveur
-* Jamais exposée côté client
-* Toutes les RPC sensibles exécutées en backend
+- Aucune suppression de ligne dans `financial_movements`.
+- Toute correction financière passe par un mouvement opposé (refund / commission_reversal).
+- Tracé complet de chaque flux vers l'événement Stripe source (`created_by_event`).
 
 ---
 
 # 🚫 Attack Surface Minimization
 
-* Aucune logique critique côté frontend
-* Filtrage systématique par tenant_id
-* API internes protégées
-* Pas de marketplace
-* Aucun flux financier centralisé
+- Aucune logique critique côté frontend
+- Filtrage systématique par tenant_id via RLS
+- API internes protégées par service role
+- Pas de marketplace centralisée
+- Aucun flux financier transitant hors des comptes Stripe des tenants
 
 ---
 
 # 🔮 Future Hardening (Versions ultérieures)
 
-* Audit logs actions critiques
-* Verrouillage modification booking confirmée
-* Rate limiting API
-* Validation Webhooks Stripe
-* CSP headers
-* Soft delete
+- Audit logs actions critiques (CRUD profiles/tenants)
+- Rate limiting API
+- CSP headers granulaires
+- Soft delete complet
 
 ---
 
 # 🎯 Résultat
 
-Le modèle sécurité reflète maintenant :
+Le modèle sécurité reflète maintenant l'état réel de production :
 
-* Architecture V1 réelle
-* Séparation claire plateforme / entreprise
-* Booking sécurisé
-* Activation atomique
-* Isolation multi-tenant stricte
-
----
-
-Documentation maintenant cohérente à 100% avec l’état réel du projet.
-
----
-
+- Architecture SaaS multi-tenant isolée.
+- Flux financiers robustes et auditables.
+- Webhooks Stripe sécurisés.
+- Intégrité financière garantie par SQL.

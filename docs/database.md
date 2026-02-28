@@ -1,4 +1,3 @@
-
 Maintenant voici **le fichier `docs/database.md` complet**, déjà fusionné avec la section Hardening intégrée.
 
 ---
@@ -11,12 +10,12 @@ Base de données d’un ERP SaaS multi-tenant pour chauffeurs VTC.
 
 Principes :
 
-* Multi-tenant strict
-* Isolation via `tenant_id`
-* Auth séparée (`auth.users`)
-* Activation transactionnelle (`approve_onboarding_tx`)
-* RLS activé sur tables métier
-* Contraintes SQL garantissant l’intégrité métier
+- Multi-tenant strict
+- Isolation via `tenant_id`
+- Auth séparée (`auth.users`)
+- Activation transactionnelle (`approve_onboarding_tx`)
+- RLS activé sur tables métier
+- Contraintes SQL garantissant l’intégrité métier
 
 ---
 
@@ -32,10 +31,10 @@ tenant_id uuid
 
 Tables liées au tenant (V1 actif) :
 
-* drivers
-* vehicles
-* pricing_rules
-* bookings
+- drivers
+- vehicles
+- pricing_rules
+- bookings
 
 ---
 
@@ -74,10 +73,10 @@ Entreprise cliente SaaS.
 
 Relations :
 
-* 1:N drivers
-* 1:N vehicles
-* 1:N pricing_rules
-* 1:N bookings
+- 1:N drivers
+- 1:N vehicles
+- 1:N pricing_rules
+- 1:N bookings
 
 ---
 
@@ -177,97 +176,95 @@ Aucun UPDATE autorisé hors service role
 
 ## 7️⃣ bookings (Booking Engine V1)
 
-| Column             | Type                                               |
-| ------------------ | -------------------------------------------------- |
-| id                 | uuid                                               |
-| original_tenant_id | uuid                                               |
-| current_tenant_id  | uuid                                               |
-| client_name        | text                                               |
-| pickup_address     | text                                               |
-| dropoff_address    | text                                               |
-| pickup_time        | timestamptz                                        |
-| distance_km        | numeric                                            |
-| total_amount       | numeric                                            |
-| status             | enum (pending / confirmed / completed / cancelled) |
-| driver_id          | uuid (nullable)                                    |
-| created_at         | timestamptz                                        |
+| Column                   | Type                   | Notes                      |
+| ------------------------ | ---------------------- | -------------------------- |
+| id                       | uuid (PK)              |                            |
+| original_tenant_id       | uuid                   | Tenant créateur            |
+| current_tenant_id        | uuid                   | Tenant gérant actuellement |
+| client_name              | text                   |                            |
+| pickup_address           | text                   |                            |
+| dropoff_address          | text                   |                            |
+| pickup_time              | timestamptz            |                            |
+| distance_km              | numeric                |                            |
+| total_amount             | numeric                | Montant TTC total          |
+| status                   | enum                   | Voir ci-dessous            |
+| driver_id                | uuid (nullable)        |                            |
+| cancelled_at             | timestamptz (nullable) |                            |
+| cancellation_reason      | text (nullable)        |                            |
+| cancellation_initiator   | text (nullable)        | client / driver / admin    |
+| stripe_payment_intent_id | text (nullable)        | Référence paiement Stripe  |
+| created_at               | timestamptz            |                            |
 
-Prix recalculé côté backend.
+### Statuts Booking
 
----
-
-# 🔒 Production Hardening — V1
-
-## Booking — Intégrité
-
-* `status` NOT NULL
-* ENUM strict
-* Valeur par défaut `pending`
-
-## Booking — Champs immuables
-
-Trigger SQL :
-
-```
-protect_booking_immutable_fields()
-```
-
-Après `status != 'pending'`, impossible de modifier :
-
-* total_amount
-* pickup_address
-* dropoff_address
-* pickup_time
-* payment_mode
+- `pending` : En attente
+- `accepted_pending_payment` : Accepté, en attente de paiement Stripe
+- `paid` : Payé via Stripe
+- `completed` : Course terminée
+- `cancelled` : Annulée
+- `refunded` : Remboursée (total uniquement)
 
 ---
 
-## Commission — Intégrité Financière
+## 8️⃣ financial_movements (Audit Comptable)
 
-Contrainte :
+Table centrale pour l'audit financier et le reporting.
 
-```
-UNIQUE (booking_id)
-```
-
-→ 1 commission maximum par booking
-→ Protection contre double génération
-
-Index ajouté sur `booking_id`.
-
----
-
-## Booking Shares — Anti Concurrence
-
-Index partiel :
-
-```
-UNIQUE (booking_id)
-WHERE status = 'accepted'
-```
-
-→ 1 seul share accepté par booking
+| Column                   | Type                                                    | Notes                                |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------ |
+| id                       | uuid (PK)                                               |                                      |
+| booking_id               | uuid                                                    | Lien booking                         |
+| tenant_id                | uuid                                                    | Isolation SaaS                       |
+| movement_type            | enum (payment, commission, refund, commission_reversal) | Type de mouvement                    |
+| direction                | enum (credit, debit)                                    | Direction financière                 |
+| gross_amount             | numeric                                                 | Montant TTC                          |
+| net_amount               | numeric                                                 | Montant HT                           |
+| vat_amount               | numeric                                                 | Montant TVA                          |
+| stripe_payment_intent_id | text                                                    | Référence Stripe                     |
+| stripe_refund_id         | text                                                    | Si mouvement de type refund          |
+| refund_ratio             | numeric (nullable)                                      | Ratio du refund (0.0 à 1.0)          |
+| created_by_event         | text                                                    | ID de l'événement Stripe déclencheur |
+| created_at               | timestamptz                                             |                                      |
 
 ---
 
-## Cercle — Scope V1 Verrouillé
+## 9️⃣ stripe_events (Idempotence)
 
-Contrainte :
+Stockage des événements Stripe pour éviter les doubles traitements.
 
-```
-UNIQUE (tenant_id) sur circle_memberships
-```
-
-→ 1 tenant = 1 cercle max
+| Column     | Type        | Notes                         |
+| ---------- | ----------- | ----------------------------- |
+| id         | text (PK)   | ID Stripe de l'événement      |
+| type       | text        | checkout.session.completed... |
+| processed  | boolean     | État du traitement            |
+| created_at | timestamptz |                               |
 
 ---
 
-# 🔐 Security Model
+# 📊 Vues de Reporting
 
-* RLS activé sur toutes les tables multi-tenant
-* Isolation stricte via `tenant_id`
-* SERVICE_ROLE backend uniquement
-* Logique critique protégée au niveau SQL
+Vues SQL optimisées pour les dashboards financiers :
+
+- `financial_monthly_summary` : Agrégation par mois/tenant (HT, TVA, TTC, Commission).
+- `financial_yearly_summary` : Agrégation annuelle pour bilan comptable.
+- `financial_fiscal_detail` : Détail complet pour export TVA et audit.
+
+---
+
+# 🔒 Production Hardening & Indexing
+
+## Indexations Clés
+
+- `financial_movements(stripe_payment_intent_id)` : Recherche rapide flow refund.
+- `financial_movements(created_by_event)` : Linkage audit Stripe.
+- `stripe_events(id)` UNIQUE : Empêche le replay d'un même événement.
+- `financial_movements` : Index unique anti-duplication transactionnelle via `booking_id` + `movement_type` + `direction`.
+
+## Sécurité (RLS)
+
+- RLS activé sur `financial_movements` (filtrage par `tenant_id`).
+- Traçabilité complète via `created_by_event`.
+- Booking immuable après paiement/refund partiel.
 
 ---
 
@@ -275,18 +272,7 @@ UNIQUE (tenant_id) sur circle_memberships
 
 La V1 est maintenant :
 
-* Structurellement cohérente
-* Financièrement protégée
-* Multi-tenant sécurisé
-* Résistante aux erreurs frontend
-* Résistante aux requêtes directes API
-
----
-
-Oui, le README est bien aligné.
-
-Maintenant il reste un seul verrou sérieux avant vente :
-
-👉 Stripe Webhook Idempotence.
-
-Ouvre une nouvelle conversation et on le traite isolément.
+- Structurellement cohérente avec audit financier.
+- Financièrement protégée (double paiement/refund).
+- Multi-tenant sécurisé.
+- Prête pour le reporting fiscal automatique.

@@ -41,15 +41,14 @@ status = 'pending'
 3. Appel RPC `approve_onboarding_tx(onboarding_uuid)`
 
 4. Transaction atomique :
-
-   * Vérifie que onboarding = pending
-   * Crée `tenant`
-   * Met à jour `profiles.tenant_id`
-   * Met `tenant_role = owner`
-   * Crée driver initial
-   * Crée véhicule initial
-   * Crée pricing_rules
-   * Met `onboarding.status = approved`
+   - Vérifie que onboarding = pending
+   - Crée `tenant`
+   - Met à jour `profiles.tenant_id`
+   - Met `tenant_role = owner`
+   - Crée driver initial
+   - Crée véhicule initial
+   - Crée pricing_rules
+   - Met `onboarding.status = approved`
 
 5. User peut maintenant accéder au dashboard
 
@@ -59,10 +58,10 @@ status = 'pending'
 
 1. User login
 2. Middleware SSR vérifie :
+   - `platform_role` → accès `/admin`
+   - `tenant_id` → accès `/app`
+   - sinon → `/onboarding`
 
-   * `platform_role` → accès `/admin`
-   * `tenant_id` → accès `/app`
-   * sinon → `/onboarding`
 3. Accès au dashboard ERP
 
 ---
@@ -74,11 +73,10 @@ status = 'pending'
 1. Client crée une réservation (site ou backoffice)
 2. Frontend envoie `distance_km`
 3. Backend :
-
-   * Récupère pricing_rules actif
-   * Recalcule le prix
-   * Applique minimum_fare
-   * Insère booking
+   - Récupère pricing_rules actif
+   - Recalcule le prix
+   - Applique minimum_fare
+   - Insère booking
 
 ```
 status = 'pending'
@@ -101,27 +99,66 @@ pending → cancelled
 
 Dashboard :
 
-* Liste bookings
-* KPI du jour
-* KPI du mois
-* Total brut
+- Liste bookings
+- KPI du jour
+- KPI du mois
+- Total brut
 
 ---
 
-# 💳 6️⃣ Payment Flow (V1)
+# 💳 6️⃣ Payment Flow (Stripe)
 
-* Stripe est optionnel
-* Chaque tenant connecte son propre compte Stripe
-* Aucun flux financier ne transite par la plateforme
+Le système utilise Stripe Checkout pour sécuriser les paiements.
+
+1. **Client** initiate `checkout session`
+2. **Stripe** redirects to hosted checkout
+3. **Paiement réussi** → Stripe envoie `checkout.session.completed`
+4. **Edge Function** (`handle_stripe_webhook`) :
+   - Vérifie la signature du webhook
+   - Vérifie si l'`event_id` est déjà traité (`stripe_events`)
+   - Récupère le `booking_id` depuis les metadata
+   - Met à jour `booking.status = paid`
+   - Stocke le `stripe_payment_intent_id`
+   - Génère les `financial_movements` :
+     - Type **payment** (Crédit)
+     - Type **commission** (Débit, si configurée)
+   - Marque l'événement comme `processed`
 
 ---
 
-# 🔐 Security Enforcement
+# 💸 7️⃣ Refund Flow (Total & Partiel)
 
-* Toutes les queries filtrées par `tenant_id`
-* RLS actif sur tables métier
-* Calcul prix toujours validé côté backend
-* SERVICE_ROLE utilisé uniquement côté serveur
+Le support du refund est automatique via le Webhook Stripe (`charge.refunded`).
+
+1. **Admin** effectue un refund (partiel ou total) depuis le Dashboard Stripe (ou API futur).
+2. **Stripe** envoie `charge.refunded`.
+3. **Edge Function** :
+   - Calcule le `refund_ratio` (montant remboursé / montant total initial).
+   - Génère un mouvement **refund** (Débit) proportionnel.
+   - Génère un mouvement **commission_reversal** (Crédit) proportionnel à la commission initiale.
+   - Si le refund est **total** (100%) → `booking.status = refunded`.
+   - Si le refund est **partiel** → `booking.status` reste `paid`.
+
+L'audit financier permet de recalculer le Net par tenant après déduction des refunds.
+
+---
+
+# 🛡️ 8️⃣ Sécurité & Idempotence Stripe
+
+- **Signature Check** : Chaque requête webhook est authentifiée via le secret Stripe.
+- **Whitelist** : Uniquement `checkout.session.completed` et `charge.refunded` sont traités.
+- **Idempotence** : Table `stripe_events` persistée. Si un événement arrive deux fois, il est ignoré.
+- **Metadata atomicity** : Les IDs Stripe sont systématiquement liés aux `booking_id` pour garantir la traçabilité.
+
+---
+
+# 🪟 9️⃣ Reporting Financier
+
+Le système expose des vues SQL pour le reporting :
+
+- **TVA** : Calculée automatiquement sur chaque mouvement.
+- **Multi-tenant** : Isolation stricte par `tenant_id` via RLS.
+- **Exports** : Prêt pour export CSV/Compta.
 
 ---
 
@@ -129,30 +166,21 @@ Dashboard :
 
 ## V2
 
-* Assignation chauffeur
-* Permissions fines manager / driver
-* Facturation automatique
-
-## V3
-
-* Rapports financiers avancés
-* Suivi cash
+- Moteur de règles d'annulation automatique (Refund auto via backend).
+- Dashboard financier temps réel par tenant.
+- Export CSV natif depuis le frontend.
 
 ## V4
 
-* Cercle
-* Partage de courses
-* Commission réseau
-* Parrainage
+- Cercle & Partage de courses.
+- Commission réseau complexe.
 
 ---
 
 # 🎯 Résultat
 
-Ton fichier flows est maintenant :
+Le système de flux financiers est :
 
-* Cohérent avec V1 réel
-* Sans fonctionnalités non activées
-* Aligné avec ton modèle ERP
-
----
+- **Production-ready** : Idempotence et sécurité Stripe gérées.
+- **Audit-ready** : Chaque centime est tracé via `financial_movements`.
+- **Scalable** : Multi-tenant et résilient aux erreurs de réseau (replay Stripe).
