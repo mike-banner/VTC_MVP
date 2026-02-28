@@ -1,9 +1,5 @@
 
----
-
-# ✅ VERSION CORRIGÉE — `docs/database.md` (Alignée V1)
-
-Tu peux remplacer ton fichier par ceci.
+Maintenant voici **le fichier `docs/database.md` complet**, déjà fusionné avec la section Hardening intégrée.
 
 ---
 
@@ -20,6 +16,7 @@ Principes :
 * Auth séparée (`auth.users`)
 * Activation transactionnelle (`approve_onboarding_tx`)
 * RLS activé sur tables métier
+* Contraintes SQL garantissant l’intégrité métier
 
 ---
 
@@ -126,11 +123,13 @@ Table temporaire avant activation.
 | created_at           | timestamptz              |
 | validated_at         | timestamptz              |
 
+🔒 RLS activé
+Lecture limitée au propriétaire ou admin plateforme
+Aucun UPDATE autorisé hors service role
+
 ---
 
-## 4️⃣ drivers (V1 structure prête)
-
-Représente un chauffeur métier.
+## 4️⃣ drivers
 
 | Column         | Type                        |
 | -------------- | --------------------------- |
@@ -143,14 +142,9 @@ Représente un chauffeur métier.
 | license_number | text                        |
 | created_at     | timestamptz                 |
 
-Note :
-En V1, un owner peut aussi être driver.
-
 ---
 
 ## 5️⃣ vehicles
-
-Véhicules entreprise.
 
 | Column       | Type        |
 | ------------ | ----------- |
@@ -168,8 +162,6 @@ Véhicules entreprise.
 
 ## 6️⃣ pricing_rules
 
-Tarification simple V1.
-
 | Column           | Type        |
 | ---------------- | ----------- |
 | id               | uuid        |
@@ -184,8 +176,6 @@ Tarification simple V1.
 ---
 
 ## 7️⃣ bookings (Booking Engine V1)
-
-Réservation client.
 
 | Column             | Type                                               |
 | ------------------ | -------------------------------------------------- |
@@ -206,64 +196,97 @@ Prix recalculé côté backend.
 
 ---
 
+# 🔒 Production Hardening — V1
+
+## Booking — Intégrité
+
+* `status` NOT NULL
+* ENUM strict
+* Valeur par défaut `pending`
+
+## Booking — Champs immuables
+
+Trigger SQL :
+
+```
+protect_booking_immutable_fields()
+```
+
+Après `status != 'pending'`, impossible de modifier :
+
+* total_amount
+* pickup_address
+* dropoff_address
+* pickup_time
+* payment_mode
+
+---
+
+## Commission — Intégrité Financière
+
+Contrainte :
+
+```
+UNIQUE (booking_id)
+```
+
+→ 1 commission maximum par booking
+→ Protection contre double génération
+
+Index ajouté sur `booking_id`.
+
+---
+
+## Booking Shares — Anti Concurrence
+
+Index partiel :
+
+```
+UNIQUE (booking_id)
+WHERE status = 'accepted'
+```
+
+→ 1 seul share accepté par booking
+
+---
+
+## Cercle — Scope V1 Verrouillé
+
+Contrainte :
+
+```
+UNIQUE (tenant_id) sur circle_memberships
+```
+
+→ 1 tenant = 1 cercle max
+
+---
+
 # 🔐 Security Model
 
-* RLS activé sur tables multi-tenant
-* Isolation via tenant_id
-* profiles.id = auth.uid()
-* Activation via RPC transactionnelle
-* SERVICE_ROLE uniquement backend
-
----
-
-# 🔁 Critical Business Logic
-
-## approve_onboarding_tx
-
-Transaction atomique :
-
-* Vérifie onboarding pending
-* Crée tenant
-* Met à jour profile
-* Crée driver initial
-* Crée véhicule
-* Crée pricing_rules
-* Passe onboarding approved
-* Rollback si erreur
-
----
-
-# 🚀 Versions Futures
-
-## V2
-
-* Permissions fines multi-driver
-* Assignation chauffeur
-* Facturation automatique
-* Export comptable
-
-## V3
-
-* ERP financier avancé
-* Rapports mensuels
-* Suivi cash
-* Analytics
-
-## V4
-
-* Cercle
-* Partage de courses
-* Commission réseau
-* Parrainage
+* RLS activé sur toutes les tables multi-tenant
+* Isolation stricte via `tenant_id`
+* SERVICE_ROLE backend uniquement
+* Logique critique protégée au niveau SQL
 
 ---
 
 # 🎯 Résultat
 
-Ta doc correspond maintenant :
+La V1 est maintenant :
 
-* À ton V1 réel
-* À ta vision ERP
-* À ta roadmap
+* Structurellement cohérente
+* Financièrement protégée
+* Multi-tenant sécurisé
+* Résistante aux erreurs frontend
+* Résistante aux requêtes directes API
 
 ---
+
+Oui, le README est bien aligné.
+
+Maintenant il reste un seul verrou sérieux avant vente :
+
+👉 Stripe Webhook Idempotence.
+
+Ouvre une nouvelle conversation et on le traite isolément.

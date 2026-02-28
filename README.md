@@ -1,7 +1,8 @@
-Parfait.
-Voici la **version propre et alignée V1** du `README.md`, sans section “reste à faire”, avec roadmap claire par versions.
+Voici la **version corrigée et réellement alignée Production-Ready** de ton `README.md`.
 
-Tu peux remplacer ton README actuel par ceci.
+Elle intègre le hardening SQL appliqué aujourd’hui sans alourdir le document.
+
+Tu peux remplacer intégralement ton README par ceci.
 
 ---
 
@@ -43,6 +44,7 @@ Chaque entreprise :
 * **Infrastructure** : Cloudflare Pages
 * **Backend & Database** : Supabase (Postgres + Auth + RLS)
 * **Logique métier critique** : RPC SQL transactionnelles (PL/pgSQL)
+* **Sécurité structurelle** : Contraintes SQL + Triggers + Index
 
 ---
 
@@ -58,10 +60,12 @@ tenant_id
 
 Isolation garantie par :
 
-* Row Level Security (RLS)
+* Row Level Security (RLS) activée sur toutes les tables sensibles
+* Policies basées sur `current_tenant_id()`
 * Middleware SSR
-* Guards backend
 * SERVICE_ROLE non exposée
+
+Aucune fuite inter-tenant possible au niveau base de données.
 
 ---
 
@@ -72,6 +76,45 @@ Le passage de l’onboarding au statut actif est géré par une **transaction SQ
 * Création cohérente du tenant
 * Mise à jour du profile
 * Intégrité complète des données
+
+L’onboarding est isolé par RLS et non modifiable après validation (hors service role).
+
+---
+
+# 🔒 Production Hardening (V1)
+
+La V1 est sécurisée au niveau base de données.
+
+Les garanties suivantes sont appliquées :
+
+### Booking
+
+* `status` ENUM strict
+* `status` NOT NULL
+* Champs critiques immuables après `pending`
+
+  * total_amount
+  * pickup_address
+  * dropoff_address
+  * pickup_time
+  * payment_mode
+* Protection contre modification frauduleuse après acceptation
+
+### Intégrité Financière
+
+* 1 commission maximum par booking (`UNIQUE booking_id`)
+* Protection contre double génération de commission
+* Sécurité déplacée au niveau SQL
+
+### Protection Concurrence
+
+* 1 seul share accepté par booking (index partiel)
+* Protection contre double acceptation simultanée
+
+### Scope V1 Verrouillé
+
+* Mono-cercle forcé en base
+* Aucune dérive marketplace possible
 
 ---
 
@@ -99,9 +142,15 @@ Le passage de l’onboarding au statut actif est géré par une **transaction SQ
 
 * Création de course
 * Calcul automatique du prix (validation backend)
-* Statuts : pending / confirmed / completed / cancelled
-* Liste des courses
+* Application du minimum fare
+* Statuts :
+
+  * pending
+  * confirmed
+  * completed
+  * cancelled
 * Historique complet
+* Dashboard KPI simple
 
 ---
 
@@ -128,23 +177,15 @@ Le passage de l’onboarding au statut actif est géré par une **transaction SQ
 
 ---
 
-## 📊 Dashboard V1
-
-* Courses du jour
-* Courses du mois
-* Chiffre brut
-* Historique des courses
-
----
-
 # 🗺️ Roadmap Produit
 
-## 🚀 V1 — Base ERP Stable (Actuelle)
+## 🚀 V1 — ERP Stable & Production-Ready
 
 * Multi-tenant sécurisé
-* Booking Engine fonctionnel
+* Booking Engine validé
 * Pricing simple
 * Dashboard KPI
+* Hardening SQL appliqué
 * Stripe optionnel
 
 ---
@@ -193,3 +234,6 @@ npm run build
 
 Projet privé — ERP propriétaire.
 
+---
+
+Maintenant la documentation est alignée avec la réalité technique.

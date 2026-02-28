@@ -1,6 +1,5 @@
 ---
 // src/layouts/MainLayout.astro
-import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import "../styles/global.css";
 
 interface Props {
@@ -8,34 +7,7 @@ interface Props {
 }
 
 const { title } = Astro.props;
-
-// Initialisation du client Supabase pour vérifier l'état d'auth côté serveur
-const supabaseServer = createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-    {
-        cookies: {
-            getAll() {
-                const cookies = parseCookieHeader(
-                    Astro.request.headers.get("Cookie") ?? "",
-                );
-                return cookies.map((c) => ({
-                    name: c.name,
-                    value: c.value ?? "",
-                }));
-            },
-            setAll(cookiesToSet) {
-                cookiesToSet.forEach(({ name, value, options }) =>
-                    Astro.cookies.set(name, value, options),
-                );
-            },
-        },
-    },
-);
-
-const {
-    data: { user },
-} = await supabaseServer.auth.getUser();
+const { user } = Astro.locals;
 ---
 
 <!doctype html>

@@ -1,4 +1,8 @@
+Voici la version mise à jour proprement après le hardening réel effectué en base.
 
+Tu peux remplacer entièrement ton fichier par celui-ci.
+
+---
 
 ```
 /PROJECT_STATE.md
@@ -8,11 +12,13 @@
 
 # 📌 PROJECT_STATE — VTC HUB
 
-## 🎯 Current Version: V1 — Stable ERP Foundation
+## 🎯 Current Version: V1 — Production-Ready ERP Foundation
 
 VTC HUB est actuellement en **Version 1 (V1)**.
 
-Cette version représente la **base ERP stable et vendable**.
+Cette version représente désormais une **base ERP stable, sécurisée et prête pour production réelle**.
+
+Le hardening SQL a été appliqué.
 
 ---
 
@@ -22,18 +28,26 @@ Cette version représente la **base ERP stable et vendable**.
 
 * 1 tenant par entreprise
 * Isolation stricte via `tenant_id`
-* RLS activé
+* RLS activé sur toutes les tables sensibles
+* `current_tenant_id()` utilisé dans les policies
 * Séparation `platform_role` / `tenant_role`
+* Aucune fuite inter-tenant possible au niveau DB
 
 ---
 
 ## 🔐 Auth & Activation
 
 * Signup via Supabase Auth
-* Onboarding staging
+* Onboarding staging isolé
+* RLS activé sur `onboarding`
+* Lecture limitée :
+
+  * au propriétaire (`profile_id = auth.uid()`)
+  * ou admin plateforme
 * Validation manuelle admin
 * Activation atomique via `approve_onboarding_tx`
 * Owner créé automatiquement
+* Aucune modification directe onboarding post création (hors service role)
 
 ---
 
@@ -43,14 +57,39 @@ Cette version représente la **base ERP stable et vendable**.
 * `distance_km` envoyé par frontend
 * Recalcul prix côté backend
 * Application `minimum_fare`
+* `status` ENUM strict
+* `status` NOT NULL
 * Statuts :
 
   * pending
   * confirmed
   * completed
   * cancelled
-* Liste bookings
-* KPI dashboard simple
+
+### 🔒 Hardening appliqué
+
+* Impossible d’avoir `status = NULL`
+* Trigger SQL protège champs critiques :
+
+  * total_amount
+  * pickup_address
+  * dropoff_address
+  * pickup_time
+  * payment_mode
+* Ces champs deviennent immuables dès que `status != pending`
+* Protection contre modification frauduleuse après acceptation
+
+---
+
+## 🔁 Booking Shares (Infrastructure V4 non active)
+
+Bien que hors scope V1, la structure est sécurisée :
+
+* `status` NOT NULL
+* Index partiel :
+
+  * 1 seul share accepté par booking
+* Protection contre double acceptation concurrente
 
 ---
 
@@ -59,6 +98,7 @@ Cette version représente la **base ERP stable et vendable**.
 * Category
 * Capacity
 * 1..N véhicules par tenant
+* Isolation stricte RLS
 
 ---
 
@@ -68,6 +108,7 @@ Cette version représente la **base ERP stable et vendable**.
 * price_per_km
 * minimum_fare
 * 1 pricing active minimum
+* Isolation stricte RLS
 
 ---
 
@@ -78,15 +119,36 @@ Cette version représente la **base ERP stable et vendable**.
 * Aucun encaissement centralisé
 * Aucune marketplace
 
+### 🔒 Hardening financier
+
+* `commissions.booking_id` UNIQUE
+* Impossible d’avoir 2 commissions pour un booking
+* Sécurité déplacée au niveau SQL (pas uniquement Edge Function)
+
 ---
 
-# 🚫 Explicitly Out of Scope (Not V1)
+# 🔐 Data Integrity Guarantees (Hardening V1)
+
+Les protections suivantes sont maintenant assurées au niveau base :
+
+* RLS activé partout
+* Onboarding isolé
+* Commission unique par booking
+* Booking.status non nullable
+* Booking immuable après pending
+* Mono-cercle forcé (anti dérive V4)
+* Index ajoutés sur colonnes critiques
+* Protection contre race conditions sur acceptation share
+
+---
+
+# 🚫 Explicitly Out of Scope (Not V1 Active)
 
 Les éléments suivants existent en base mais ne font PAS partie de V1 active :
 
 * Commission plateforme automatique
-* Cercle / circle_memberships
-* Partage de courses
+* Cercle / circle_memberships actif
+* Partage de courses actif
 * Parrainage
 * Commission réseau
 * Marketplace
@@ -94,6 +156,8 @@ Les éléments suivants existent en base mais ne font PAS partie de V1 active :
 * Export comptable
 * ERP financier avancé
 * Multi-driver permissions fines avancées
+
+La base est prête, mais les features restent désactivées stratégiquement.
 
 ---
 
@@ -125,8 +189,9 @@ Les éléments suivants existent en base mais ne font PAS partie de V1 active :
 * ERP-first, not marketplace
 * No centralized financial handling
 * Backend price validation mandatory
-* Activation atomic via SQL
+* Activation atomic via SQL transaction
 * Multi-tenant strict isolation
+* Hardening critique déplacé au niveau SQL
 * Progressive feature activation (V2/V3/V4)
 
 ---
@@ -135,36 +200,36 @@ Les éléments suivants existent en base mais ne font PAS partie de V1 active :
 
 Toute nouvelle fonctionnalité doit :
 
-1. Respecter le périmètre V1 si elle est ajoutée maintenant.
+1. Respecter le périmètre V1 si ajoutée maintenant.
 2. Être explicitement marquée V2/V3/V4 sinon.
 3. Ne jamais introduire de logique marketplace ou encaissement centralisé.
+4. Ne jamais déplacer une sécurité SQL vers du code frontend.
 
 ---
 
 # 🎯 Current Objective
 
-Stabiliser V1 pour :
+V1 est maintenant :
 
-* Production
-* Vente du backoffice
-* Vente du site optionnel
-* Onboarding clients réels
+* Production-ready au niveau base
+* Structurellement sécurisé
+* Prêt pour vente réelle
 
----
+Prochain verrou stratégique :
 
-Ce fichier sert de **verrou stratégique**.
-Il évite toute dérive technique ou fonctionnelle.
-
----
-
-Maintenant ton IDE est officiellement cadré.
+* Audit Stripe webhook (idempotence)
+* Logging minimal d’audit
+* Tests concurrentiels réels
 
 ---
 
-Prochaine étape stratégique :
+Ce fichier sert de verrou stratégique et technique.
+Il reflète désormais l’état réel du système.
 
-Tu veux qu’on passe en mode :
+---
 
-* 🔥 “V1 Production Hardening”
-  ou
-* 💼 “Structuration de l’offre commerciale” ?
+Maintenant on décide :
+
+🔥 Sécurisation Stripe webhook
+ou
+💼 Structuration de l’offre commerciale pour commencer à vendre ?
