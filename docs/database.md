@@ -176,37 +176,58 @@ Aucun UPDATE autorisé hors service role
 
 ## 7️⃣ bookings (Booking Engine V1)
 
-| Column                   | Type                   | Notes                      |
-| ------------------------ | ---------------------- | -------------------------- |
-| id                       | uuid (PK)              |                            |
-| original_tenant_id       | uuid                   | Tenant créateur            |
-| current_tenant_id        | uuid                   | Tenant gérant actuellement |
-| client_name              | text                   |                            |
-| pickup_address           | text                   |                            |
-| dropoff_address          | text                   |                            |
-| pickup_time              | timestamptz            |                            |
-| distance_km              | numeric                |                            |
-| total_amount             | numeric                | Montant TTC total          |
-| status                   | enum                   | Voir ci-dessous            |
-| driver_id                | uuid (nullable)        |                            |
-| cancelled_at             | timestamptz (nullable) |                            |
-| cancellation_reason      | text (nullable)        |                            |
-| cancellation_initiator   | text (nullable)        | client / driver / admin    |
-| stripe_payment_intent_id | text (nullable)        | Référence paiement Stripe  |
-| created_at               | timestamptz            |                            |
+| Column                   | Type                                                 | Notes                                   |
+| ------------------------ | ---------------------------------------------------- | --------------------------------------- |
+| id                       | uuid (PK)                                            |                                         |
+| original_tenant_id       | uuid                                                 | Tenant créateur                         |
+| current_tenant_id        | uuid                                                 | Tenant gérant actuellement              |
+| client_name              | text                                                 |                                         |
+| pickup_address           | text                                                 |                                         |
+| dropoff_address          | text                                                 |                                         |
+| pickup_time              | timestamptz                                          |                                         |
+| distance_km              | numeric                                              |                                         |
+| total_amount             | numeric                                              | Montant TTC total                       |
+| status                   | enum                                                 | Voir ci-dessous                         |
+| driver_id                | uuid (nullable)                                      |                                         |
+| cancelled_at             | timestamptz (nullable)                               | Date d'annulation                       |
+| cancellation_reason      | enum (client, no_show, driver_fault, platform_issue) | Motif précis                            |
+| cancellation_initiator   | text (nullable)                                      | client / driver / admin                 |
+| cancellation_policy_id   | uuid (FK)                                            | Politique appliquée à cette réservation |
+| stripe_payment_intent_id | text (nullable)                                      | Référence paiement Stripe               |
+| created_at               | timestamptz                                          |                                         |
 
-### Statuts Booking
+### Statuts Booking (Lifecycle complet)
 
-- `pending` : En attente
-- `accepted_pending_payment` : Accepté, en attente de paiement Stripe
-- `paid` : Payé via Stripe
-- `completed` : Course terminée
-- `cancelled` : Annulée
-- `refunded` : Remboursée (total uniquement)
+- `pending` : En attente.
+- `accepted_pending_payment` : Accepté par le chauffeur, Stripe en attente.
+- `paid` : Paiement Stripe confirmé par webhook.
+- `completed` : Course terminée.
+- `cancelled_pending_refund` : Annulé, remboursement API Stripe initié.
+- `cancelled_refunded` : Annulé, remboursement Stripe validé par webhook.
+- `cancelled_no_refund` : Annulé sans remboursement (selon politique).
 
 ---
 
-## 8️⃣ financial_movements (Audit Comptable)
+## 8️⃣ cancellation_policies (Versioned Policies)
+
+Définit les règles de remboursement par tenant.
+
+| Column                      | Type        | Notes                                    |
+| --------------------------- | ----------- | ---------------------------------------- |
+| id                          | uuid (PK)   |                                          |
+| tenant_id                   | uuid        |                                          |
+| version                     | integer     | Incrément automatique                    |
+| active                      | boolean     | Une seule active par tenant              |
+| hours_before_full_refund    | integer     | Temps avant 100% remboursement           |
+| hours_before_partial_refund | integer     | Temps avant remboursement partiel        |
+| partial_refund_rate         | numeric     | % remboursé (ex: 0.5)                    |
+| no_show_refund_rate         | numeric     | % remboursé en cas de no-show (0)        |
+| driver_fault_refund_rate    | numeric     | % remboursé en cas de faute chauffeur(1) |
+| created_at                  | timestamptz |                                          |
+
+---
+
+## 9️⃣ financial_movements (Audit Comptable)
 
 Table centrale pour l'audit financier et le reporting.
 
@@ -222,13 +243,13 @@ Table centrale pour l'audit financier et le reporting.
 | vat_amount               | numeric                                                 | Montant TVA                          |
 | stripe_payment_intent_id | text                                                    | Référence Stripe                     |
 | stripe_refund_id         | text                                                    | Si mouvement de type refund          |
-| refund_ratio             | numeric (nullable)                                      | Ratio du refund (0.0 à 1.0)          |
+| refund_ratio             | numeric (nullable)                                      | Ratio du refund précis (0.0 à 1.0)   |
 | created_by_event         | text                                                    | ID de l'événement Stripe déclencheur |
 | created_at               | timestamptz                                             |                                      |
 
 ---
 
-## 9️⃣ stripe_events (Idempotence)
+## 🔟 stripe_events (Idempotence)
 
 Stockage des événements Stripe pour éviter les doubles traitements.
 
@@ -245,26 +266,20 @@ Stockage des événements Stripe pour éviter les doubles traitements.
 
 Vues SQL optimisées pour les dashboards financiers :
 
-- `financial_monthly_summary` : Agrégation par mois/tenant (HT, TVA, TTC, Commission).
-- `financial_yearly_summary` : Agrégation annuelle pour bilan comptable.
-- `financial_fiscal_detail` : Détail complet pour export TVA et audit.
+- `financial_monthly_summary` : Agrégation par mois/tenant (HT, TVA, TTC, Commission, Refund).
+- `financial_yearly_summary` : Agrégation annuelle.
+- `financial_fiscal_detail` : Détail complet pour export TVA et audit financier exhaustif.
 
 ---
 
-# 🔒 Production Hardening & Indexing
+# 🔒 Production Hardening & Consistency
 
-## Indexations Clés
+## Refund Integrity
 
-- `financial_movements(stripe_payment_intent_id)` : Recherche rapide flow refund.
-- `financial_movements(created_by_event)` : Linkage audit Stripe.
-- `stripe_events(id)` UNIQUE : Empêche le replay d'un même événement.
-- `financial_movements` : Index unique anti-duplication transactionnelle via `booking_id` + `movement_type` + `direction`.
-
-## Sécurité (RLS)
-
-- RLS activé sur `financial_movements` (filtrage par `tenant_id`).
-- Traçabilité complète via `created_by_event`.
-- Booking immuable après paiement/refund partiel.
+- **Refund Ratio** : Calculé sur le `total_amount` et répercuté au pro-rata sur la TVA et la commission.
+- **Audit Trail** : Les remboursements sont liés via `stripe_refund_id`.
+- **Immuabilité** : Les mouvements financiers insérés sont en lecture seule pour garantir l'intégrité de l'audit.
+- **Unicité** : Index unique `unique_active_policy_per_tenant` assurant qu'une seule politique est applicable à un instant T.
 
 ---
 

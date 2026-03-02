@@ -70,7 +70,7 @@ if (!isPlatform(profile)) {
         </main>
 
         <script>
-            import { supabase } from "../lib/supabase";
+            import { supabase } from "@/lib/supabase/client";
             const logoutBtn = document.querySelector("#logout-btn");
             logoutBtn?.addEventListener("click", async () => {
                 await supabase.auth.signOut();

@@ -97,7 +97,7 @@ const { user } = Astro.locals;
         </footer>
 
         <script>
-            import { supabase } from "../lib/supabase";
+            import { supabase } from "@/lib/supabase/client";
 
             const logoutBtn = document.querySelector("#logout-btn");
 

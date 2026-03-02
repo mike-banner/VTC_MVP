@@ -1,50 +1,56 @@
-# 🚧 Règles d'Annulation (Policy Workflow)
+# 🛡️ Moteur d'Annulation & Refund (Engine V1)
 
-VTC HUB implémente un moteur de gestion des annulations flexible, essentiel pour la rentabilité et la protection des chauffeurs.
-
----
-
-## 1️⃣ Moteur de Règles (V1 simple)
-
-Actuellement, les règles globales de la plateforme s'appliquent :
-
-- **Annulation Client > 24h avant** : Remboursement 100%.
-- **Annulation Client < 24h avant** : Remboursement 50%.
-- **No-show Client** : Remboursement 0% (Paiement intégral conservé).
-- **Annulation Chauffeur (Faute)** : Remboursement 100% (Débit du chauffeur si partagé).
+Le système d'annulation de VTC HUB est automatisé et basé sur des politiques versionnées attachées à chaque réservation au moment du paiement.
 
 ---
 
-## 2️⃣ Logique Backend (Prévue)
+## 1️⃣ Moteur de Politiques (`cancellation_policies`)
 
-Le moteur de règles agira sur les `financial_movements` :
+Chaque tenant définit sa politique active. Lorsqu'un client paie, l'ID de la politique active est copié dans `bookings.cancellation_policy_id`. Cela garantit que même si le chauffeur change ses règles plus tard, la réservation reste soumise aux règles acceptées au moment de l'achat.
 
-1. L'annulation déclenche un événement `booking_cancelled`.
-2. Le moteur calcule le `refund_ratio` approprié selon la règle active.
-3. Un mouvement financier de type `refund` est créé proportionnellement.
-4. La commission plateforme (`commission`) est inversée (`commission_reversal`) proportionnellement.
+### Paramètres de la Politique :
+
+- **Full Refund** : Seuil d'heures avant la course pour un remboursement à 100%.
+- **Partial Refund** : Seuil d'heures et taux (ex: 50%) pour un remboursement partiel.
+- **No-Show** : Taux de remboursement en cas d'absence client (généralement 0%).
+- **Driver Fault** : Taux de remboursement si le chauffeur ne se présente pas (généralement 100%).
 
 ---
 
-## 3️⃣ Évolutions Futures (V2 Configurable)
+## 2️⃣ Logique de Remboursement
 
-- **Politique Personnalisée par Tenant** : Chaque chauffeur/entreprise pourra définir ses propres fenêtres de temps et taux de remboursement.
-- **Politique par Chauffeur** : Différentes pénalités selon le statut du chauffeur.
-- **Pénalité Plateforme Fine** : Frais de service Stripe conservés au besoin (choix business).
+Le calcul est effectué par la Edge Function `calculate-refund` :
+
+1. Comparaison entre `pickup_time` et `cancelled_at` pour déterminer le `deltaHours`.
+2. Application du taux correspondant dans la politique liée.
+3. Calcul du `refund_amount = total_amount * refund_rate`.
+
+---
+
+## 3️⃣ Workflow de Statuts
+
+Le lifecycle d'une annulation suit un état de transition sécurisé :
+
+1. `paid` (Statut initial payé)
+2. `cancelled_pending_refund` (Remboursement Stripe initié, en attente de webhook)
+3. `cancelled_refunded` (Confirmé par Stripe Webhook, audit financier généré)
+4. _OU_ `cancelled_no_refund` (Annulé selon les règles sans remboursement dû)
 
 ---
 
 ## 4️⃣ Tracking & Audit
 
-Chaque annulation est documentée dans la table `bookings` :
+Chaque annulation enrichit le booking avec les données suivantes :
 
-- `cancelled_at` : Date et heure.
-- `cancellation_reason` : Motif saisi par l'initiateur.
-- `cancellation_initiator` : `client`, `driver` ou `admin`.
+- `cancelled_at` : Timestamp précis de l'action.
+- `cancellation_reason` : Motif (`client`, `no_show`, `driver_fault`, `platform_issue`).
+- `cancellation_initiator` : Qui a déclenché l'annulation.
+- `financial_movements` : Mouvements de type `refund` et `commission_reversal` créés automatiquement pour équilibrer la comptabilité.
 
 ---
 
-## 5️⃣ Statuts de Booking Liés
+## 5️⃣ Sécurité & Intégrité
 
-- **Refund Total (100%)** → `status = refunded`.
-- **Refund Partiel (< 100%)** → `status = paid` (le paiement reste validé, avec une partie débitée).
+- **Immuabilité** : Le `cancellation_policy_id` est verrouillé par trigger SQL après insertion.
+- **Idempotence** : Le webhook Stripe empêche toute double insertion de mouvement financier de remboursement via `stripe_refund_id`.
+- **Validation** : Seules les réservations au statut `paid` peuvent entrer dans le flux d'annulation automatisé.

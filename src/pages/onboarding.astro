@@ -344,7 +344,7 @@ import MainLayout from "../layouts/MainLayout.astro";
 </MainLayout>
 
 <script>
-    import { supabase } from "../lib/supabase";
+    import { supabase } from "@/lib/supabase/client";
 
     let currentStep = 1;
     const totalSteps = 3;
@@ -546,7 +546,7 @@ import MainLayout from "../layouts/MainLayout.astro";
                     vehicle_model: formData.get("vehicle_model"),
                     plate_number: formData.get("plate_number"),
                     capacity: parseInt(formData.get("capacity") as string),
-                    service_categories: categories,
+                    service_categories: categories as any,
                     default_base_price: parseFloat(
                         formData.get("default_base_price") as string,
                     ),

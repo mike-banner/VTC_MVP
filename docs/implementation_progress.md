@@ -33,9 +33,9 @@ Ce document récapitule l'ensemble des fonctionnalités implémentées depuis le
 
 ---
 
-## 🟡 4. En cours / À Finaliser (V1+)
+## ✅ 4. En cours / À Finaliser (V1+)
 
-- [ ] **Moteur de Règles d'Annulation** : Implémentation de la logique automatique de remboursement selon le délai (implémenté en doc, à finaliser en code).
+- [x] **Moteur de Règles d'Annulation** : Automated cancellation engine based on versioned policies. Integration with Stripe (Terminé).
 - [ ] **Export CSV Finance** : Bouton d'export des mouvements pour les experts-comptables depuis le frontend.
 - [ ] **Dashboard Tenant** : Finalisation de l'interface graphique pour le suivi des revenus et refunds.
 - [ ] **Gestion des Frais Stripe** : Arbitrage business sur la répercussion des frais fixes Stripe en cas de refund.
@@ -44,6 +44,7 @@ Ce document récapitule l'ensemble des fonctionnalités implémentées depuis le
 
 ## 🔮 5. Roadmap Future (V2 - V4)
 
+- [ ] **V1.1 (Hardening)** : Bloquer l'annulation après `pickup_time`, Audit manuel, Non-refundable commission option.
 - [ ] **V2 (Pro)** : Facturation automatique PDF, Multi-driver avancé, Assignation manuelle/auto.
 - [ ] **V3 (ERP)** : Suivi des dépenses (essence, entretien), Analytics avancés.
 - [ ] **V4 (Réseau)** : Cercles d'entreprises, Partage de courses entre tenants, Commissions réseau.

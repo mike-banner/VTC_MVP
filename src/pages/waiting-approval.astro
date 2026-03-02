@@ -60,7 +60,7 @@ import MainLayout from "../layouts/MainLayout.astro";
             </div>
 
             <script>
-                import { supabase } from "../lib/supabase";
+                import { supabase } from "@/lib/supabase/client";
                 const btn = document.getElementById("waiting-logout-btn");
                 btn?.addEventListener("click", async () => {
                     await supabase.auth.signOut();

@@ -1,7 +1,7 @@
 ---
 // src/pages/app/dashboard.astro
+import { supabase } from "@/lib/supabase/client";
 import AppLayout from "../../layouts/AppLayout.astro";
-import { supabase } from "../../lib/supabase";
 
 const { profile } = Astro.locals;
 
@@ -24,14 +24,14 @@ const startOfMonth = new Date(
 const { count: dailyCount } = await supabase
     .from("bookings")
     .select("*", { count: "exact", head: true })
-    .eq("current_tenant_id", profile.tenant_id)
+    .eq("current_tenant_id", profile.tenant_id!)
     .gte("pickup_time", startOfToday);
 
 // 2️⃣ Chiffre d'affaires du mois
 const { data: monthBookings } = await supabase
     .from("bookings")
     .select("total_amount")
-    .eq("current_tenant_id", profile.tenant_id)
+    .eq("current_tenant_id", profile.tenant_id!)
     .gte("pickup_time", startOfMonth)
     .neq("status", "cancelled");
 
@@ -43,7 +43,7 @@ const monthlyRevenue =
 const { data: recentBookings } = await supabase
     .from("bookings")
     .select("*")
-    .eq("current_tenant_id", profile.tenant_id)
+    .eq("current_tenant_id", profile.tenant_id!)
     .order("created_at", { ascending: false })
     .limit(5);
 ---

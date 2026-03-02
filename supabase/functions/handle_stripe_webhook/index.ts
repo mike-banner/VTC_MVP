@@ -1,5 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import Stripe from "https://esm.sh/stripe@12.18.0?target=deno&no-check";
+import { createClient } from "@supabase/supabase-js";
+import Stripe from "stripe";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2026-02-25.clover",
@@ -29,20 +29,12 @@ Deno.serve(async (req) => {
     return new Response("Invalid signature", { status: 400 });
   }
 
-  // ==========================================
-  // EVENT WHITELIST
-  // ==========================================
-
-  const allowedEvents = ["checkout.session.completed", "charge.refunded"];
-
+  const allowedEvents = ["checkout.session.completed", "refund.created"];
   if (!allowedEvents.includes(event.type)) {
-    return new Response("OK", { status: 200 });
+    return new Response("OK");
   }
 
-  // ==========================================
-  // GLOBAL IDEMPOTENCE
-  // ==========================================
-
+  // Global idempotence
   const { error: eventInsertError } = await supabase
     .from("stripe_events")
     .insert({
@@ -50,16 +42,15 @@ Deno.serve(async (req) => {
       event_type: event.type,
     });
 
-  if (eventInsertError) return new Response("OK", { status: 200 });
+  if (eventInsertError) {
+    return new Response("OK");
+  }
 
-  // ==========================================
-  // PAYMENT
-  // ==========================================
-
+  // Payment
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const bookingId = session.metadata?.booking_id;
-    if (!bookingId) return new Response("OK", { status: 200 });
+    if (!bookingId) return new Response("OK");
 
     const { data: booking } = await supabase
       .from("bookings")
@@ -67,17 +58,33 @@ Deno.serve(async (req) => {
       .eq("id", bookingId)
       .maybeSingle();
 
-    if (!booking) return new Response("OK", { status: 200 });
+    if (!booking) return new Response("OK");
     if (booking.status !== "accepted_pending_payment")
-      return new Response("OK", { status: 200 });
+      return new Response("OK");
+
+    const { data: policy } = await supabase
+      .from("cancellation_policies")
+      .select("id")
+      .eq("tenant_id", booking.current_tenant_id)
+      .eq("active", true)
+      .order("version", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!policy) throw new Error("No active cancellation policy found");
 
     await supabase
       .from("bookings")
       .update({
         status: "paid",
         stripe_payment_intent_id: session.payment_intent,
+        cancellation_policy_id: policy.id,
       })
       .eq("id", bookingId);
+
+    const subtotal = booking.subtotal_amount ?? 0;
+    const vat = booking.vat_amount ?? 0;
+    const total = booking.total_amount ?? 0;
 
     // Payment movement
     await supabase.from("financial_movements").insert({
@@ -86,44 +93,54 @@ Deno.serve(async (req) => {
       stripe_payment_intent_id: session.payment_intent,
       movement_type: "payment",
       direction: "credit",
-      gross_amount: booking.total_amount,
-      net_amount: booking.subtotal_amount,
-      vat_amount: booking.vat_amount,
-      refund_ratio: null,
+      gross_amount: total,
+      net_amount: subtotal,
+      vat_amount: vat,
       created_by_event: event.id,
     });
 
-    // Commission movement
-    const { data: commission } = await supabase
-      .from("booking_commissions")
-      .select("*")
-      .eq("booking_id", booking.id)
+    // Commission
+    const { data: tenant } = await supabase
+      .from("tenants")
+      .select("platform_fee_rate")
+      .eq("id", booking.current_tenant_id)
       .maybeSingle();
 
-    if (commission) {
+    const rate = tenant?.platform_fee_rate ?? 0;
+
+    if (rate > 0) {
+      const commissionAmount = total * (rate / 100);
+
       await supabase.from("financial_movements").insert({
         booking_id: booking.id,
-        tenant_id: commission.beneficiary_tenant_id,
+        tenant_id: booking.current_tenant_id,
         stripe_payment_intent_id: session.payment_intent,
         movement_type: "commission",
         direction: "debit",
-        gross_amount: commission.commission_amount,
-        net_amount: commission.commission_amount,
+        gross_amount: commissionAmount,
+        net_amount: commissionAmount,
         vat_amount: 0,
-        refund_ratio: null,
+        platform_commission_rate_snapshot: rate,
+        platform_commission_amount: commissionAmount,
         created_by_event: event.id,
       });
     }
   }
 
-  // ==========================================
-  // REFUND (PARTIAL SUPPORT)
-  // ==========================================
+  // Refund
+  if (event.type === "refund.created") {
+    const refund = event.data.object as Stripe.Refund;
+    const paymentIntentId = refund.payment_intent as string;
 
-  if (event.type === "charge.refunded") {
-    const charge = event.data.object as Stripe.Charge;
-    const paymentIntentId = charge.payment_intent as string;
-    if (!paymentIntentId) return new Response("OK", { status: 200 });
+    if (!paymentIntentId) return new Response("OK");
+
+    const { data: existing } = await supabase
+      .from("financial_movements")
+      .select("id")
+      .eq("stripe_refund_id", refund.id)
+      .maybeSingle();
+
+    if (existing) return new Response("OK");
 
     const { data: booking } = await supabase
       .from("bookings")
@@ -131,67 +148,66 @@ Deno.serve(async (req) => {
       .eq("stripe_payment_intent_id", paymentIntentId)
       .maybeSingle();
 
-    if (!booking) return new Response("OK", { status: 200 });
+    if (!booking) return new Response("OK");
 
-    // Extra security: verify metadata
-    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-    if (pi.metadata?.booking_id !== booking.id)
-      return new Response("OK", { status: 200 });
+    const total = booking.total_amount ?? 0;
+    if (total === 0) return new Response("OK");
 
-    const refundAmount = charge.amount_refunded / 100;
-    const refundRatio = refundAmount / booking.total_amount;
+    const refundAmount = refund.amount / 100;
+    const refundRatio = refundAmount / total;
 
-    const netReversal = booking.subtotal_amount * refundRatio;
-    const vatReversal = booking.vat_amount * refundRatio;
+    const subtotal = booking.subtotal_amount ?? 0;
+    const vat = booking.vat_amount ?? 0;
 
-    // Refund movement
     await supabase.from("financial_movements").insert({
       booking_id: booking.id,
       tenant_id: booking.current_tenant_id,
       stripe_payment_intent_id: paymentIntentId,
-      stripe_refund_id: charge.refunds?.data?.[0]?.id ?? null,
+      stripe_refund_id: refund.id,
       movement_type: "refund",
       direction: "debit",
       gross_amount: refundAmount,
-      net_amount: netReversal,
-      vat_amount: vatReversal,
+      net_amount: subtotal * refundRatio,
+      vat_amount: vat * refundRatio,
       refund_ratio: refundRatio,
       created_by_event: event.id,
     });
 
-    // Commission reversal (proportional)
-    const { data: commission } = await supabase
-      .from("booking_commissions")
+    // Commission reversal
+    const { data: originalCommission } = await supabase
+      .from("financial_movements")
       .select("*")
       .eq("booking_id", booking.id)
+      .eq("movement_type", "commission")
       .maybeSingle();
 
-    if (commission) {
-      const commissionReversal = commission.commission_amount * refundRatio;
+    if (originalCommission) {
+      const commissionReversal =
+        (originalCommission.gross_amount ?? 0) * refundRatio;
 
       await supabase.from("financial_movements").insert({
         booking_id: booking.id,
-        tenant_id: commission.beneficiary_tenant_id,
+        tenant_id: originalCommission.tenant_id,
         stripe_payment_intent_id: paymentIntentId,
-        stripe_refund_id: charge.refunds?.data?.[0]?.id ?? null,
+        stripe_refund_id: refund.id,
         movement_type: "commission_reversal",
         direction: "credit",
         gross_amount: commissionReversal,
         net_amount: commissionReversal,
         vat_amount: 0,
         refund_ratio: refundRatio,
+        platform_commission_rate_snapshot:
+          originalCommission.platform_commission_rate_snapshot,
+        platform_commission_amount: commissionReversal,
         created_by_event: event.id,
       });
     }
 
-    // Mark refunded only if full refund
-    if (refundRatio >= 0.999) {
-      await supabase
-        .from("bookings")
-        .update({ status: "refunded" })
-        .eq("id", booking.id);
-    }
+    await supabase
+      .from("bookings")
+      .update({ status: "cancelled_refunded" })
+      .eq("id", booking.id);
   }
 
-  return new Response("OK", { status: 200 });
+  return new Response("OK");
 });
