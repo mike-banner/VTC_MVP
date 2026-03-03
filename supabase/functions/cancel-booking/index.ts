@@ -25,23 +25,23 @@ serve(async (req) => {
     .eq("id", booking_id)
     .maybeSingle();
 
-  if (!booking) return new Response("Booking not found", { status: 404 });
-  if (booking.status !== "paid")
-    return new Response("Booking not cancellable", { status: 400 });
+  if (!booking) {
+    return new Response("Booking not found", { status: 404 });
+  }
 
-  if (!booking.cancellation_policy_id)
-    return new Response("Missing cancellation policy", { status: 400 });
-
-  // 2️⃣ Load policy
+  // 2️⃣ Load cancellation policy
   const { data: policy } = await supabase
     .from("cancellation_policies")
     .select("*")
     .eq("id", booking.cancellation_policy_id)
     .single();
 
+  if (!policy) {
+    return new Response("Policy not found", { status: 400 });
+  }
+
   const now = new Date();
   const pickup = new Date(booking.pickup_time);
-
   const deltaHours = (pickup.getTime() - now.getTime()) / (1000 * 60 * 60);
 
   let refundRate = 0;
@@ -58,38 +58,60 @@ serve(async (req) => {
 
   const refundAmount = booking.total_amount * refundRate;
 
-  // 3️⃣ No refund case
+  // 3️⃣ Cas sans remboursement
   if (refundAmount <= 0) {
-    await supabase
+    const { error } = await supabase
       .from("bookings")
       .update({
         status: "cancelled_no_refund",
         cancellation_reason: reason,
         cancelled_at: now.toISOString(),
       })
-      .eq("id", booking_id);
+      .eq("id", booking_id)
+      .eq("status", "paid"); // protection minimale
+
+    if (error) {
+      return new Response("Cancellation failed", { status: 400 });
+    }
 
     return new Response(JSON.stringify({ refund: 0 }), {
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  // 4️⃣ Stripe refund
+// 4️⃣ 🔒 Verrou transactionnel via RPC
+const { data: lockData, error: lockError } = await supabase.rpc(
+  "initiate_refund",
+  {
+    p_booking_id: booking_id,
+    p_reason: reason,
+  },
+);
+
+if (
+  lockError ||
+  !lockData ||
+  !lockData[0]?.refund_allowed
+) {
+  return new Response("Refund not allowed", { status: 400 });
+}
+
+const paymentIntentId = lockData[0].payment_intent_id;
+
+// 5️⃣ Appel Stripe sécurisé
+try {
   await stripe.refunds.create({
-    payment_intent: booking.stripe_payment_intent_id,
+    payment_intent: paymentIntentId,
     amount: Math.round(refundAmount * 100),
   });
-
+} catch (err) {
+  // ⚠️ Si Stripe échoue → rollback métier partiel
   await supabase
     .from("bookings")
-    .update({
-      status: "cancelled_pending_refund",
-      cancellation_reason: reason,
-      cancelled_at: now.toISOString(),
-    })
+    .update({ status: "refund_failed" })
     .eq("id", booking_id);
 
-  return new Response(JSON.stringify({ refund: refundAmount }), {
-    headers: { "Content-Type": "application/json" },
-  });
-});
+  console.error("Stripe refund error:", err);
+
+  return new Response("Stripe refund failed", { status: 500 });
+}

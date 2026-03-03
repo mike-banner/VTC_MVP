@@ -33,10 +33,11 @@ Tu peux remplacer ton fichier par ceci.
 
 ### ✅ Multi-tenant isolation
 
-- [ ] Toutes les tables métier contiennent `tenant_id`
-- [ ] Aucun accès cross-tenant possible
-- [ ] RLS activé sur toutes les tables sensibles
-- [ ] Toutes les requêtes filtrées par `tenant_id`
+- [x] Toutes les tables métier contiennent `tenant_id`
+- [x] Aucun accès cross-tenant possible
+- [x] RLS activé sur toutes les tables sensibles
+- [x] Toutes les requêtes filtrées par `tenant_id`
+- [x] Isolation renforcée via fonction SQL interne (Cloud)
 
 ---
 
@@ -195,23 +196,24 @@ Tu peux remplacer ton fichier par ceci.
 
 ---
 
-### Audit Financier
+### Audit Financier (Ledger Natif)
 
-- [ ] Table `financial_movements` alimentée automatiquement
-- [ ] `movement_type` géré (payment, commission, refund, commission_reversal)
-- [ ] `direction` (credit/debit) correct selon type
-- [ ] Calcul HT / TVA / TTC cohérent
-- [ ] Pas de modification/suppression manuelle autorisée (Audit trail)
+- [x] Table `financial_movements` alimentée automatiquement
+- [x] `movement_type` géré (payment, commission, refund, commission_reversal)
+- [x] `direction` (credit/debit) correct selon type
+- [x] Calcul HT / TVA / TTC cohérent
+- [x] **Snapshots de taux** (commission plateforme/chauffeur) figés lors de l'insert
+- [x] Pas de modification/suppression manuelle autorisée (Audit trail)
 
 ---
 
 ### Refund & Annulation
 
-- [ ] Support `charge.refunded` implémenté
-- [ ] Refund partiel proportionnel testé
-- [ ] Inversion commission (`commission_reversal`) proportionnelle
-- [ ] Statut booking mis à jour uniquement si refund total (100%)
-- [ ] Traçabilité `stripe_refund_id`
+- [x] Webhook `refund.created` implémenté
+- [x] Refund partiel proportionnel testé
+- [x] Inversion commission (`commission_reversal`) proportionnelle basée sur snapshot
+- [x] Statut booking mis à jour après refund Stripe (cancelled_refunded)
+- [x] Traçabilité `stripe_refund_id` dans le ledger
 
 ---
 

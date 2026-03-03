@@ -77,8 +77,11 @@ Relations :
 - 1:N vehicles
 - 1:N pricing_rules
 - 1:N bookings
+- 1:N financial_movements
 
----
+🔒 RLS : Filtrage strict par `tenant_id`
+🔒 Isolation : Fonction `current_tenant_id()` utilisée dans les politiques.
+🔒 Service_Role : Accès bypass (Edge Functions uniquement).
 
 ## 2️⃣ profiles
 
@@ -227,25 +230,32 @@ Définit les règles de remboursement par tenant.
 
 ---
 
-## 9️⃣ financial_movements (Audit Comptable)
+## 9️⃣ financial_movements (Audit Comptable - Ledger Natif)
 
-Table centrale pour l'audit financier et le reporting.
+Table unique remplaçant `booking_commissions` et `refunds`. Elle sert d'audit financier immuable.
 
-| Column                   | Type                                                    | Notes                                |
-| ------------------------ | ------------------------------------------------------- | ------------------------------------ |
-| id                       | uuid (PK)                                               |                                      |
-| booking_id               | uuid                                                    | Lien booking                         |
-| tenant_id                | uuid                                                    | Isolation SaaS                       |
-| movement_type            | enum (payment, commission, refund, commission_reversal) | Type de mouvement                    |
-| direction                | enum (credit, debit)                                    | Direction financière                 |
-| gross_amount             | numeric                                                 | Montant TTC                          |
-| net_amount               | numeric                                                 | Montant HT                           |
-| vat_amount               | numeric                                                 | Montant TVA                          |
-| stripe_payment_intent_id | text                                                    | Référence Stripe                     |
-| stripe_refund_id         | text                                                    | Si mouvement de type refund          |
-| refund_ratio             | numeric (nullable)                                      | Ratio du refund précis (0.0 à 1.0)   |
-| created_by_event         | text                                                    | ID de l'événement Stripe déclencheur |
-| created_at               | timestamptz                                             |                                      |
+| Column                            | Type               | Notes                                  |
+| --------------------------------- | ------------------ | -------------------------------------- |
+| id                                | uuid (PK)          |                                        |
+| booking_id                        | uuid               | Lien booking                           |
+| tenant_id                         | uuid               | Isolation SaaS                         |
+| movement_type                     | enum               | payment, commission, refund, etc.      |
+| direction                         | enum               | credit, debit                          |
+| gross_amount                      | numeric            | Montant TTC                            |
+| net_amount                        | numeric            | Montant HT                             |
+| vat_amount                        | numeric            | Montant TVA                            |
+| platform_commission_amount        | numeric            | Montant commission plateforme          |
+| platform_commission_rate_snapshot | numeric            | Taux plateforme au moment du mouvement |
+| driver_commission_amount          | numeric            | Montant commission chauffeur (V2)      |
+| driver_commission_rate_snapshot   | numeric            | Taux chauffeur au moment du mouvement  |
+| stripe_payment_intent_id          | text               | Référence Stripe                       |
+| stripe_refund_id                  | text               | Si mouvement de type refund            |
+| refund_ratio                      | numeric (nullable) | Ratio du refund précis (0.0 à 1.0)     |
+| created_by_event                  | text               | ID de l'événement Stripe (Idempotence) |
+| created_at                        | timestamptz        |                                        |
+
+🔒 Immuabilité : Aucun UPDATE ou DELETE autorisé hors admin.
+🔒 Audit Trail : Chaînage avec `stripe_events`.
 
 ---
 

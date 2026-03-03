@@ -128,22 +128,34 @@ Le système utilise Stripe Checkout pour sécuriser les paiements.
 
 # 💸 7️⃣ Cancellation & Refund Flow (Automated)
 
-Le système gère les annulations selon des politiques versionnées (`cancellation_policies`).
+# 💳 Flow : Paiement & Ledger Natif (Stripe)
 
-### Étape 1 : Initialisation de l'annulation (`cancel-booking`)
+1. **Checkout** : Le client paie via Stripe.
+2. **Webhook Event** : Réception de `checkout.session.completed`.
+3. **Idempotence** :
+   - Insertion de l'ID event dans `stripe_events`.
+   - Si duplication (409), arrêt immédiat.
+4. **Validation Booking** : Passage du booking en `paid`.
+5. **Ledger (Mouvement 1)** : Création d'un crédit `payment` avec `gross_amount` (TTC), `net_amount` (HT) et `vat_amount`.
+6. **Snapshot Commission (Mouvement 2)** :
+   - Lecture du `platform_fee_rate` actuel du tenant.
+   - Création d'un débit `commission`.
+   - **Important** : Le taux est sauvé dans `platform_commission_rate_snapshot`.
 
-1. **Appel API** avec `booking_id` et `reason`.
-2. **Validation** : Le booking doit être au statut `paid`.
-3. **Calcul** : La fonction récupère la politique active du tenant et calcule le `refund_rate` selon le délai (pickup vs now) et le motif.
-4. **Stripe API** : Si un remboursement est dû, appel à `stripe.refunds.create`.
-5. **Statut** : Le booking passe à `cancelled_pending_refund` (ou `cancelled_no_refund`).
+---
 
-### Étape 2 : Confirmation Webhook (`refund.created`)
+### 🔄 Flow : Refund & Inversion de Ledger
 
-1. **Webhook Stripe** reçoit l'événement.
-2. **Idempotence** : Vérification dans `stripe_events`.
-3. **Audit Financier** : Insertion d'un mouvement `refund` (Débit) et `commission_reversal` (Crédit) pro-rata.
-4. **Finalisation** : Le booking passe au statut final `cancelled_refunded`.
+1. **Refund Trigger** : Initié via Dashboard Stripe ou API.
+2. **Webhook Event** : Réception de `refund.created`.
+3. **Protection Anti-collision** :
+   - Vérification de l'existence du `stripe_refund_id` dans `financial_movements`.
+   - Si déjà présent, arrêt (Idempotence).
+4. **Calcul Ratio** : `refund_amount / booking.total_amount`.
+5. **Inversion Ledger** :
+   - Débit `refund` proportionnel au ratio.
+   - **Inversion Commission** : Crédit `commission_reversal` basé sur le snapshot original multiplié par le ratio.
+6. **Statut** : Mise à jour du booking en `cancelled_refunded`.
 
 L'audit financier permet de recalculer le Net par tenant après déduction des refunds réels.
 
