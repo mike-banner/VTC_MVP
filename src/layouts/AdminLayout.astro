@@ -2,13 +2,16 @@
 // src/layouts/AdminLayout.astro
 import "../styles/global.css";
 import { isPlatform } from "../lib/guards";
+import Sidebar from "../components/admin/Sidebar.astro";
 
 interface Props {
     title: string;
+    description?: string;
 }
 
-const { title } = Astro.props;
+const { title, description } = Astro.props;
 const { profile } = Astro.locals;
+
 
 // Sécurité supplémentaire au niveau du layout
 if (!isPlatform(profile)) {
@@ -17,65 +20,99 @@ if (!isPlatform(profile)) {
 ---
 
 <!doctype html>
-<html lang="fr" class="dark">
+<html lang="fr" class="dark scroll-smooth">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="generator" content={Astro.generator} />
-        <title>{title} | Admin Plateforme</title>
+        <title>{title} | VTC HUB Admin</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800;900&display=swap"
             rel="stylesheet"
         />
+        <style is:global>
+            :root {
+                --accent: 79, 70, 229;
+                --accent-light: 224, 204, 250;
+                --accent-dark: 49, 10, 101;
+                --accent-gradient: linear-gradient(
+                    45deg,
+                    rgb(var(--accent)),
+                    rgb(var(--accent-light)) 30%,
+                    white 60%
+                );
+            }
+            html {
+                font-family: 'Inter', system-ui, sans-serif;
+                background-color: #050505;
+                color-scheme: dark;
+            }
+            .font-title {
+                font-family: 'Outfit', 'Inter', sans-serif;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.01);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+            }
+        </style>
     </head>
     <body
-        class="bg-[#050505] min-h-screen text-slate-50 selection:bg-indigo-500/30"
+        class="bg-[#050505] min-h-screen text-slate-50 selection:bg-indigo-500/30 overflow-x-hidden"
     >
-        <!-- Sidebar ou Nav spécifique Admin -->
-        <nav
-            class="sticky top-0 z-50 w-full glass border-b border-indigo-500/20 px-6 py-4"
-        >
-            <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div
-                        class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center"
-                    >
-                        <span class="text-white font-black text-xl">A</span>
-                    </div>
-                    <div>
-                        <span
-                            class="text-lg font-black tracking-tighter uppercase italic"
-                            >VTC HUB <span class="text-indigo-500">ADMIN</span
-                            ></span
-                        >
-                    </div>
-                </div>
+        <Sidebar />
 
-                <div class="flex items-center gap-6">
-                    <button
-                        id="logout-btn"
-                        class="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20"
-                    >
-                        Quitter Admin
-                    </button>
-                </div>
+        <main class="md:ml-64 relative min-h-screen flex flex-col p-8 md:p-12 lg:p-20 overflow-hidden">
+            <!-- Background Decoration -->
+            <div class="absolute top-0 right-0 w-full h-full pointer-events-none opacity-50">
+                <div class="absolute top-[10%] right-[10%] w-[400px] h-[400px] bg-indigo-600/10 blur-[150px] rounded-full"></div>
             </div>
-        </nav>
 
-        <main class="relative z-10 py-12">
-            <slot />
+            <!-- Page Header -->
+            <header class="relative mb-12 flex items-center justify-between">
+                <div>
+                    <h1 class="text-xs font-black uppercase tracking-[0.3em] text-indigo-500 mb-2">
+                        Backoffice Plateforme
+                    </h1>
+                    <p class="text-4xl md:text-5xl font-black italic uppercase tracking-tighter text-white font-title">
+                        {title}
+                    </p>
+                    {description && (
+                        <p class="text-slate-500 text-xs md:text-sm mt-2 font-medium tracking-wide">
+                            {description}
+                        </p>
+                    )}
+                </div>
+                <div class="hidden md:flex items-center gap-4">
+                    <div class="px-4 py-2 border rounded-xl bg-white/5 border-white/10 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-[#555]">Serveur Status: OK</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="relative z-10 flex-1">
+                <slot />
+            </div>
+
+            <!-- Footer -->
+            <footer class="mt-24 pt-8 border-t border-white/5 text-center">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-600">
+                    &copy; {new Date().getFullYear()} VTC HUB SaaS — TOUS DROITS RÉSERVÉS — V1.0 Stable
+                </p>
+            </footer>
         </main>
 
         <script>
-            import { supabase } from "@/lib/supabase/client";
-            const logoutBtn = document.querySelector("#logout-btn");
-            logoutBtn?.addEventListener("click", async () => {
-                await supabase.auth.signOut();
-                window.location.href = "/";
+            // Client-side interactions
+            document.addEventListener('astro:page-load', () => {
+                // Future JS interactions
             });
         </script>
     </body>
 </html>
+

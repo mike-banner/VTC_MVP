@@ -58,6 +58,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "booking_shares_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_stuck_pending_refund"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "booking_shares_shared_by_tenant_id_fkey"
             columns: ["shared_by_tenant_id"]
             isOneToOne: false
@@ -65,6 +72,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      booking_status_transitions: {
+        Row: {
+          from_status: Database["public"]["Enums"]["booking_status"]
+          to_status: Database["public"]["Enums"]["booking_status"]
+        }
+        Insert: {
+          from_status: Database["public"]["Enums"]["booking_status"]
+          to_status: Database["public"]["Enums"]["booking_status"]
+        }
+        Update: {
+          from_status?: Database["public"]["Enums"]["booking_status"]
+          to_status?: Database["public"]["Enums"]["booking_status"]
+        }
+        Relationships: []
       }
       bookings: {
         Row: {
@@ -457,6 +479,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "financial_movements_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_stuck_pending_refund"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "financial_movements_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -639,6 +668,39 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_logs: {
+        Row: {
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          received_at: string
+          status: string
+          stripe_event_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          stripe_event_id: string
+        }
+        Update: {
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          stripe_event_id?: string
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           created_at: string | null
@@ -725,6 +787,141 @@ export type Database = {
       }
     }
     Views: {
+      bookings_stuck_pending_refund: {
+        Row: {
+          cancellation_initiator: string | null
+          cancellation_policy_id: string | null
+          cancellation_reason:
+            | Database["public"]["Enums"]["cancellation_reason_enum"]
+            | null
+          cancelled_at: string | null
+          client_email: string | null
+          client_name: string | null
+          created_at: string | null
+          current_tenant_id: string | null
+          customer_id: string | null
+          distance_km: number | null
+          driver_id: string | null
+          dropoff_address: string | null
+          id: string | null
+          original_tenant_id: string | null
+          payment_mode: Database["public"]["Enums"]["payment_mode"] | null
+          pickup_address: string | null
+          pickup_time: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          stripe_payment_intent_id: string | null
+          subtotal_amount: number | null
+          total_amount: number | null
+          vat_amount: number | null
+        }
+        Insert: {
+          cancellation_initiator?: string | null
+          cancellation_policy_id?: string | null
+          cancellation_reason?:
+            | Database["public"]["Enums"]["cancellation_reason_enum"]
+            | null
+          cancelled_at?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          current_tenant_id?: string | null
+          customer_id?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          dropoff_address?: string | null
+          id?: string | null
+          original_tenant_id?: string | null
+          payment_mode?: Database["public"]["Enums"]["payment_mode"] | null
+          pickup_address?: string | null
+          pickup_time?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          stripe_payment_intent_id?: string | null
+          subtotal_amount?: number | null
+          total_amount?: number | null
+          vat_amount?: number | null
+        }
+        Update: {
+          cancellation_initiator?: string | null
+          cancellation_policy_id?: string | null
+          cancellation_reason?:
+            | Database["public"]["Enums"]["cancellation_reason_enum"]
+            | null
+          cancelled_at?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          current_tenant_id?: string | null
+          customer_id?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          dropoff_address?: string | null
+          id?: string | null
+          original_tenant_id?: string | null
+          payment_mode?: Database["public"]["Enums"]["payment_mode"] | null
+          pickup_address?: string | null
+          pickup_time?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          stripe_payment_intent_id?: string | null
+          subtotal_amount?: number | null
+          total_amount?: number | null
+          vat_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_cancellation_policy_id_fkey"
+            columns: ["cancellation_policy_id"]
+            isOneToOne: false
+            referencedRelation: "cancellation_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_current_tenant_id_fkey"
+            columns: ["current_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_original_tenant_id_fkey"
+            columns: ["original_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_global_kpi: {
+        Row: {
+          net_revenue: number | null
+          total_bookings: number | null
+          total_collected: number | null
+          total_refunded: number | null
+        }
+        Relationships: []
+      }
+      finance_monthly_summary: {
+        Row: {
+          month: string | null
+          net_revenue: number | null
+          total_collected: number | null
+          total_refunded: number | null
+        }
+        Relationships: []
+      }
       financial_fiscal_detail: {
         Row: {
           amount_ht: number | null
@@ -780,6 +977,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_movements_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings_stuck_pending_refund"
             referencedColumns: ["id"]
           },
           {
@@ -848,13 +1052,91 @@ export type Database = {
           },
         ]
       }
+      stripe_webhook_errors: {
+        Row: {
+          error_message: string | null
+          event_type: string | null
+          id: string | null
+          payload: Json | null
+          processed_at: string | null
+          received_at: string | null
+          status: string | null
+          stripe_event_id: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          stripe_event_id?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          stripe_event_id?: string | null
+        }
+        Relationships: []
+      }
+      stripe_webhook_pending: {
+        Row: {
+          error_message: string | null
+          event_type: string | null
+          id: string | null
+          payload: Json | null
+          processed_at: string | null
+          received_at: string | null
+          status: string | null
+          stripe_event_id: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          stripe_event_id?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          stripe_event_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       approve_onboarding_tx: {
         Args: { onboarding_uuid: string }
         Returns: undefined
       }
+      compute_booking_balance: {
+        Args: { p_booking_id: string }
+        Returns: number
+      }
       current_tenant_id: { Args: never; Returns: string }
+      expire_unpaid_bookings: { Args: never; Returns: undefined }
+      initiate_refund: {
+        Args: { p_booking_id: string; p_reason: string }
+        Returns: {
+          payment_intent_id: string
+          refund_allowed: boolean
+        }[]
+      }
     }
     Enums: {
       booking_status:
@@ -864,10 +1146,13 @@ export type Database = {
         | "cancelled"
         | "accepted_pending_payment"
         | "paid"
-        | "refunded"
+        | "deprecated_refunded"
         | "cancelled_pending_refund"
         | "cancelled_no_refund"
         | "cancelled_refunded"
+        | "no_show"
+        | "expired_payment"
+        | "refund_failed"
       cancellation_reason_enum:
         | "client"
         | "no_show"
@@ -1018,10 +1303,13 @@ export const Constants = {
         "cancelled",
         "accepted_pending_payment",
         "paid",
-        "refunded",
+        "deprecated_refunded",
         "cancelled_pending_refund",
         "cancelled_no_refund",
         "cancelled_refunded",
+        "no_show",
+        "expired_payment",
+        "refund_failed",
       ],
       cancellation_reason_enum: [
         "client",

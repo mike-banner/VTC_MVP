@@ -247,6 +247,40 @@ Deno.serve(async (req) => {
 
     return new Response("OK");
   } catch (err) {
+    // 🚩 ALERT PROD: Envoi email alerte via Resend
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (resendKey) {
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "alerts@vtc-hub.com",
+            to: "mike@vtc-hub.com", // Email par défaut, à ajuster si besoin
+            subject: `🚨 Stripe Webhook Error: ${event.type}`,
+            html: `
+              <div style="font-family: sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #dc2626;">Erreur de traitement Webhook</h2>
+                <p><strong>Event ID:</strong> ${event.id}</p>
+                <p><strong>Type:</strong> ${event.type}</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="font-weight: bold;">Erreur :</p>
+                <pre style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; overflow-x: auto;">${String(err)}</pre>
+                <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
+                  Ceci est une alerte automatique généré par le système VTC HUB.
+                </p>
+              </div>
+            `,
+          }),
+        });
+      } catch (emailErr) {
+        console.error("Failed to send alert email:", emailErr);
+      }
+    }
+
     await supabase
       .from("stripe_webhook_logs")
       .update({

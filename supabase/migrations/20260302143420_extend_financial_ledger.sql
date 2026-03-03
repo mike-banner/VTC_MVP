@@ -1,5 +1,0 @@
-alter table financial_movements
-add column platform_commission_rate_snapshot decimal,
-add column driver_commission_rate_snapshot decimal,
-add column platform_commission_amount decimal,
-add column driver_commission_amount decimal;
