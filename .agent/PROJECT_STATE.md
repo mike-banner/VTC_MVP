@@ -11,6 +11,7 @@
 - **Protocole de lecture** : Toujours exécuter `npm run gen:types` AVANT d'inspecter l'état de la base.
 - **Local Reference**: Se baser EXCLUSIVEMENT sur `src/lib/supabase/database.types.ts` après génération pour valider l'existence d'une table ou d'une colonne.
 - **Migrations**: Utiles pour l'historique, mais NE PAS s'y fier pour l'état actuel.
+- **Règle Stricte Migrations** : Ne JAMAIS créer de nouveau fichier de migration (`.sql`) automatiquement. Toujours vérifier les migrations existantes ou demander l'accord avant d'en générer une, pour ne pas dérégler l'ordre des commits de l'utilisateur.
 
 ## 🔒 Multi-Tenancy Rules
 

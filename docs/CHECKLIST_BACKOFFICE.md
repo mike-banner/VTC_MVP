@@ -9,17 +9,17 @@ Ce dépôt contient le cœur financier et administratif du SaaS.
 - [x] **Isolation Multi-tenant** : Basée sur `tenant_id` sur toutes les tables.
 - [x] **ENUM strict booking_status** : Cycle de vie complet implémenté.
 - [x] **ENUM strict movement_type** : Aligné avec le ledger financier.
-- [ ] **Trigger de transition** : Bloquer les changements de statut invalides en SQL.
-- [ ] **Hardening Annulation** : Bloquer l'annulation après `pickup_time`.
-- [ ] **Statuts spéciaux** : Implémenter `no_show` et `expired_payment`.
-- [ ] **Automation** : Expiration automatique des sessions de paiement non abouties.
+- [x] **Trigger de transition** : Bloquer les changements de statut invalides en SQL.
+- [x] **Hardening Annulation** : Bloquer l'annulation après `pickup_time`.
+- [x] **Statuts spéciaux** : Implémenter `no_show` et `expired_payment` dans l'ENUM.
+- [x] **Automation** : Expiration automatique des sessions de paiement non abouties (`expire_unpaid_bookings`).
 - [x] **Contraintes Refund** :
   - [x] Interdire si statut ≠ `paid`.
-  - [ ] Interdire si déjà `cancelled` ou `no_show`.
+  - [x] Interdire si déjà `cancelled` ou `no_show` (via trigger).
   - [x] Empêcher refund > montant payé.
 - [x] **Intégrité Ledger** : Interdire UPDATE/DELETE (Append-only).
-- [ ] **Intégrité Métier** : Interdire le DELETE sur la table `bookings` (Immuabilité).
-- [ ] **Réconciliation** : Trigger de cohérence ledger ↔ booking (balance check).
+- [x] **Intégrité Métier** : Interdire le DELETE sur la table `bookings` (Immuabilité via trigger).
+- [x] **Réconciliation** : Trigger de cohérence ledger ↔ booking (`validate_ledger_consistency`).
 
 ## 💳 2️⃣ Paiement Stripe
 
@@ -46,10 +46,10 @@ Ce dépôt contient le cœur financier et administratif du SaaS.
 
 - [x] **Login sécurisé** (Supabase Auth).
 - [ ] **Liste Bookings** : Paginée avec filtres.
-- [ ] **Fiche Booking** : Complète avec Timeline de statuts.
-- [ ] **Section Ledger** : Liée à chaque fiche booking.
-- [ ] **Outils Admin** : Pages Refunds, Erreurs paiement, Logs webhook.
-- [ ] **KPI Finance** : Dashboard global.
+- [x] **Fiche Booking** : Complète avec Timeline de statuts.
+- [x] **Section Ledger** : Liée à chaque fiche booking (Admin & App).
+- [x] **Outils Admin** : Pages Refunds, Erreurs paiement, Logs webhook.
+- [x] **KPI Finance** : Dashboard global opérationnel.
 
 ## 🔐 6️⃣ Sécurité
 
@@ -68,9 +68,15 @@ Ce dépôt contient le cœur financier et administratif du SaaS.
 
 ## 🔐 8️⃣ Concurrence & Transactions (Hardening 003)
 
-- [ ] **Race Condition Protection** : Utiliser `SELECT ... FOR UPDATE` sur les lignes critiques (Refunds/Status).
-- [ ] **Verrouillage Booking** : Empêcher les updates simultanés d'un même dossier.
-- [ ] **Transactions Strictes** : Garantir l'atomicité Status Change + Ledger Entry.
+- [x] **Race Condition Protection** : Utiliser `SELECT ... FOR UPDATE` sur les lignes critiques (Refunds/Status).
+- [x] **Verrouillage Booking** : Empêcher les updates simultanés d'un même dossier.
+- [x] **Transactions Strictes** : Garantir l'atomicité Status Change + Ledger Entry.
+
+## 👤 10️⃣ Normalisation Customer (V1 Update)
+
+- [x] **Suppression Legacy** : Champs `client_name`/`email` retirés de l'insertion booking.
+- [x] **FK Obligatoire** : `customer_id` NOT NULL dans `bookings`.
+- [x] **Identité Centralisée** : Table `customers` maître de la donnée.
 
 ## 📈 9️⃣ Finance Ops (Reconciliation & Monitoring)
 

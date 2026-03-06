@@ -36,13 +36,31 @@ Ce document récapitule l'ensemble des fonctionnalités implémentées depuis le
 ## ✅ 4. En cours / À Finaliser (V1+)
 
 - [x] **Moteur de Règles d'Annulation** : Automated cancellation engine based on versioned policies. Integration with Stripe (Terminé).
+- [x] **Dashboard Tenant** : Finalisation de l'interface graphique pour le suivi des revenus et activités.
 - [ ] **Export CSV Finance** : Bouton d'export des mouvements pour les experts-comptables depuis le frontend.
-- [ ] **Dashboard Tenant** : Finalisation de l'interface graphique pour le suivi des revenus et refunds.
 - [ ] **Gestion des Frais Stripe** : Arbitrage business sur la répercussion des frais fixes Stripe en cas de refund.
 
 ---
 
-## 🔮 5. Roadmap Future (V2 - V4)
+## ✅ 6. Validation V1 — Paiement & Normalisation (MARS 2026)
+
+### 🔐 Normalisation Booking → Customer
+
+- **Indépendance stricte** : Suppression des champs legacy `client_name` et `client_email` dans `bookings`.
+- **Intégrité référentielle** : `bookings.customer_id` est désormais `NOT NULL`. Un booking ne peut pas exister sans client.
+- **Réduction de redondance** : Les clients sont centralisés dans la table `customers` avec email normalisé (trim + lowercase).
+- **Structure validée** : `passenger_count` obligatoire, répartition `subtotal_amount` + `vat_amount` = `total_amount`.
+
+### 💳 Pipeline Stripe & Ledger
+
+- **Cycle complet validé** : Du statut `accepted_pending_payment` vers `paid` via Webhook.
+- **Source de Vérité** : Le statut `paid` est exclusivement déclenché par le webhook Stripe via l'Edge Function.
+- **Financial Movement** : Insertion automatique d'un mouvement de type `payment` lors de la réussite du paiement.
+- **Idempotence** : Protection contre le double traitement confirmée.
+
+---
+
+## 🔮 7. Roadmap Future (V2 - V4)
 
 - [ ] **V1.1 (Hardening)** : Bloquer l'annulation après `pickup_time`, Audit manuel, Non-refundable commission option.
 - [ ] **V2 (Pro)** : Facturation automatique PDF, Multi-driver avancé, Assignation manuelle/auto.

@@ -58,6 +58,14 @@ if (!isPlatform(profile)) {
                 backdrop-filter: blur(20px);
                 border: 1px solid rgba(255, 255, 255, 0.05);
             }
+            /* FIX: Dropdowns blanc sur blanc */
+            select option {
+                background-color: #0f172a; /* Slate 900 */
+                color: white;
+            }
+            select:focus option {
+                background-color: #0f172a;
+            }
         </style>
     </head>
     <body

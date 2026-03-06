@@ -30,14 +30,14 @@ const maxAmount = url.searchParams.get("max") || "";
 const fromIndex = (page - 1) * PAGE_SIZE;
 const toIndex = fromIndex + PAGE_SIZE - 1;
 
-// 3. Construction de la requête principale
+// 3. Construction de la requête principale via la VUE ADMIN
 let query = supabaseAdmin
-    .from("bookings")
-    .select("*, drivers(first_name, last_name), tenants(name, email)", { count: "exact" });
+    .from("admin_bookings_full_view")
+    .select("*", { count: "exact" });
 
 if (status) query = query.eq("status", status);
 if (driver_id) query = query.eq("driver_id", driver_id);
-if (email) query = query.ilike("client_email", `%${email}%`);
+if (email) query = query.ilike("display_customer_email", `%${email}%`);
 if (dateFrom) query = query.gte("created_at", `${dateFrom}T00:00:00`);
 if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59`);
 if (minAmount) query = query.gte("total_amount", parseFloat(minAmount));
@@ -172,22 +172,27 @@ const getStatusBadge = (s: string) => {
                         {bookings?.map((b) => (
                             <tr class="hover:bg-white/5 transition-colors group">
                                 <td class="px-6 py-4">
-                                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-600">#{b.id.slice(0, 8)}</span>
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-600">#{b.id?.slice(0, 8)}</span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <p class="text-[11px] font-black italic uppercase text-white">{b.client_name}</p>
-                                    <p class="text-[9px] font-bold text-slate-500 mt-0.5">{b.client_email}</p>
+                                    <p class="text-[11px] font-black italic uppercase text-white">
+                                        {b.display_customer_first_name} {b.display_customer_last_name || ''}
+                                    </p>
+                                    <p class="text-[9px] font-bold text-slate-500 mt-0.5">{b.display_customer_email}</p>
+                                    <a href={`tel:${b.display_customer_phone}`} class="text-[8px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors block mt-1">
+                                        {b.display_customer_phone}
+                                    </a>
                                 </td>
                                 <td class="px-6 py-4">
-                                    {b.drivers ? (
+                                    {b.driver_id ? (
                                         <p class="text-[10px] font-black uppercase text-indigo-400">
-                                            {b.drivers.first_name} {b.drivers.last_name}
+                                            {b.driver_first_name} {b.driver_last_name}
                                         </p>
                                     ) : (
                                         <div>
-                                            <p class="text-[10px] font-black uppercase text-amber-500/80 italic">Partenaire (Non assigné)</p>
-                                            <p class="text-[9px] font-bold text-slate-500 mt-0.5">{b.tenants?.name || 'Inconnu'}</p>
-                                            <p class="text-[8px] text-slate-600 truncate max-w-[120px]">{b.tenants?.email}</p>
+                                            <p class="text-[10px] font-black uppercase text-amber-500/80 italic">Chauffeur (Non assigné)</p>
+                                            <p class="text-[9px] font-bold text-slate-500 mt-0.5">{b.original_tenant_name || 'Inconnu'}</p>
+                                            <p class="text-[8px] text-slate-600 truncate max-w-[120px]">{b.original_tenant_domain}</p>
                                         </div>
                                     )}
                                 </td>

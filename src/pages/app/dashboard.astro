@@ -20,29 +20,26 @@ const startOfMonth = new Date(
     1,
 ).toISOString();
 
-// 1️⃣ Courses du jour
+// 1️⃣ Courses du jour (Métier)
 const { count: dailyCount } = await supabase
     .from("bookings")
     .select("*", { count: "exact", head: true })
     .eq("current_tenant_id", profile.tenant_id!)
     .gte("pickup_time", startOfToday);
 
-// 2️⃣ Chiffre d'affaires du mois
-const { data: monthBookings } = await supabase
-    .from("bookings")
-    .select("total_amount")
-    .eq("current_tenant_id", profile.tenant_id!)
-    .gte("pickup_time", startOfMonth)
-    .neq("status", "cancelled");
+// 2️⃣ Données Financières (Source: Vue Ledger)
+const { data: kpi } = await supabase
+    .from("tenant_dashboard_kpi")
+    .select("*")
+    .eq("tenant_id", profile.tenant_id!)
+    .single();
 
-const monthlyRevenue =
-    monthBookings?.reduce((acc, curr) => acc + Number(curr.total_amount), 0) ||
-    0;
+const monthlyRevenue = kpi?.monthly_net_revenue || 0;
 
-// 3️⃣ Dernières courses pour l'affichage rapide (V1)
+// 3️⃣ Dernières courses (Affichage rapide)
 const { data: recentBookings } = await supabase
     .from("bookings")
-    .select("*")
+    .select("*, customers!inner(*)")
     .eq("current_tenant_id", profile.tenant_id!)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -138,7 +135,10 @@ const { data: recentBookings } = await supabase
                                             <tr class="hover:bg-white/5 transition-colors group">
                                                 <td class="px-8 py-8">
                                                     <div class="font-bold text-white uppercase italic tracking-tighter text-lg">
-                                                        {booking.client_name}
+                                                        {booking.customers.first_name} {booking.customers.last_name}
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-500 font-bold uppercase mt-1">
+                                                        {booking.customers.email}
                                                     </div>
                                                     <div class="text-[10px] text-slate-500 font-bold uppercase mt-2 group-hover:text-slate-300 transition-colors">
                                                         {booking.pickup_address}

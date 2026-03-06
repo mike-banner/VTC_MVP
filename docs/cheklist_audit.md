@@ -43,20 +43,20 @@ Tu peux remplacer ton fichier par ceci.
 
 ### ✅ Activation atomique
 
-- [ ] `approve_onboarding_tx` existe
-- [ ] Fonction en `plpgsql`
-- [ ] Rollback testé
-- [ ] Impossible d’activer deux fois le même onboarding
-- [ ] Aucun insert partiel possible
+- [x] `approve_onboarding_tx` existe
+- [x] Fonction en `plpgsql`
+- [x] Rollback testé
+- [x] Impossible d’activer deux fois le même onboarding
+- [x] Aucun insert partiel possible
 
 ---
 
 ### ✅ Onboarding staging
 
-- [ ] onboarding séparé de tenants
-- [ ] status enum strict (`pending`, `approved`)
-- [ ] Impossible d’activer si status != pending
-- [ ] `primary_domain` unique
+- [x] onboarding séparé de tenants
+- [x] status enum strict (`pending`, `approved`)
+- [x] Impossible d’activer si status != pending
+- [x] `primary_domain` unique
 
 ---
 
@@ -66,16 +66,16 @@ Tu peux remplacer ton fichier par ceci.
 
 ### Auth
 
-- [ ] profiles.id = auth.users.id
-- [ ] Trigger `handle_new_user` testé
-- [ ] Session SSR via cookies
-- [ ] platform_role séparé de tenant_role
+- [x] profiles.id = auth.users.id
+- [x] Trigger `handle_new_user` testé
+- [x] Session SSR via cookies
+- [x] platform_role séparé de tenant_role
 
 ---
 
 ### RLS
 
-- [ ] RLS activé sur :
+- [x] RLS activé sur :
   - profiles
   - tenants
   - drivers
@@ -104,14 +104,14 @@ Tu peux remplacer ton fichier par ceci.
 
 ### Contraintes
 
-- [ ] primary_domain UNIQUE
-- [ ] drivers.first_name NOT NULL
-- [ ] drivers.last_name NOT NULL
-- [ ] drivers.phone NOT NULL
-- [ ] drivers.license_number NOT NULL
-- [ ] vehicles.capacity type correct
-- [ ] distance_km type numeric
-- [ ] total_amount non nullable
+- [x] primary_domain UNIQUE
+- [x] drivers.first_name NOT NULL
+- [x] drivers.last_name NOT NULL
+- [x] drivers.phone NOT NULL
+- [x] drivers.license_number NOT NULL
+- [x] vehicles.capacity type correct
+- [x] distance_km type numeric
+- [x] total_amount non nullable
 
 ---
 
@@ -155,11 +155,12 @@ Tu peux remplacer ton fichier par ceci.
 
 ### Booking V1
 
-- [ ] Prix recalculé backend
-- [ ] minimum_fare appliqué
-- [ ] total_amount jamais accepté tel quel
-- [ ] Statuts contrôlés
-- [ ] Booking lié au bon tenant
+- [x] Prix recalculé backend
+- [x] minimum_fare appliqué
+- [x] total_amount jamais accepté tel quel
+- [x] Statuts contrôlés
+- [x] Booking lié au bon tenant
+- [x] **Normalisation Customer** : `customer_id` obligatoire et validé.
 
 ---
 
@@ -188,11 +189,12 @@ Tu peux remplacer ton fichier par ceci.
 
 ### Stripe Webhook
 
-- [ ] Edge Function `handle_stripe_webhook` active
-- [ ] Validation de signature Stripe implémentée
-- [ ] Idempotence via `stripe_events` testée (pas de replay)
-- [ ] Metadata `booking_id` systématiquement vérifié
-- [ ] Unicité `stripe_payment_intent_id` garantie
+- [x] Edge Function `handle_stripe_webhook` active
+- [x] Validation de signature Stripe implémentée
+- [x] Idempotence via `stripe_events` testée (pas de replay)
+- [x] Metadata `booking_id` systématiquement vérifié
+- [x] Unicité `stripe_payment_intent_id` garantie
+- [x] **Cycle Paid validé** : Status change via webhook uniquement.
 
 ---
 

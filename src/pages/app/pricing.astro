@@ -2,6 +2,7 @@
 // src/pages/app/pricing.astro
 import AppLayout from "../../layouts/AppLayout.astro";
 import { requireTenantRole } from "../../lib/guards";
+import { createAdminClient } from "../../lib/supabase/server";
 
 const { profile } = Astro.locals;
 
@@ -11,10 +12,23 @@ try {
 } catch (e) {
     return Astro.redirect("/app/dashboard");
 }
+
+const supabaseAdmin = createAdminClient();
+
+// 1️ Récupérer les règles réelles du tenant
+const { data: rules, error } = await supabaseAdmin
+    .from("pricing_rules")
+    .select("*")
+    .eq("tenant_id", profile!.tenant_id)
+    .order("service_category", { ascending: true });
+
+if (error) {
+    console.error("Pricing fetch error:", error);
+}
 ---
 
 <AppLayout title="Gestion Pricing">
-    <div class="flex-1 flex flex-col p-12 overflow-hidden h-full">
+    <div class="flex-1 flex flex-col p-12 overflow-hidden h-full relative">
         <!-- FIXED TOP SECTION -->
         <div
             class="flex items-center justify-between mb-12 flex-shrink-0 border-b border-white/5 pb-10"
@@ -22,18 +36,22 @@ try {
             <div>
                 <span
                     class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
-                    >Gestion</span
+                    >Configuration</span
                 >
                 <h1
                     class="text-4xl font-black italic mt-4 uppercase tracking-tighter text-white"
                 >
                     Grille Tarifaire
                 </h1>
+                <p class="text-slate-500 mt-2 font-medium italic">
+                    Ajustez votre rentabilité en temps réel.
+                </p>
             </div>
             <button
-                class="px-6 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all"
+                id="add-rule-btn"
+                class="px-8 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all active:scale-95"
             >
-                Ajouter une règle
+                Ajouter un service
             </button>
         </div>
 
@@ -45,49 +63,247 @@ try {
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-white/5 sticky top-0 z-10">
                         <tr class="border-b border-white/5">
-                            <th
-                                class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                                >Nom du Tarif</th
-                            >
-                            <th
-                                class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                                >Prise en Charge</th
-                            >
-                            <th
-                                class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500"
-                                >Prix au Kilomètre</th
-                            >
-                            <th
-                                class="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500"
-                                >Actions</th
-                            >
+                            <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Service</th>
+                            <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Base</th>
+                            <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500">KM</th>
+                            <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Min. Fare</th>
+                            <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Statut</th>
+                            <th class="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5">
-                        <tr class="hover:bg-white/5 transition-colors group">
-                            <td
-                                class="px-8 py-8 font-bold text-white uppercase italic tracking-tighter text-lg"
-                                >Tarif Standard</td
-                            >
-                            <td
-                                class="px-8 py-8 text-white font-medium tabular-nums text-lg"
-                                >10.00 €</td
-                            >
-                            <td
-                                class="px-8 py-8 text-white font-medium tabular-nums text-lg"
-                                >2.50 €</td
-                            >
-                            <td class="px-8 py-8 text-right">
-                                <button
-                                    class="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5"
-                                >
-                                    Modifier
-                                </button>
-                            </td>
-                        </tr>
+                        {rules && rules.length > 0 ? (
+                            rules.map((r) => (
+                                <tr class="hover:bg-white/5 transition-colors group" data-rule-id={r.id}>
+                                    <td class="px-8 py-8">
+                                        <div class="flex items-center gap-3">
+                                            <div class={`w-2 h-2 rounded-full ${r.active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`}></div>
+                                            <span class="font-black text-white uppercase italic tracking-tighter text-lg">{r.service_category}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-8 text-white font-bold tabular-nums text-lg">{r.base_price.toFixed(2)} €</td>
+                                    <td class="px-8 py-8 text-indigo-400 font-bold tabular-nums text-lg">{r.price_per_km.toFixed(2)} €</td>
+                                    <td class="px-8 py-8 text-slate-300 font-medium tabular-nums text-lg">{r.minimum_fare.toFixed(2)} €</td>
+                                    <td class="px-8 py-8 text-right">
+                                        <span class={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${r.active ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                                            {r.active ? 'Actif' : 'Désactivé'}
+                                        </span>
+                                    </td>
+                                    <td class="px-8 py-8 text-right">
+                                        <button
+                                            class="edit-rule-btn px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/5 shadow-xl shadow-black/20"
+                                            data-rule={JSON.stringify(r)}
+                                        >
+                                            Modifier
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colspan="6" class="px-8 py-20 text-center">
+                                    <div class="flex flex-col items-center justify-center space-y-4">
+                                        <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-slate-600">
+                                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-white font-black uppercase italic tracking-tighter text-xl">Aucun service configuré</h4>
+                                            <p class="text-slate-500 text-sm font-medium italic mt-1">Commencez par ajouter votre premier tarif de transport.</p>
+                                        </div>
+                                        <button
+                                            onclick="document.getElementById('add-rule-btn').click()"
+                                            class="mt-4 px-6 py-3 bg-indigo-600/20 border border-indigo-600/30 text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 hover:text-white transition-all"
+                                        >
+                                            Configurer maintenant
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <!-- MODAL EDIT/ADD -->
+    <div id="pricing-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay"></div>
+        <div class="relative glass max-w-lg w-full rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden transform scale-95 transition-all duration-300">
+            <div class="p-10 sm:p-12">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 id="modal-title" class="text-3xl font-black italic uppercase text-white tracking-tighter">Édition Tarif</h2>
+                        <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">Paramètres financiers du service</p>
+                    </div>
+                </div>
+
+                <form id="pricing-form" class="space-y-6" data-tenant-id={profile?.tenant_id}>
+                    <input type="hidden" name="rule_id" id="rule-id">
+
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Nom du Service</label>
+                        <input type="text" name="service_category" id="service-category" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold" placeholder="E.g. BUSINESS">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Base (€)</label>
+                            <input type="number" step="0.01" name="base_price" id="base-price" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold tabular-nums">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Prix / KM (€)</label>
+                            <input type="number" step="0.01" name="price_per_km" id="price-per-km" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold tabular-nums">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Montant Minimum (€)</label>
+                        <input type="number" step="0.01" name="minimum_fare" id="minimum-fare" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold tabular-nums">
+                    </div>
+
+                    <div class="flex items-center gap-3 py-4">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="active" id="is-active" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Service Actif</span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6 mt-4 border-t border-white/5">
+                        <button type="button" class="close-modal px-8 py-5 glass border border-white/10 rounded-2xl font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all order-2 sm:order-1">
+                            Annuler
+                        </button>
+                        <button type="submit" id="save-rule-btn" class="flex-1 px-8 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/30 active:scale-95 order-1 sm:order-2">
+                            Sauvegarder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </AppLayout>
+
+<style is:global>
+    .glass {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    #pricing-modal.is-active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    #pricing-modal.is-active > div:last-child {
+        transform: scale(1);
+    }
+</style>
+
+<script>
+    import { supabase } from "@/lib/supabase/client";
+
+    const modal = document.getElementById('pricing-modal');
+    const form = document.getElementById('pricing-form') as HTMLFormElement;
+    const addBtn = document.getElementById('add-rule-btn');
+    const editBtns = document.querySelectorAll('.edit-rule-btn');
+    const closeBtns = document.querySelectorAll('.close-modal');
+    const overlay = document.querySelector('.modal-overlay');
+
+    const modalTitle = document.getElementById('modal-title');
+    const ruleIdInput = document.getElementById('rule-id') as HTMLInputElement;
+    const serviceInput = document.getElementById('service-category') as HTMLInputElement;
+    const baseInput = document.getElementById('base-price') as HTMLInputElement;
+    const kmInput = document.getElementById('price-per-km') as HTMLInputElement;
+    const minInput = document.getElementById('minimum-fare') as HTMLInputElement;
+    const activeInput = document.getElementById('is-active') as HTMLInputElement;
+
+    const toggleModal = () => {
+        modal?.classList.toggle('is-active');
+        document.body.classList.toggle('overflow-hidden');
+    };
+
+    // ADD Mode
+    addBtn?.addEventListener('click', () => {
+        if (modalTitle) modalTitle.innerText = "Nouveau Service";
+        if (ruleIdInput) ruleIdInput.value = "";
+        form?.reset();
+        if (activeInput) activeInput.checked = true;
+        toggleModal();
+    });
+
+    // EDIT Mode
+    editBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const rule = JSON.parse(btn.getAttribute('data-rule') || '{}');
+            if (modalTitle) modalTitle.innerText = "Édition Tarif";
+            if (ruleIdInput) ruleIdInput.value = rule.id;
+            if (serviceInput) serviceInput.value = rule.service_category;
+            if (baseInput) baseInput.value = rule.base_price;
+            if (kmInput) kmInput.value = rule.price_per_km;
+            if (minInput) minInput.value = rule.minimum_fare;
+            if (activeInput) activeInput.checked = rule.active;
+            toggleModal();
+        });
+    });
+
+    closeBtns.forEach(btn => btn.addEventListener('click', toggleModal));
+    overlay?.addEventListener('click', toggleModal);
+
+    form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('save-rule-btn') as HTMLButtonElement;
+        const tenantId = form.dataset.tenantId;
+
+        if (!tenantId) {
+            alert("Erreur: Tenant ID manquant");
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.innerText = "SAUVEGARDE...";
+
+        const formData = new FormData(form);
+        const id = formData.get('rule_id');
+        const payload = {
+            tenant_id: tenantId,
+            service_category: String(formData.get('service_category') || ''),
+            base_price: parseFloat(String(formData.get('base_price') || '0')),
+            price_per_km: parseFloat(String(formData.get('price_per_km') || '0')),
+            minimum_fare: parseFloat(String(formData.get('minimum_fare') || '0')),
+            active: formData.get('active') === 'on'
+        };
+
+        try {
+            let error;
+            if (id) {
+                const { error: err } = await supabase.from('pricing_rules').update(payload).eq('id', String(id));
+                error = err;
+            } else {
+                const { error: err } = await supabase.from('pricing_rules').insert(payload);
+                error = err;
+            }
+
+            if (error) throw error;
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            alert("Erreur lors de la sauvegarde.");
+            saveBtn.disabled = false;
+            saveBtn.innerText = "Sauvegarder";
+        }
+    });
+
+    // Close on Escape
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal?.classList.contains('is-active')) {
+            toggleModal();
+        }
+    });
+</script>
