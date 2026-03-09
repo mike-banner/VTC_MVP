@@ -1,14 +1,13 @@
 // src/middleware.ts
 import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import { defineMiddleware } from "astro:middleware";
-import { isPlatform, isTenant } from "./lib/guards";
 
 export const onRequest = defineMiddleware(
   async ({ cookies, request, redirect, locals }, next) => {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Initialisation Supabase pour TOUTES les requêtes (SSR)
+    // Initialisation Supabase (SSR)
     const supabase = createServerClient(
       import.meta.env.PUBLIC_SUPABASE_URL,
       import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
@@ -21,7 +20,7 @@ export const onRequest = defineMiddleware(
             })),
           setAll: (cookiesToSet) =>
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookies.set(name, value, options),
+              cookies.set(name, value, options as any),
             ),
         },
       },
@@ -30,67 +29,69 @@ export const onRequest = defineMiddleware(
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    (locals as any).user = user;
-    (locals as any).profile = null;
 
-    // Ne protéger que les routes SaaS sensibles
-    const authRoutes = [
-      "/app",
-      "/admin",
-      "/onboarding",
-      "/waiting-approval",
-      "/dashboard",
-    ];
-    const isAuthRoute = authRoutes.some((route) => path.startsWith(route));
+    // Mapping des types de routes
+    const isLoginPage = path === "/login";
+    const isSignupPage = path === "/signup";
+    const isAuthPage = isLoginPage || isSignupPage;
 
+    const isAppRoute = path.startsWith("/app");
+    const isAdminRoute = path.startsWith("/admin");
+    const isOnboardingRoute = path.startsWith("/onboarding");
+    const isDashboardBase = path === "/dashboard";
+    const isSaaSRoute =
+      isAppRoute || isAdminRoute || isOnboardingRoute || isDashboardBase;
+
+    // 1. CAS : Utilisateur NON connecté
     if (!user) {
-      if (isAuthRoute && path !== "/login") return redirect("/login");
+      if (isSaaSRoute && !isAuthPage) {
+        return redirect("/login");
+      }
       return next();
     }
 
-    // Récupération du profil et de l'onboarding si l'utilisateur est connecté
+    locals.user = user;
+
+    // 2. CAS : Utilisateur connecté -> Récupérer profil
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, tenant_id, platform_role, tenant_role")
+      .select("*")
       .eq("id", user.id)
       .maybeSingle();
-    (locals as any).profile = profile;
 
-    // Logique de redirection pour les routes protégées
-    if (isAuthRoute) {
-      // 1. Logique Plateforme (Admin)
-      if (isPlatform(profile)) {
-        if (path.startsWith("/admin")) return next();
-        return redirect("/admin/dashboard"); // Redirection vers le nouveau dashboard par défaut
+    locals.profile = profile || null;
+
+    // 3. LOGIQUE DE REDIRECTION (Pour connectés sur Login/Dashboard/Apps)
+    if (isSaaSRoute || isAuthPage) {
+      // --- PRIORITÉ : ADMIN Plateforme ---
+      if (profile?.platform_role) {
+        // Toujours vers l'admin dashboard
+        if (!isAdminRoute) {
+          return redirect("/admin/onboardings");
+        }
+        return next();
       }
 
-      // 2. Logique Tenant (Chauffeur/Admin déjà onboardé)
-      if (isTenant(profile)) {
-        if (path.startsWith("/app")) return next();
-        return redirect("/app/dashboard");
+      // --- PRIORITÉ : Flow Onboarding (Pending) ---
+      if (profile?.tenant_role === "pending") {
+        if (!isOnboardingRoute) {
+          return redirect("/onboarding");
+        }
+        return next();
       }
 
-      // 3. Logique Onboarding (Si on n'est ni Admin ni déjà dans un Tenant)
-      const { data: onboarding } = await supabase
-        .from("onboarding")
-        .select("status")
-        .eq("profile_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // --- PRIORITÉ : Chauffeur Actif (Onboardé) ---
+      if (profile?.tenant_id) {
+        if (!isAppRoute) {
+          return redirect("/app/dashboard");
+        }
+        return next();
+      }
 
-      if (!onboarding) {
-        if (path === "/onboarding") return next();
+      // --- CAS : Nouveau connecté sans rôle défini (Sécurité) ---
+      if (isSaaSRoute && !isOnboardingRoute && !isAdminRoute) {
         return redirect("/onboarding");
       }
-
-      if (onboarding.status === "pending") {
-        if (path === "/waiting-approval") return next();
-        return redirect("/waiting-approval");
-      }
-
-      // Par défaut si connecté mais perdu
-      if (path === "/onboarding") return next();
     }
 
     return next();

@@ -1,7 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const supabase = createClient(
   process.env.PUBLIC_SUPABASE_URL!,
@@ -21,7 +18,7 @@ async function checkUsers() {
   console.log("--- PROFILES BREAKDOWN ---");
   for (const p of profiles) {
     const isPlatformAdmin = ["super_admin", "platform_staff"].includes(
-      p.platform_role,
+      p.platform_role as string,
     );
     const isTenantUser = !!p.tenant_id;
 

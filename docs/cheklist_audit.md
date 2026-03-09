@@ -54,8 +54,8 @@ Tu peux remplacer ton fichier par ceci.
 ### ✅ Onboarding staging
 
 - [x] onboarding séparé de tenants
-- [x] status enum strict (`pending`, `approved`)
-- [x] Impossible d’activer si status != pending
+- [x] status enum strict (`pending`, `approved`, `rejected`)
+- [x] Vue `onboarding_admin_view` pour la jointure avec `auth.users`
 - [x] `primary_domain` unique
 
 ---
@@ -166,10 +166,10 @@ Tu peux remplacer ton fichier par ceci.
 
 ### Middleware
 
-- [ ] Non connecté → /login
-- [ ] Platform → /admin
-- [ ] Tenant actif → /app/dashboard
-- [ ] Aucun accès /app sans tenant_id
+- [x] Non connecté → /login
+- [x] Platform Role → /admin/dashboard
+- [x] Tenant Role 'pending' → /onboarding (Forcé)
+- [x] Tenant actif (tenant_id) → /app/dashboard
 
 ---
 

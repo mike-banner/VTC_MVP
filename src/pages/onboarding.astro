@@ -108,6 +108,18 @@ import MainLayout from "../layouts/MainLayout.astro";
                     <div class="space-y-1">
                         <label
                             class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter"
+                            >Email (Compte)</label
+                        >
+                        <input
+                            type="email"
+                            id="auth-email"
+                            disabled
+                            class="w-full bg-white/5 border border-white/5 rounded-lg px-4 py-3 text-slate-400 cursor-not-allowed outline-none transition-all"
+                        />
+                    </div>
+                    <div class="space-y-1">
+                        <label
+                            class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter"
                             >Société</label
                         >
                         <input
@@ -510,7 +522,14 @@ import MainLayout from "../layouts/MainLayout.astro";
     form.addEventListener("change", saveDraft);
 
     // Charger au démarrage
-    loadDraft();
+    (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+            const emailInput = document.getElementById('auth-email') as HTMLInputElement;
+            if (emailInput) emailInput.value = user.email;
+        }
+        loadDraft();
+    })();
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();

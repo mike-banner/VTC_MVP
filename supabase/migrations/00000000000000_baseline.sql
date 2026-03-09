@@ -145,7 +145,8 @@ ALTER TYPE "public"."share_status" OWNER TO "postgres";
 CREATE TYPE "public"."tenant_role" AS ENUM (
     'owner',
     'manager',
-    'driver'
+    'driver',
+    'pending'
 );
 
 
@@ -158,6 +159,7 @@ CREATE OR REPLACE FUNCTION "public"."approve_onboarding_tx"("onboarding_uuid" "u
     AS $$
 declare
   new_tenant_id uuid := gen_random_uuid();
+  v_email text;
 begin
 
   -- 1️⃣ Vérifier que le dossier existe et est pending
@@ -169,16 +171,24 @@ begin
     raise exception 'Onboarding not found or already processed';
   end if;
 
-  -- 2️⃣ Créer le tenant
-  insert into tenants (id, name, primary_domain)
+  -- 2️⃣ Récupérer l'email depuis auth.users via onboarding.profile_id
+  select u.email into v_email
+  from auth.users u
+  join onboarding o on o.profile_id = u.id
+  where o.id = onboarding_uuid;
+
+  -- 3️⃣ Créer le tenant avec email (de auth) et phone (de onboarding)
+  insert into tenants (id, name, primary_domain, email, phone)
   select
     new_tenant_id,
     company_name,
-    primary_domain
+    primary_domain,
+    v_email,
+    phone
   from onboarding
   where id = onboarding_uuid;
 
-  -- 3️⃣ Mettre à jour le profile
+  -- 4️⃣ Mettre à jour le profile
   update profiles p
   set
     tenant_id = new_tenant_id,
@@ -189,7 +199,7 @@ begin
   where o.id = onboarding_uuid
   and p.id = o.profile_id;
 
-  -- 4️⃣ Marquer onboarding validé
+  -- 5️⃣ Marquer onboarding validé
   update onboarding
   set
     status = 'approved',
@@ -262,10 +272,16 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
 begin
   insert into public.profiles (
     id,
+    tenant_role,
+    first_name,
+    last_name,
     created_at
   )
   values (
     new.id,
+    'pending',
+    '',
+    '',
     now()
   );
   return new;
@@ -983,7 +999,9 @@ CREATE TABLE IF NOT EXISTS "public"."tenants" (
     "created_at" timestamp with time zone DEFAULT "now"(),
     "platform_fee_rate" numeric DEFAULT 0,
     "share_fee_rate" numeric DEFAULT 0,
-    "vat_rate" numeric DEFAULT 0
+    "vat_rate" numeric DEFAULT 0,
+    "email" "text",
+    "phone" "text"
 );
 
 
@@ -1426,6 +1444,40 @@ CREATE POLICY "finance_select_isolated" ON "public"."financial_movements" FOR SE
 
 ALTER TABLE "public"."financial_movements" ENABLE ROW LEVEL SECURITY;
 
+
+CREATE VIEW "public"."user_emails" AS
+ SELECT id, email FROM auth.users;
+
+GRANT SELECT ON TABLE "public"."user_emails" TO "authenticated";
+GRANT SELECT ON TABLE "public"."user_emails" TO "service_role";
+
+CREATE OR REPLACE VIEW "public"."onboarding_admin_view" AS
+ SELECT
+    o.id,
+    o.profile_id,
+    o.status,
+    o.company_name,
+    o.primary_domain,
+    o.phone,
+    o.capacity,
+    o.created_at,
+    o.validated_at,
+    o.vtc_license_number,
+    o.service_categories,
+    o.default_base_price,
+    o.default_price_per_km,
+    o.default_minimum_fare,
+    o.vehicle_brand,
+    o.vehicle_model,
+    o.plate_number,
+    o.first_name,
+    o.last_name,
+    u.email AS auth_email
+   FROM "public"."onboarding" o
+     JOIN auth.users u ON o.profile_id = u.id;
+
+GRANT SELECT ON TABLE "public"."onboarding_admin_view" TO "authenticated";
+GRANT SELECT ON TABLE "public"."onboarding_admin_view" TO "service_role";
 
 ALTER TABLE "public"."onboarding" ENABLE ROW LEVEL SECURITY;
 

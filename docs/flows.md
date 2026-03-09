@@ -12,31 +12,24 @@ Tu peux remplacer ton fichier par ceci :
 
 1. User s’inscrit via Supabase Auth
 2. `auth.users` est créé
-3. Trigger `handle_new_user` crée une ligne dans `profiles`
-4. `profiles.tenant_id = NULL`
-5. User est redirigé vers `/onboarding`
+3. Trigger `handle_new_user` crée une ligne dans `profiles` avec `tenant_role = 'pending'`
+4. Middleware détecte le rôle `pending` et force la redirection vers `/onboarding`
 
 ---
 
 ## 🟡 2️⃣ Onboarding Flow
 
-1. User remplit le formulaire onboarding
-2. Insertion dans `onboarding` avec :
-
-```
-status = 'pending'
-```
-
-3. Redirection vers `/pending`
-4. Accès au dashboard bloqué tant que non validé
+1. User remplit le formulaire onboarding (Email pré-rempli depuis Auth)
+2. Insertion dans `onboarding`
+3. Middleware continue de forcer `/onboarding` tant que le profil est en `pending`
+4. Accès au dashboard ERP bloqué
 
 ---
 
 ## 🔵 3️⃣ Admin Validation Flow
 
-1. Super Admin accède à `/admin`
-
-2. Clique sur "Approve"
+1. Super Admin accède à `/admin/onboardings` qui liste les dossiers via la vue `onboarding_admin_view`
+2. Clique sur "Approuver"
 
 3. Appel RPC `approve_onboarding_tx(onboarding_uuid)`
 
