@@ -3,6 +3,7 @@
 import "../styles/global.css";
 import { isPlatform } from "../lib/guards";
 import Sidebar from "../components/admin/Sidebar.astro";
+import InactivityTimeout from "../components/common/InactivityTimeout.astro";
 
 interface Props {
     title: string;
@@ -121,6 +122,7 @@ if (!isPlatform(profile)) {
                 // Future JS interactions
             });
         </script>
+        <InactivityTimeout timeoutMinutes={30} />
     </body>
 </html>
 

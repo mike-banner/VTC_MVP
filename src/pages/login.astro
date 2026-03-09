@@ -134,6 +134,13 @@ import MainLayout from "../layouts/MainLayout.astro";
     ) as HTMLDivElement;
     const btnText = document.querySelector(".btn-text") as HTMLSpanElement;
 
+    // Check for inactivity reason
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('reason') === 'inactivity' && messageEl) {
+        messageEl.textContent = "Vous avez été déconnecté pour inactivité.";
+        messageEl.className = "mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center text-sm font-medium text-amber-500";
+    }
+
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
 

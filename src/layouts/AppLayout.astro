@@ -2,6 +2,7 @@
 // src/layouts/AppLayout.astro
 import "../styles/global.css";
 import { isTenant } from "../lib/guards";
+import InactivityTimeout from "../components/common/InactivityTimeout.astro";
 
 interface Props {
     title: string;
@@ -80,7 +81,7 @@ const navItems = [
                         navItems.map(
                             (item) =>
                                 item.roles.includes(
-                                    safeProfile.tenant_role,
+                                    safeProfile.tenant_role || "",
                                 ) && (
                                     <a
                                         href={item.href}
@@ -203,5 +204,6 @@ const navItems = [
                 }
             });
         </script>
+        <InactivityTimeout timeoutMinutes={30} />
     </body>
 </html>

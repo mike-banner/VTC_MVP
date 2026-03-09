@@ -1,0 +1,61 @@
+---
+// src/components/common/InactivityTimeout.astro
+/**
+ * Ce composant gère la déconnexion automatique en cas d'inactivité.
+ * Il surveille les mouvements de souris, clics, touches clavier et scroll.
+ */
+interface Props {
+    timeoutMinutes?: number;
+}
+
+const { timeoutMinutes = 30 } = Astro.props;
+const timeoutMs = timeoutMinutes * 60 * 1000;
+---
+
+<script define:vars={{ timeoutMs }}>
+    import { supabase } from "@/lib/supabase/client";
+
+    let inactivityTimer;
+
+    const logout = async () => {
+        console.log("Inactivité détectée. Déconnexion automatique...");
+        await supabase.auth.signOut();
+        window.location.href = "/login?reason=inactivity";
+    };
+
+    const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(logout, timeoutMs);
+    };
+
+    // Liste des événements à surveiller pour réinitialiser le timer
+    const activityEvents = [
+        'mousedown',
+        'mousemove',
+        'keypress',
+        'scroll',
+        'touchstart',
+        'click'
+    ];
+
+    // Initialisation
+    const initInactivityTracker = () => {
+        // Ne pas tracker si on est sur la page de login ou d'accueil publique
+        const currentPath = window.location.pathname;
+        if (currentPath === '/login' || currentPath === '/') return;
+
+        // Démarrer le premier timer
+        resetTimer();
+
+        // Ajouter les écouteurs d'événements
+        activityEvents.forEach(event => {
+            document.addEventListener(event, resetTimer, { passive: true });
+        });
+    };
+
+    // Support Astro View Transitions
+    document.addEventListener('astro:page-load', initInactivityTracker);
+
+    // Initialisation standard au cas où View Transitions n'est pas utilisé activement
+    initInactivityTracker();
+</script>
