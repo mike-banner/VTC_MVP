@@ -74,9 +74,27 @@ export const onRequest = defineMiddleware(
 
       // --- PRIORITÉ : Flow Onboarding (Pending) ---
       if (profile?.tenant_role === "pending") {
-        if (!isOnboardingRoute) {
+        // Vérifier s'il a déjà soumis un dossier
+        const { data: onboarding } = await supabase
+          .from("onboarding")
+          .select("status")
+          .eq("profile_id", user.id)
+          .eq("status", "pending")
+          .maybeSingle();
+
+        // S'il a un dossier pending, il va sur waiting-approval, SAUF s'il demande explicitement /onboarding?edit=true
+        const isWaitingApprovalPage = path === "/waiting-approval";
+        const isEditingOnboarding =
+          path === "/onboarding" && url.searchParams.get("edit") === "true";
+
+        if (onboarding && !isWaitingApprovalPage && !isEditingOnboarding) {
+          return redirect("/waiting-approval");
+        }
+
+        if (!onboarding && !isOnboardingRoute) {
           return redirect("/onboarding");
         }
+
         return next();
       }
 

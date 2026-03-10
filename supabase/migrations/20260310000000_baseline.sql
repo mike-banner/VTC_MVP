@@ -83,6 +83,15 @@ CREATE TYPE "public"."cancellation_reason_enum" AS ENUM (
 ALTER TYPE "public"."cancellation_reason_enum" OWNER TO "postgres";
 
 
+CREATE TYPE "public"."customer_type_enum" AS ENUM (
+    'individual',
+    'company'
+);
+
+
+ALTER TYPE "public"."customer_type_enum" OWNER TO "postgres";
+
+
 CREATE TYPE "public"."movement_direction_enum" AS ENUM (
     'credit',
     'debit'
@@ -159,36 +168,37 @@ CREATE OR REPLACE FUNCTION "public"."approve_onboarding_tx"("onboarding_uuid" "u
     AS $$
 declare
   new_tenant_id uuid := gen_random_uuid();
-  v_email text;
 begin
 
   -- 1️⃣ Vérifier que le dossier existe et est pending
   if not exists (
     select 1 from onboarding
     where id = onboarding_uuid
-    and status = 'pending'
+      and status = 'pending'
   ) then
     raise exception 'Onboarding not found or already processed';
   end if;
 
-  -- 2️⃣ Récupérer l'email depuis auth.users via onboarding.profile_id
-  select u.email into v_email
-  from auth.users u
-  join onboarding o on o.profile_id = u.id
-  where o.id = onboarding_uuid;
-
-  -- 3️⃣ Créer le tenant avec email (de auth) et phone (de onboarding)
-  insert into tenants (id, name, primary_domain, email, phone)
+  -- 2️⃣ Créer le tenant avec email (auth.users) + phone (onboarding)
+  insert into tenants (
+    id,
+    name,
+    primary_domain,
+    email,
+    phone
+  )
   select
     new_tenant_id,
-    company_name,
-    primary_domain,
-    v_email,
-    phone
-  from onboarding
-  where id = onboarding_uuid;
+    o.company_name,
+    o.primary_domain,
+    u.email,
+    o.phone
+  from onboarding o
+  join profiles p on p.id = o.profile_id
+  join auth.users u on u.id = p.id
+  where o.id = onboarding_uuid;
 
-  -- 4️⃣ Mettre à jour le profile
+  -- 3️⃣ Mettre à jour le profile
   update profiles p
   set
     tenant_id = new_tenant_id,
@@ -197,9 +207,9 @@ begin
     last_name = o.last_name
   from onboarding o
   where o.id = onboarding_uuid
-  and p.id = o.profile_id;
+    and p.id = o.profile_id;
 
-  -- 5️⃣ Marquer onboarding validé
+  -- 4️⃣ Marquer onboarding validé
   update onboarding
   set
     status = 'approved',
@@ -215,6 +225,7 @@ ALTER FUNCTION "public"."approve_onboarding_tx"("onboarding_uuid" "uuid") OWNER 
 
 CREATE OR REPLACE FUNCTION "public"."compute_booking_balance"("p_booking_id" "uuid") RETURNS numeric
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 declare
   total numeric;
@@ -240,6 +251,7 @@ ALTER FUNCTION "public"."compute_booking_balance"("p_booking_id" "uuid") OWNER T
 
 CREATE OR REPLACE FUNCTION "public"."current_tenant_id"() RETURNS "uuid"
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public'
     AS $$
   select tenant_id
   from public.profiles
@@ -250,8 +262,66 @@ $$;
 ALTER FUNCTION "public"."current_tenant_id"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."delete_tenant_account"() RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_user uuid := auth.uid();
+  v_tenant uuid;
+begin
+
+  -- vérifier que l'utilisateur est owner
+  if not exists (
+    select 1
+    from profiles
+    where id = v_user
+    and tenant_role = 'owner'
+  ) then
+    raise exception 'Only tenant owner can delete account';
+  end if;
+
+  -- récupérer tenant
+  select tenant_id
+  into v_tenant
+  from profiles
+  where id = v_user;
+
+  if v_tenant is null then
+    raise exception 'Tenant not found';
+  end if;
+
+  -- désactiver tenant
+  update tenants
+  set
+    deleted_at = now(),
+    name = 'deleted_tenant_' || v_tenant,
+    primary_domain = null
+  where id = v_tenant;
+
+  -- anonymiser profil
+  update profiles
+  set
+    deleted_at = now(),
+    first_name = 'deleted',
+    last_name = 'user'
+  where id = v_user;
+
+  -- bloquer login
+  update auth.users
+  set banned_until = now() + interval '100 years'
+  where id = v_user;
+
+end;
+$$;
+
+
+ALTER FUNCTION "public"."delete_tenant_account"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."expire_unpaid_bookings"() RETURNS "void"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 begin
   update bookings
@@ -265,26 +335,57 @@ $$;
 ALTER FUNCTION "public"."expire_unpaid_bookings"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."handle_driver_verification_email"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  -- Déclenchement uniquement si is_verified passe à TRUE
+  IF (OLD.is_verified = false AND NEW.is_verified = true) THEN
+    PERFORM
+      net.http_post(
+        url := 'https://[TON_PROJECT_REF].supabase.co/functions/v1/send-email',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || '[TON_ANON_KEY_OU_SERVICE_ROLE]'
+        ),
+        body := jsonb_build_object(
+          'to', NEW.email,
+          'subject', 'Validation de votre compte Chauffeur 🚗',
+          'html', '<html><body><h1>Félicitations ' || NEW.full_name || ' !</h1><p>Votre profil a été validé par notre équipe.</p></body></html>'
+        )
+      );
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_driver_verification_email"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
 begin
-  insert into public.profiles (
-    id,
-    tenant_role,
-    first_name,
-    last_name,
-    created_at
-  )
-  values (
-    new.id,
-    'pending',
-    '',
-    '',
-    now()
-  );
-  return new;
+
+insert into public.profiles (
+  id,
+  tenant_role,
+  first_name,
+  last_name,
+  created_at
+)
+values (
+  new.id,
+  'pending',
+  '',
+  '',
+  now()
+);
+
+return new;
+
 end;
 $$;
 
@@ -294,6 +395,7 @@ ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."initiate_refund"("p_booking_id" "uuid", "p_reason" "text") RETURNS TABLE("payment_intent_id" "text", "refund_allowed" boolean)
     LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   v_booking bookings%rowtype;
@@ -333,6 +435,7 @@ ALTER FUNCTION "public"."initiate_refund"("p_booking_id" "uuid", "p_reason" "tex
 
 CREATE OR REPLACE FUNCTION "public"."prevent_booking_delete"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 begin
   raise exception 'Bookings cannot be deleted';
@@ -347,9 +450,11 @@ CREATE OR REPLACE FUNCTION "public"."prevent_late_cancellation"() RETURNS "trigg
     LANGUAGE "plpgsql"
     AS $$
 begin
-  if new.status in ('cancelled_no_refund','cancelled_pending_refund')
-     and old.pickup_time <= now() then
-    raise exception 'Cannot cancel after pickup_time';
+  if new.status is distinct from old.status then
+    if new.status in ('cancelled_no_refund','cancelled_pending_refund')
+       and old.pickup_time <= now() then
+       raise exception 'Cannot cancel after pickup_time';
+    end if;
   end if;
 
   return new;
@@ -362,6 +467,7 @@ ALTER FUNCTION "public"."prevent_late_cancellation"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."prevent_pickup_time_change_after_paid"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 begin
   if old.status in ('paid','completed','no_show',
@@ -380,6 +486,7 @@ ALTER FUNCTION "public"."prevent_pickup_time_change_after_paid"() OWNER TO "post
 
 CREATE OR REPLACE FUNCTION "public"."prevent_policy_update"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 begin
   if old.cancellation_policy_id is not null
@@ -396,6 +503,7 @@ ALTER FUNCTION "public"."prevent_policy_update"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."protect_booking_immutable_fields"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 BEGIN
   IF OLD.status <> 'pending' THEN
@@ -416,8 +524,22 @@ $$;
 ALTER FUNCTION "public"."protect_booking_immutable_fields"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_platform_settings_updated_at"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_platform_settings_updated_at"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."validate_booking_status_transition"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 begin
   if new.status = old.status then
@@ -444,6 +566,7 @@ ALTER FUNCTION "public"."validate_booking_status_transition"() OWNER TO "postgre
 
 CREATE OR REPLACE FUNCTION "public"."validate_ledger_consistency"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
     AS $$
 declare
   booking_total numeric;
@@ -471,6 +594,161 @@ SET default_tablespace = '';
 SET default_table_access_method = "heap";
 
 
+CREATE TABLE IF NOT EXISTS "public"."bookings" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "original_tenant_id" "uuid" NOT NULL,
+    "current_tenant_id" "uuid" NOT NULL,
+    "pickup_address" "text" NOT NULL,
+    "dropoff_address" "text" NOT NULL,
+    "pickup_time" timestamp with time zone NOT NULL,
+    "total_amount" numeric(10,2) NOT NULL,
+    "status" "public"."booking_status" DEFAULT 'pending'::"public"."booking_status" NOT NULL,
+    "payment_mode" "public"."payment_mode" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "driver_id" "uuid",
+    "distance_km" numeric,
+    "subtotal_amount" numeric NOT NULL,
+    "vat_amount" numeric DEFAULT 0 NOT NULL,
+    "customer_id" "uuid" NOT NULL,
+    "stripe_payment_intent_id" "text",
+    "cancellation_policy_id" "uuid",
+    "cancellation_reason" "public"."cancellation_reason_enum",
+    "cancelled_at" timestamp without time zone,
+    "cancellation_initiator" character varying,
+    "passenger_count" integer DEFAULT 1 NOT NULL
+);
+
+
+ALTER TABLE "public"."bookings" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."customers" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "tenant_id" "uuid" NOT NULL,
+    "email" "text" NOT NULL,
+    "first_name" "text" NOT NULL,
+    "last_name" "text",
+    "phone" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "type" "public"."customer_type_enum" DEFAULT 'individual'::"public"."customer_type_enum" NOT NULL,
+    "company_name" "text",
+    "vat_number" "text",
+    "billing_address" "text",
+    "city" "text",
+    "country" "text",
+    "postal_code" "text"
+);
+
+
+ALTER TABLE "public"."customers" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."tenants" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "primary_domain" "text" NOT NULL,
+    "stripe_account_id" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "platform_fee_rate" numeric DEFAULT 0,
+    "share_fee_rate" numeric DEFAULT 0,
+    "vat_rate" numeric DEFAULT 0,
+    "email" "text",
+    "phone" "text",
+    "deleted_at" timestamp with time zone
+);
+
+
+ALTER TABLE "public"."tenants" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."admin_bookings_full_view" AS
+ SELECT "b"."id",
+    "b"."created_at",
+    "b"."pickup_time",
+    "b"."pickup_address",
+    "b"."dropoff_address",
+    COALESCE("c"."first_name", 'Client'::"text") AS "display_customer_first_name",
+    "c"."last_name" AS "display_customer_last_name",
+    "c"."email" AS "display_customer_email",
+    "c"."phone" AS "display_customer_phone",
+    "c"."city" AS "display_customer_city",
+    "c"."postal_code" AS "display_customer_postal_code",
+    "b"."total_amount",
+    "b"."status",
+    "ot"."name" AS "original_tenant_name",
+    "ot"."primary_domain" AS "original_tenant_domain",
+    "ct"."name" AS "current_tenant_name"
+   FROM ((("public"."bookings" "b"
+     LEFT JOIN "public"."customers" "c" ON (("c"."id" = "b"."customer_id")))
+     LEFT JOIN "public"."tenants" "ot" ON (("ot"."id" = "b"."original_tenant_id")))
+     LEFT JOIN "public"."tenants" "ct" ON (("ct"."id" = "b"."current_tenant_id")));
+
+
+ALTER VIEW "public"."admin_bookings_full_view" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."financial_movements" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "booking_id" "uuid" NOT NULL,
+    "tenant_id" "uuid" NOT NULL,
+    "stripe_payment_intent_id" "text",
+    "stripe_refund_id" "text",
+    "movement_type" "public"."movement_type_enum" NOT NULL,
+    "direction" "public"."movement_direction_enum" NOT NULL,
+    "gross_amount" numeric(12,2) NOT NULL,
+    "net_amount" numeric(12,2) NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "vat_amount" numeric(12,2) DEFAULT 0,
+    "created_by_event" "text",
+    "refund_ratio" numeric(5,4),
+    "platform_commission_rate_snapshot" numeric,
+    "driver_commission_rate_snapshot" numeric,
+    "platform_commission_amount" numeric,
+    "driver_commission_amount" numeric,
+    CONSTRAINT "chk_gross_positive" CHECK (("gross_amount" >= (0)::numeric)),
+    CONSTRAINT "chk_net_positive" CHECK (("net_amount" >= (0)::numeric)),
+    CONSTRAINT "chk_refund_ratio_valid" CHECK ((("refund_ratio" IS NULL) OR (("refund_ratio" >= (0)::numeric) AND ("refund_ratio" <= (1)::numeric)))),
+    CONSTRAINT "chk_vat_positive" CHECK (("vat_amount" >= (0)::numeric))
+);
+
+
+ALTER TABLE "public"."financial_movements" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."admin_monthly_summary" AS
+ SELECT "date_trunc"('month'::"text", "created_at") AS "month",
+    (COALESCE("sum"(
+        CASE
+            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric) - COALESCE("sum"(
+        CASE
+            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric)) AS "net_revenue"
+   FROM "public"."financial_movements"
+  GROUP BY ("date_trunc"('month'::"text", "created_at"))
+  ORDER BY ("date_trunc"('month'::"text", "created_at"));
+
+
+ALTER VIEW "public"."admin_monthly_summary" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."admin_tenants_overview" AS
+SELECT
+    NULL::"uuid" AS "tenant_id",
+    NULL::"text" AS "tenant_name",
+    NULL::"text" AS "primary_domain",
+    NULL::timestamp with time zone AS "joined_at",
+    NULL::numeric AS "total_gross_revenue",
+    NULL::numeric AS "total_net_revenue",
+    NULL::bigint AS "total_bookings",
+    NULL::numeric AS "avg_commission_rate";
+
+
+ALTER VIEW "public"."admin_tenants_overview" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."booking_shares" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "booking_id" "uuid" NOT NULL,
@@ -494,40 +772,10 @@ CREATE TABLE IF NOT EXISTS "public"."booking_status_transitions" (
 ALTER TABLE "public"."booking_status_transitions" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."bookings" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "original_tenant_id" "uuid" NOT NULL,
-    "current_tenant_id" "uuid" NOT NULL,
-    "client_name" "text" NOT NULL,
-    "pickup_address" "text" NOT NULL,
-    "dropoff_address" "text" NOT NULL,
-    "pickup_time" timestamp with time zone NOT NULL,
-    "total_amount" numeric(10,2) NOT NULL,
-    "status" "public"."booking_status" DEFAULT 'pending'::"public"."booking_status" NOT NULL,
-    "payment_mode" "public"."payment_mode" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "driver_id" "uuid",
-    "distance_km" numeric,
-    "subtotal_amount" numeric NOT NULL,
-    "vat_amount" numeric DEFAULT 0 NOT NULL,
-    "customer_id" "uuid",
-    "client_email" "text",
-    "stripe_payment_intent_id" "text",
-    "cancellation_policy_id" "uuid",
-    "cancellation_reason" "public"."cancellation_reason_enum",
-    "cancelled_at" timestamp without time zone,
-    "cancellation_initiator" character varying
-);
-
-
-ALTER TABLE "public"."bookings" OWNER TO "postgres";
-
-
 CREATE OR REPLACE VIEW "public"."bookings_stuck_pending_refund" AS
  SELECT "id",
     "original_tenant_id",
     "current_tenant_id",
-    "client_name",
     "pickup_address",
     "dropoff_address",
     "pickup_time",
@@ -540,12 +788,12 @@ CREATE OR REPLACE VIEW "public"."bookings_stuck_pending_refund" AS
     "subtotal_amount",
     "vat_amount",
     "customer_id",
-    "client_email",
     "stripe_payment_intent_id",
     "cancellation_policy_id",
     "cancellation_reason",
     "cancelled_at",
-    "cancellation_initiator"
+    "cancellation_initiator",
+    "passenger_count"
    FROM "public"."bookings"
   WHERE (("status" = 'cancelled_pending_refund'::"public"."booking_status") AND ("cancelled_at" < ("now"() - '00:10:00'::interval)));
 
@@ -595,20 +843,6 @@ CREATE TABLE IF NOT EXISTS "public"."circles" (
 ALTER TABLE "public"."circles" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."customers" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "tenant_id" "uuid" NOT NULL,
-    "email" "text" NOT NULL,
-    "first_name" "text",
-    "last_name" "text",
-    "phone" "text",
-    "created_at" timestamp with time zone DEFAULT "now"()
-);
-
-
-ALTER TABLE "public"."customers" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."drivers" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "tenant_id" "uuid" NOT NULL,
@@ -622,258 +856,6 @@ CREATE TABLE IF NOT EXISTS "public"."drivers" (
 
 
 ALTER TABLE "public"."drivers" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."financial_movements" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "booking_id" "uuid" NOT NULL,
-    "tenant_id" "uuid" NOT NULL,
-    "stripe_payment_intent_id" "text",
-    "stripe_refund_id" "text",
-    "movement_type" "public"."movement_type_enum" NOT NULL,
-    "direction" "public"."movement_direction_enum" NOT NULL,
-    "gross_amount" numeric(12,2) NOT NULL,
-    "net_amount" numeric(12,2) NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "vat_amount" numeric(12,2) DEFAULT 0,
-    "created_by_event" "text",
-    "refund_ratio" numeric(5,4),
-    "platform_commission_rate_snapshot" numeric,
-    "driver_commission_rate_snapshot" numeric,
-    "platform_commission_amount" numeric,
-    "driver_commission_amount" numeric,
-    CONSTRAINT "chk_gross_positive" CHECK (("gross_amount" >= (0)::numeric)),
-    CONSTRAINT "chk_net_positive" CHECK (("net_amount" >= (0)::numeric)),
-    CONSTRAINT "chk_refund_ratio_valid" CHECK ((("refund_ratio" IS NULL) OR (("refund_ratio" >= (0)::numeric) AND ("refund_ratio" <= (1)::numeric)))),
-    CONSTRAINT "chk_vat_positive" CHECK (("vat_amount" >= (0)::numeric))
-);
-
-
-ALTER TABLE "public"."financial_movements" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."finance_current_year_kpi" AS
- SELECT COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_collected",
-    COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_refunded",
-    (COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) - COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric)) AS "net_revenue"
-   FROM "public"."financial_movements"
-  WHERE ("date_trunc"('year'::"text", "created_at") = "date_trunc"('year'::"text", "now"()));
-
-
-ALTER VIEW "public"."finance_current_year_kpi" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."finance_global_kpi" AS
- SELECT COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_collected",
-    COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_refunded",
-    (COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) - COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric)) AS "net_revenue",
-    "count"(DISTINCT "booking_id") AS "total_bookings"
-   FROM "public"."financial_movements";
-
-
-ALTER VIEW "public"."finance_global_kpi" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."finance_monthly_summary" AS
- SELECT "date_trunc"('month'::"text", "created_at") AS "month",
-    COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_collected",
-    COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_refunded",
-    (COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) - COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric)) AS "net_revenue"
-   FROM "public"."financial_movements"
-  GROUP BY ("date_trunc"('month'::"text", "created_at"))
-  ORDER BY ("date_trunc"('month'::"text", "created_at")) DESC;
-
-
-ALTER VIEW "public"."finance_monthly_summary" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."finance_yearly_summary" AS
- SELECT "date_trunc"('year'::"text", "created_at") AS "year",
-    COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_collected",
-    COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) AS "total_refunded",
-    (COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric) - COALESCE("sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "net_amount"
-            ELSE NULL::numeric
-        END), (0)::numeric)) AS "net_revenue"
-   FROM "public"."financial_movements"
-  GROUP BY ("date_trunc"('year'::"text", "created_at"))
-  ORDER BY ("date_trunc"('year'::"text", "created_at")) DESC;
-
-
-ALTER VIEW "public"."finance_yearly_summary" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."financial_fiscal_detail" AS
- SELECT "tenant_id",
-    "booking_id",
-    "movement_type",
-    "direction",
-    "net_amount" AS "amount_ht",
-    "vat_amount",
-    "gross_amount" AS "amount_ttc",
-    "stripe_payment_intent_id",
-    "stripe_refund_id",
-    "created_at"
-   FROM "public"."financial_movements"
-  ORDER BY "created_at" DESC;
-
-
-ALTER VIEW "public"."financial_fiscal_detail" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."financial_monthly_summary" AS
- SELECT "tenant_id",
-    "date_trunc"('month'::"text", "created_at") AS "month",
-    "sum"(
-        CASE
-            WHEN ("direction" = 'credit'::"public"."movement_direction_enum") THEN "net_amount"
-            ELSE (- "net_amount")
-        END) AS "net_ht",
-    "sum"(
-        CASE
-            WHEN ("direction" = 'credit'::"public"."movement_direction_enum") THEN "vat_amount"
-            ELSE (- "vat_amount")
-        END) AS "total_vat",
-    "sum"(
-        CASE
-            WHEN ("direction" = 'credit'::"public"."movement_direction_enum") THEN "gross_amount"
-            ELSE (- "gross_amount")
-        END) AS "net_ttc",
-    "sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE (0)::numeric
-        END) AS "total_payments",
-    "sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE (0)::numeric
-        END) AS "total_refunds",
-    "sum"(
-        CASE
-            WHEN ("movement_type" = 'commission'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE (0)::numeric
-        END) AS "total_commissions"
-   FROM "public"."financial_movements"
-  GROUP BY "tenant_id", ("date_trunc"('month'::"text", "created_at"));
-
-
-ALTER VIEW "public"."financial_monthly_summary" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."financial_summary" AS
- SELECT "tenant_id",
-    "sum"(
-        CASE
-            WHEN ("direction" = 'credit'::"public"."movement_direction_enum") THEN "gross_amount"
-            ELSE (- "gross_amount")
-        END) AS "net_total",
-    "sum"(
-        CASE
-            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE (0)::numeric
-        END) AS "total_payments",
-    "sum"(
-        CASE
-            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE (0)::numeric
-        END) AS "total_refunds",
-    "sum"(
-        CASE
-            WHEN ("movement_type" = 'commission'::"public"."movement_type_enum") THEN "gross_amount"
-            ELSE (0)::numeric
-        END) AS "total_commissions"
-   FROM "public"."financial_movements"
-  GROUP BY "tenant_id";
-
-
-ALTER VIEW "public"."financial_summary" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."financial_yearly_summary" AS
- SELECT "tenant_id",
-    "date_trunc"('year'::"text", "created_at") AS "year",
-    "sum"(
-        CASE
-            WHEN ("direction" = 'credit'::"public"."movement_direction_enum") THEN "net_amount"
-            ELSE (- "net_amount")
-        END) AS "net_ht",
-    "sum"(
-        CASE
-            WHEN ("direction" = 'credit'::"public"."movement_direction_enum") THEN "vat_amount"
-            ELSE (- "vat_amount")
-        END) AS "total_vat",
-    "sum"(
-        CASE
-            WHEN ("direction" = 'credit'::"public"."movement_direction_enum") THEN "gross_amount"
-            ELSE (- "gross_amount")
-        END) AS "net_ttc"
-   FROM "public"."financial_movements"
-  GROUP BY "tenant_id", ("date_trunc"('year'::"text", "created_at"));
-
-
-ALTER VIEW "public"."financial_yearly_summary" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."onboarding" (
@@ -902,6 +884,59 @@ CREATE TABLE IF NOT EXISTS "public"."onboarding" (
 ALTER TABLE "public"."onboarding" OWNER TO "postgres";
 
 
+CREATE OR REPLACE VIEW "public"."onboarding_admin_view" AS
+ SELECT "o"."id",
+    "o"."profile_id",
+    "o"."status",
+    "o"."company_name",
+    "o"."primary_domain",
+    "o"."phone",
+    "o"."capacity",
+    "o"."created_at",
+    "o"."validated_at",
+    "o"."vtc_license_number",
+    "o"."service_categories",
+    "o"."default_base_price",
+    "o"."default_price_per_km",
+    "o"."default_minimum_fare",
+    "o"."vehicle_brand",
+    "o"."vehicle_model",
+    "o"."plate_number",
+    "o"."first_name",
+    "o"."last_name",
+    "u"."email" AS "auth_email"
+   FROM ("public"."onboarding" "o"
+     JOIN "auth"."users" "u" ON (("o"."profile_id" = "u"."id")));
+
+
+ALTER VIEW "public"."onboarding_admin_view" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."passengers" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "booking_id" "uuid" NOT NULL,
+    "first_name" "text" NOT NULL,
+    "last_name" "text" NOT NULL,
+    "phone" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."passengers" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."platform_settings" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "default_platform_commission_rate" numeric(5,2) DEFAULT 0 NOT NULL,
+    "default_tenant_commission_rate" numeric(5,2) DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."platform_settings" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."pricing_rules" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "tenant_id" "uuid" NOT NULL,
@@ -924,7 +959,11 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "created_at" timestamp with time zone DEFAULT "now"(),
     "platform_role" "public"."platform_role",
     "first_name" "text",
-    "last_name" "text"
+    "last_name" "text",
+    "is_verified" boolean DEFAULT false,
+    "deleted_at" timestamp with time zone,
+    CONSTRAINT "profiles_role_required" CHECK ((("platform_role" IS NOT NULL) OR ("tenant_role" IS NOT NULL))),
+    CONSTRAINT "profiles_single_role_type" CHECK ((NOT (("platform_role" IS NOT NULL) AND ("tenant_role" IS NOT NULL))))
 );
 
 
@@ -957,7 +996,7 @@ CREATE TABLE IF NOT EXISTS "public"."stripe_webhook_logs" (
 ALTER TABLE "public"."stripe_webhook_logs" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."stripe_webhook_errors" AS
+CREATE OR REPLACE VIEW "public"."stripe_webhook_errors" WITH ("security_invoker"='true') AS
  SELECT "id",
     "stripe_event_id",
     "event_type",
@@ -974,7 +1013,7 @@ CREATE OR REPLACE VIEW "public"."stripe_webhook_errors" AS
 ALTER VIEW "public"."stripe_webhook_errors" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."stripe_webhook_pending" AS
+CREATE OR REPLACE VIEW "public"."stripe_webhook_pending" WITH ("security_invoker"='true') AS
  SELECT "id",
     "stripe_event_id",
     "event_type",
@@ -991,21 +1030,42 @@ CREATE OR REPLACE VIEW "public"."stripe_webhook_pending" AS
 ALTER VIEW "public"."stripe_webhook_pending" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."tenants" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "primary_domain" "text" NOT NULL,
-    "stripe_account_id" "text",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "platform_fee_rate" numeric DEFAULT 0,
-    "share_fee_rate" numeric DEFAULT 0,
-    "vat_rate" numeric DEFAULT 0,
-    "email" "text",
-    "phone" "text"
-);
+CREATE OR REPLACE VIEW "public"."tenant_dashboard_kpi" AS
+ SELECT "tenant_id",
+    COALESCE("sum"(
+        CASE
+            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "gross_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric) AS "total_gross_revenue",
+    COALESCE("sum"(
+        CASE
+            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "gross_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric) AS "total_refunded_gross",
+    (COALESCE("sum"(
+        CASE
+            WHEN ("movement_type" = 'payment'::"public"."movement_type_enum") THEN "net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric) - COALESCE("sum"(
+        CASE
+            WHEN ("movement_type" = 'refund'::"public"."movement_type_enum") THEN "net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric)) AS "total_net_revenue",
+    "count"(DISTINCT "booking_id") AS "total_bookings",
+    (COALESCE("sum"(
+        CASE
+            WHEN (("movement_type" = 'payment'::"public"."movement_type_enum") AND ("date_trunc"('month'::"text", "created_at") = "date_trunc"('month'::"text", "now"()))) THEN "net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric) - COALESCE("sum"(
+        CASE
+            WHEN (("movement_type" = 'refund'::"public"."movement_type_enum") AND ("date_trunc"('month'::"text", "created_at") = "date_trunc"('month'::"text", "now"()))) THEN "net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric)) AS "monthly_net_revenue"
+   FROM "public"."financial_movements"
+  GROUP BY "tenant_id";
 
 
-ALTER TABLE "public"."tenants" OWNER TO "postgres";
+ALTER VIEW "public"."tenant_dashboard_kpi" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."vehicles" (
@@ -1089,6 +1149,16 @@ ALTER TABLE ONLY "public"."onboarding"
 
 
 
+ALTER TABLE ONLY "public"."passengers"
+    ADD CONSTRAINT "passengers_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."platform_settings"
+    ADD CONSTRAINT "platform_settings_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."pricing_rules"
     ADD CONSTRAINT "pricing_rules_pkey" PRIMARY KEY ("id");
 
@@ -1149,11 +1219,11 @@ CREATE INDEX "idx_bookings_current_tenant" ON "public"."bookings" USING "btree" 
 
 
 
+CREATE INDEX "idx_bookings_customer_id" ON "public"."bookings" USING "btree" ("customer_id");
+
+
+
 CREATE INDEX "idx_bookings_driver" ON "public"."bookings" USING "btree" ("driver_id");
-
-
-
-CREATE INDEX "idx_bookings_email" ON "public"."bookings" USING "btree" ("client_email");
 
 
 
@@ -1170,6 +1240,10 @@ CREATE INDEX "idx_cancellation_policy_active" ON "public"."cancellation_policies
 
 
 CREATE INDEX "idx_circle_memberships_tenant" ON "public"."circle_memberships" USING "btree" ("tenant_id");
+
+
+
+CREATE INDEX "idx_customers_tenant_email" ON "public"."customers" USING "btree" ("tenant_id", "email");
 
 
 
@@ -1194,6 +1268,10 @@ CREATE INDEX "idx_financial_movements_tenant_id" ON "public"."financial_movement
 
 
 CREATE INDEX "idx_onboarding_profile" ON "public"."onboarding" USING "btree" ("profile_id");
+
+
+
+CREATE INDEX "idx_passengers_booking" ON "public"."passengers" USING "btree" ("booking_id");
 
 
 
@@ -1225,7 +1303,58 @@ CREATE INDEX "idx_vehicles_tenant" ON "public"."vehicles" USING "btree" ("tenant
 
 
 
+CREATE UNIQUE INDEX "onboarding_one_pending_per_profile" ON "public"."onboarding" USING "btree" ("profile_id") WHERE ("status" = 'pending'::"public"."onboarding_status");
+
+
+
+CREATE UNIQUE INDEX "platform_settings_single_row" ON "public"."platform_settings" USING "btree" ((true));
+
+
+
+CREATE UNIQUE INDEX "profiles_one_tenant_owner" ON "public"."profiles" USING "btree" ("id") WHERE ("tenant_role" = 'owner'::"public"."tenant_role");
+
+
+
+CREATE UNIQUE INDEX "profiles_owner_unique" ON "public"."profiles" USING "btree" ("id") WHERE ("tenant_role" = 'owner'::"public"."tenant_role");
+
+
+
 CREATE UNIQUE INDEX "unique_active_policy_per_tenant" ON "public"."cancellation_policies" USING "btree" ("tenant_id") WHERE ("active" = true);
+
+
+
+CREATE OR REPLACE VIEW "public"."admin_tenants_overview" AS
+ SELECT "t"."id" AS "tenant_id",
+    "t"."name" AS "tenant_name",
+    "t"."primary_domain",
+    "t"."created_at" AS "joined_at",
+    COALESCE("sum"(
+        CASE
+            WHEN ("fm"."movement_type" = 'payment'::"public"."movement_type_enum") THEN "fm"."gross_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric) AS "total_gross_revenue",
+    (COALESCE("sum"(
+        CASE
+            WHEN ("fm"."movement_type" = 'payment'::"public"."movement_type_enum") THEN "fm"."net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric) - COALESCE("sum"(
+        CASE
+            WHEN ("fm"."movement_type" = 'refund'::"public"."movement_type_enum") THEN "fm"."net_amount"
+            ELSE (0)::numeric
+        END), (0)::numeric)) AS "total_net_revenue",
+    "count"(DISTINCT "fm"."booking_id") AS "total_bookings",
+    COALESCE("avg"(
+        CASE
+            WHEN ("fm"."movement_type" = 'payment'::"public"."movement_type_enum") THEN "fm"."platform_commission_rate_snapshot"
+            ELSE NULL::numeric
+        END), (0)::numeric) AS "avg_commission_rate"
+   FROM ("public"."tenants" "t"
+     LEFT JOIN "public"."financial_movements" "fm" ON (("fm"."tenant_id" = "t"."id")))
+  GROUP BY "t"."id";
+
+
+
+CREATE OR REPLACE TRIGGER "tr_driver_verified" AFTER UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."handle_driver_verification_email"();
 
 
 
@@ -1246,6 +1375,10 @@ CREATE OR REPLACE TRIGGER "trg_prevent_policy_update" BEFORE UPDATE ON "public".
 
 
 CREATE OR REPLACE TRIGGER "trg_protect_booking_fields" BEFORE UPDATE ON "public"."bookings" FOR EACH ROW EXECUTE FUNCTION "public"."protect_booking_immutable_fields"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_update_platform_settings" BEFORE UPDATE ON "public"."platform_settings" FOR EACH ROW EXECUTE FUNCTION "public"."update_platform_settings_updated_at"();
 
 
 
@@ -1347,6 +1480,11 @@ ALTER TABLE ONLY "public"."onboarding"
 
 
 
+ALTER TABLE ONLY "public"."passengers"
+    ADD CONSTRAINT "passengers_booking_id_fkey" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."pricing_rules"
     ADD CONSTRAINT "pricing_rules_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE CASCADE;
 
@@ -1372,7 +1510,9 @@ ALTER TABLE ONLY "public"."vehicles"
 
 
 
-CREATE POLICY "Allow profile insert on signup" ON "public"."profiles" FOR INSERT WITH CHECK (true);
+CREATE POLICY "admin_full_view_platform_read" ON "public"."bookings" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" = ANY (ARRAY['super_admin'::"public"."platform_role", 'platform_staff'::"public"."platform_role"]))))));
 
 
 
@@ -1383,10 +1523,23 @@ CREATE POLICY "booking_shares_select" ON "public"."booking_shares" FOR SELECT US
 
 
 
+ALTER TABLE "public"."booking_status_transitions" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "booking_status_transitions_read" ON "public"."booking_status_transitions" FOR SELECT USING (true);
+
+
+
 ALTER TABLE "public"."bookings" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "bookings_insert_isolation" ON "public"."bookings" FOR INSERT WITH CHECK (("original_tenant_id" = "public"."current_tenant_id"()));
+
+
+
+CREATE POLICY "bookings_platform_admin_read" ON "public"."bookings" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" = ANY (ARRAY['super_admin'::"public"."platform_role", 'platform_staff'::"public"."platform_role"]))))));
 
 
 
@@ -1421,6 +1574,19 @@ CREATE POLICY "circles_tenant_isolation" ON "public"."circles" USING (("created_
 
 
 
+ALTER TABLE "public"."customers" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "customers_platform_admin_read" ON "public"."customers" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" = ANY (ARRAY['super_admin'::"public"."platform_role", 'platform_staff'::"public"."platform_role"]))))));
+
+
+
+CREATE POLICY "customers_tenant_isolation" ON "public"."customers" USING (("tenant_id" = "public"."current_tenant_id"())) WITH CHECK (("tenant_id" = "public"."current_tenant_id"()));
+
+
+
 ALTER TABLE "public"."drivers" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1445,39 +1611,11 @@ CREATE POLICY "finance_select_isolated" ON "public"."financial_movements" FOR SE
 ALTER TABLE "public"."financial_movements" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE VIEW "public"."user_emails" AS
- SELECT id, email FROM auth.users;
+CREATE POLICY "financial_platform_admin_read" ON "public"."financial_movements" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" = ANY (ARRAY['super_admin'::"public"."platform_role", 'platform_staff'::"public"."platform_role"]))))));
 
-GRANT SELECT ON TABLE "public"."user_emails" TO "authenticated";
-GRANT SELECT ON TABLE "public"."user_emails" TO "service_role";
 
-CREATE OR REPLACE VIEW "public"."onboarding_admin_view" AS
- SELECT
-    o.id,
-    o.profile_id,
-    o.status,
-    o.company_name,
-    o.primary_domain,
-    o.phone,
-    o.capacity,
-    o.created_at,
-    o.validated_at,
-    o.vtc_license_number,
-    o.service_categories,
-    o.default_base_price,
-    o.default_price_per_km,
-    o.default_minimum_fare,
-    o.vehicle_brand,
-    o.vehicle_model,
-    o.plate_number,
-    o.first_name,
-    o.last_name,
-    u.email AS auth_email
-   FROM "public"."onboarding" o
-     JOIN auth.users u ON o.profile_id = u.id;
-
-GRANT SELECT ON TABLE "public"."onboarding_admin_view" TO "authenticated";
-GRANT SELECT ON TABLE "public"."onboarding_admin_view" TO "service_role";
 
 ALTER TABLE "public"."onboarding" ENABLE ROW LEVEL SECURITY;
 
@@ -1496,9 +1634,37 @@ CREATE POLICY "onboarding_select_platform" ON "public"."onboarding" FOR SELECT U
 
 
 
+ALTER TABLE "public"."passengers" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "passengers_platform_admin_read" ON "public"."passengers" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" = ANY (ARRAY['super_admin'::"public"."platform_role", 'platform_staff'::"public"."platform_role"]))))));
+
+
+
+CREATE POLICY "passengers_tenant_isolation" ON "public"."passengers" USING ((EXISTS ( SELECT 1
+   FROM "public"."bookings" "b"
+  WHERE (("b"."id" = "passengers"."booking_id") AND (("b"."original_tenant_id" = "public"."current_tenant_id"()) OR ("b"."current_tenant_id" = "public"."current_tenant_id"())))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."bookings" "b"
+  WHERE (("b"."id" = "passengers"."booking_id") AND (("b"."original_tenant_id" = "public"."current_tenant_id"()) OR ("b"."current_tenant_id" = "public"."current_tenant_id"()))))));
+
+
+
 CREATE POLICY "platform_admin_read_financial" ON "public"."financial_movements" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."profiles"
   WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" = ANY (ARRAY['super_admin'::"public"."platform_role", 'platform_staff'::"public"."platform_role"]))))));
+
+
+
+ALTER TABLE "public"."platform_settings" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "platform_settings_read_admin" ON "public"."platform_settings" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "platform_settings_update_admin" ON "public"."platform_settings" FOR UPDATE USING (true);
 
 
 
@@ -1518,6 +1684,10 @@ CREATE POLICY "pricing_tenant_isolation" ON "public"."pricing_rules" USING (("te
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "profiles_insert_own" ON "public"."profiles" FOR INSERT WITH CHECK (("id" = "auth"."uid"()));
+
+
+
 CREATE POLICY "profiles_select_own" ON "public"."profiles" FOR SELECT USING (("id" = "auth"."uid"()));
 
 
@@ -1529,7 +1699,32 @@ CREATE POLICY "profiles_update_own" ON "public"."profiles" FOR UPDATE USING (("i
 ALTER TABLE "public"."stripe_events" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "stripe_webhook_insert_service" ON "public"."stripe_webhook_logs" FOR INSERT TO "service_role" WITH CHECK (true);
+
+
+
+ALTER TABLE "public"."stripe_webhook_logs" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "stripe_webhook_platform_read" ON "public"."stripe_webhook_logs" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" IS NOT NULL)))));
+
+
+
+CREATE POLICY "tenant_can_view_own_finance" ON "public"."financial_movements" FOR SELECT USING (("tenant_id" = ( SELECT "profiles"."tenant_id"
+   FROM "public"."profiles"
+  WHERE ("profiles"."id" = "auth"."uid"()))));
+
+
+
 ALTER TABLE "public"."tenants" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "tenants_platform_admin_read" ON "public"."tenants" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."platform_role" = ANY (ARRAY['super_admin'::"public"."platform_role", 'platform_staff'::"public"."platform_role"]))))));
+
 
 
 CREATE POLICY "tenants_select_own" ON "public"."tenants" FOR SELECT USING (("id" = ( SELECT "profiles"."tenant_id"
@@ -1731,9 +1926,21 @@ GRANT ALL ON FUNCTION "public"."current_tenant_id"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."delete_tenant_account"() TO "anon";
+GRANT ALL ON FUNCTION "public"."delete_tenant_account"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."delete_tenant_account"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."expire_unpaid_bookings"() TO "anon";
 GRANT ALL ON FUNCTION "public"."expire_unpaid_bookings"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."expire_unpaid_bookings"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_driver_verification_email"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_driver_verification_email"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_driver_verification_email"() TO "service_role";
 
 
 
@@ -1779,6 +1986,12 @@ GRANT ALL ON FUNCTION "public"."protect_booking_immutable_fields"() TO "service_
 
 
 
+GRANT ALL ON FUNCTION "public"."update_platform_settings_updated_at"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_platform_settings_updated_at"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_platform_settings_updated_at"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."validate_booking_status_transition"() TO "anon";
 GRANT ALL ON FUNCTION "public"."validate_booking_status_transition"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."validate_booking_status_transition"() TO "service_role";
@@ -1806,6 +2019,48 @@ GRANT ALL ON FUNCTION "public"."validate_ledger_consistency"() TO "service_role"
 
 
 
+GRANT ALL ON TABLE "public"."bookings" TO "anon";
+GRANT ALL ON TABLE "public"."bookings" TO "authenticated";
+GRANT ALL ON TABLE "public"."bookings" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."customers" TO "anon";
+GRANT ALL ON TABLE "public"."customers" TO "authenticated";
+GRANT ALL ON TABLE "public"."customers" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."tenants" TO "anon";
+GRANT ALL ON TABLE "public"."tenants" TO "authenticated";
+GRANT ALL ON TABLE "public"."tenants" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."admin_bookings_full_view" TO "anon";
+GRANT ALL ON TABLE "public"."admin_bookings_full_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."admin_bookings_full_view" TO "service_role";
+
+
+
+GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."financial_movements" TO "anon";
+GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."financial_movements" TO "authenticated";
+GRANT ALL ON TABLE "public"."financial_movements" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."admin_monthly_summary" TO "anon";
+GRANT ALL ON TABLE "public"."admin_monthly_summary" TO "authenticated";
+GRANT ALL ON TABLE "public"."admin_monthly_summary" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."admin_tenants_overview" TO "anon";
+GRANT ALL ON TABLE "public"."admin_tenants_overview" TO "authenticated";
+GRANT ALL ON TABLE "public"."admin_tenants_overview" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."booking_shares" TO "anon";
 GRANT ALL ON TABLE "public"."booking_shares" TO "authenticated";
 GRANT ALL ON TABLE "public"."booking_shares" TO "service_role";
@@ -1815,12 +2070,6 @@ GRANT ALL ON TABLE "public"."booking_shares" TO "service_role";
 GRANT ALL ON TABLE "public"."booking_status_transitions" TO "anon";
 GRANT ALL ON TABLE "public"."booking_status_transitions" TO "authenticated";
 GRANT ALL ON TABLE "public"."booking_status_transitions" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."bookings" TO "anon";
-GRANT ALL ON TABLE "public"."bookings" TO "authenticated";
-GRANT ALL ON TABLE "public"."bookings" TO "service_role";
 
 
 
@@ -1848,75 +2097,33 @@ GRANT ALL ON TABLE "public"."circles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."customers" TO "anon";
-GRANT ALL ON TABLE "public"."customers" TO "authenticated";
-GRANT ALL ON TABLE "public"."customers" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."drivers" TO "anon";
 GRANT ALL ON TABLE "public"."drivers" TO "authenticated";
 GRANT ALL ON TABLE "public"."drivers" TO "service_role";
 
 
 
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."financial_movements" TO "anon";
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."financial_movements" TO "authenticated";
-GRANT ALL ON TABLE "public"."financial_movements" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."finance_current_year_kpi" TO "anon";
-GRANT ALL ON TABLE "public"."finance_current_year_kpi" TO "authenticated";
-GRANT ALL ON TABLE "public"."finance_current_year_kpi" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."finance_global_kpi" TO "anon";
-GRANT ALL ON TABLE "public"."finance_global_kpi" TO "authenticated";
-GRANT ALL ON TABLE "public"."finance_global_kpi" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."finance_monthly_summary" TO "anon";
-GRANT ALL ON TABLE "public"."finance_monthly_summary" TO "authenticated";
-GRANT ALL ON TABLE "public"."finance_monthly_summary" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."finance_yearly_summary" TO "anon";
-GRANT ALL ON TABLE "public"."finance_yearly_summary" TO "authenticated";
-GRANT ALL ON TABLE "public"."finance_yearly_summary" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."financial_fiscal_detail" TO "anon";
-GRANT ALL ON TABLE "public"."financial_fiscal_detail" TO "authenticated";
-GRANT ALL ON TABLE "public"."financial_fiscal_detail" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."financial_monthly_summary" TO "anon";
-GRANT ALL ON TABLE "public"."financial_monthly_summary" TO "authenticated";
-GRANT ALL ON TABLE "public"."financial_monthly_summary" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."financial_summary" TO "anon";
-GRANT ALL ON TABLE "public"."financial_summary" TO "authenticated";
-GRANT ALL ON TABLE "public"."financial_summary" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."financial_yearly_summary" TO "anon";
-GRANT ALL ON TABLE "public"."financial_yearly_summary" TO "authenticated";
-GRANT ALL ON TABLE "public"."financial_yearly_summary" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."onboarding" TO "anon";
 GRANT ALL ON TABLE "public"."onboarding" TO "authenticated";
 GRANT ALL ON TABLE "public"."onboarding" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."onboarding_admin_view" TO "anon";
+GRANT ALL ON TABLE "public"."onboarding_admin_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."onboarding_admin_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."passengers" TO "anon";
+GRANT ALL ON TABLE "public"."passengers" TO "authenticated";
+GRANT ALL ON TABLE "public"."passengers" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."platform_settings" TO "anon";
+GRANT ALL ON TABLE "public"."platform_settings" TO "authenticated";
+GRANT ALL ON TABLE "public"."platform_settings" TO "service_role";
 
 
 
@@ -1956,9 +2163,9 @@ GRANT ALL ON TABLE "public"."stripe_webhook_pending" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."tenants" TO "anon";
-GRANT ALL ON TABLE "public"."tenants" TO "authenticated";
-GRANT ALL ON TABLE "public"."tenants" TO "service_role";
+GRANT ALL ON TABLE "public"."tenant_dashboard_kpi" TO "anon";
+GRANT ALL ON TABLE "public"."tenant_dashboard_kpi" TO "authenticated";
+GRANT ALL ON TABLE "public"."tenant_dashboard_kpi" TO "service_role";
 
 
 
@@ -2027,5 +2234,18 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 
 
 
+
+
+drop extension if exists "pg_net";
+
+revoke delete on table "public"."financial_movements" from "anon";
+
+revoke update on table "public"."financial_movements" from "anon";
+
+revoke delete on table "public"."financial_movements" from "authenticated";
+
+revoke update on table "public"."financial_movements" from "authenticated";
+
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 
