@@ -48,7 +48,19 @@ La page `src/pages/app/pricing.astro` permet le CRUD complet via une modal premi
 
 ---
 
-## 3. 🛡️ Sécurité & Cycle de Vie
+## 3. 🗺️ Forfaits & Zones (Fixed Routes)
+
+Le système permet de définir des tarifs fixes pour des trajets spécifiques (ex: Transfert Aéroport).
+
+- **Zones** : Définition de zones géographiques (Aéroport CDG, Paris Centre, etc.).
+- **Forfaits (Fixed Routes)** : Association de deux zones avec un prix fixe par catégorie de véhicule.
+- **Bidirectionnalité** : Option pour appliquer le même tarif dans les deux sens de circulation.
+
+Ces tarifs sont prioritaires sur le calcul kilométrique dynamique si un trajet correspond exactement aux zones définies.
+
+---
+
+## 4. 🛡️ Sécurité & Cycle de Vie
 
 ### Suppression de Compte (Danger Zone)
 

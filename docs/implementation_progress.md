@@ -18,6 +18,7 @@ Ce document récapitule l'ensemble des fonctionnalités implémentées depuis le
 
 - [x] **Calcul Backend** : Recalcul systématique du prix côté serveur pour éviter les fraudes.
 - [x] **Pricing Rules** : Gestion des tarifs de base, prix au km et tarif minimum par catégorie.
+- [x] **Zones & Forfaits** : Gestion des trajets fixes entre zones prédéfinies (Airport, Gare...).
 - [x] **Véhicules & Chauffeurs** : Gestion de la capacité des véhicules et des documents chauffeurs.
 - [x] **Gestion des Statuts** : Workflow complet de `pending` à `completed` ou `cancelled`.
 
@@ -37,6 +38,7 @@ Ce document récapitule l'ensemble des fonctionnalités implémentées depuis le
 
 - [x] **Moteur de Règles d'Annulation** : Automated cancellation engine based on versioned policies. Integration with Stripe (Terminé).
 - [x] **Dashboard Tenant** : Finalisation de l'interface graphique pour le suivi des revenus et activités.
+- [x] **Multi-Site (Tenant Slug)** : Isolation des tunnels de réservation par slug personnalisé (`site_slug`).
 - [ ] **Export CSV Finance** : Bouton d'export des mouvements pour les experts-comptables depuis le frontend.
 - [ ] **Gestion des Frais Stripe** : Arbitrage business sur la répercussion des frais fixes Stripe en cas de refund.
 

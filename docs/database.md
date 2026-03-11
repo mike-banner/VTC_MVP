@@ -62,14 +62,15 @@ tenants + drivers + vehicles + pricing_rules
 
 Entreprise cliente SaaS.
 
-| Column            | Type        | Notes            |
-| ----------------- | ----------- | ---------------- |
-| id                | uuid (PK)   |                  |
-| name              | text        | Nom entreprise   |
-| primary_domain    | text UNIQUE | Domaine client   |
-| stripe_account_id | text        | Stripe optionnel |
-| commission_rate   | numeric     | Réservé V2+      |
-| created_at        | timestamptz | default now()    |
+| Column            | Type        | Notes             |
+| ----------------- | ----------- | ----------------- |
+| id                | uuid (PK)   |                   |
+| name              | text        | Nom entreprise    |
+| site_slug         | text UNIQUE | Slug personnalisé |
+| primary_domain    | text UNIQUE | Domaine client    |
+| stripe_account_id | text        | Stripe optionnel  |
+| commission_rate   | numeric     | Réservé V2+       |
+| created_at        | timestamptz | default now()     |
 
 Relations :
 
@@ -177,14 +178,55 @@ Aucun UPDATE autorisé hors service role
 
 ---
 
-## 7️⃣ bookings (Booking Engine V1)
+## 7️⃣ zones
+
+| Column     | Type        |
+| ---------- | ----------- |
+| id         | uuid        |
+| tenant_id  | uuid        |
+| name       | text        |
+| created_at | timestamptz |
+
+---
+
+## 8️⃣ fixed_routes (Forfaits)
+
+| Column           | Type        | Notes                          |
+| ---------------- | ----------- | ------------------------------ |
+| id               | uuid        |                                |
+| tenant_id        | uuid        |                                |
+| pickup_zone_id   | uuid        | FK zones                       |
+| dropoff_zone_id  | uuid        | FK zones                       |
+| vehicle_category | text        |                                |
+| price            | numeric     |                                |
+| is_bidirectional | boolean     | Appliquable dans les deux sens |
+| active           | boolean     |                                |
+| created_at       | timestamptz |                                |
+
+---
+
+## 9️⃣ customers
+
+| Column     | Type        | Notes         |
+| ---------- | ----------- | ------------- |
+| id         | uuid        |               |
+| tenant_id  | uuid        |               |
+| email      | text        | Unique/Tenant |
+| first_name | text        |               |
+| last_name  | text        |               |
+| phone      | text        |               |
+| created_at | timestamptz |               |
+
+---
+
+## 🔟 bookings (Booking Engine V1)
 
 | Column                   | Type                                                 | Notes                                   |
 | ------------------------ | ---------------------------------------------------- | --------------------------------------- |
 | id                       | uuid (PK)                                            |                                         |
 | original_tenant_id       | uuid                                                 | Tenant créateur                         |
 | current_tenant_id        | uuid                                                 | Tenant gérant actuellement              |
-| client_name              | text                                                 |                                         |
+| customer_id              | uuid                                                 | FK customers                            |
 | pickup_address           | text                                                 |                                         |
 | dropoff_address          | text                                                 |                                         |
 | pickup_time              | timestamptz                                          |                                         |
