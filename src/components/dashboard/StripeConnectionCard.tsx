@@ -73,7 +73,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
   const handleAction = () => {
     if (stripeStatus?.url) {
-      window.location.href = stripeStatus.url;
+      window.open(stripeStatus.url, "_blank");
     }
   };
 

@@ -55,8 +55,23 @@ const navItems = [
     <body
         class="bg-black h-screen overflow-hidden text-slate-50 selection:bg-indigo-500/30 font-inter"
     >
-        <div class="flex h-full">
-            <!-- Sidebar Fixe -->
+        <div class="flex h-full flex-col md:flex-row">
+            <!-- Mobile Top Bar -->
+            <header class="md:hidden flex items-center justify-between p-4 glass border-b border-white/5 flex-shrink-0 z-[60]">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                        <span class="text-white font-black text-lg italic">V</span>
+                    </div>
+                    <span class="text-lg font-black tracking-tighter italic uppercase text-white">VTC HUB</span>
+                </div>
+                <button id="mobile-menu-toggle" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </header>
+
+            <!-- Sidebar Fixe (Desktop) -->
             <aside
                 class="w-72 h-full glass border-r border-white/5 hidden md:flex flex-col p-6 flex-shrink-0"
             >
@@ -130,6 +145,71 @@ const navItems = [
             </main>
         </div>
 
+        <!-- Mobile Menu Drawer -->
+        <div id="mobile-menu" class="fixed inset-0 z-[100] md:hidden pointer-events-none opacity-0 transition-all duration-300">
+            <div class="absolute inset-0 bg-black/90 backdrop-blur-sm mobile-menu-overlay"></div>
+            <div class="absolute inset-y-0 right-0 w-[85%] max-w-sm glass border-l border-white/10 p-8 transform translate-x-full transition-transform duration-300 flex flex-col overflow-hidden">
+                <div class="flex items-center justify-between mb-10">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                            <span class="text-white font-black text-2xl italic">V</span>
+                        </div>
+                        <span class="text-xl font-black tracking-tighter italic uppercase text-white">VTC HUB</span>
+                    </div>
+                    <button id="mobile-menu-close" class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-slate-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <nav class="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+                    {
+                        navItems.map(
+                            (item) =>
+                                item.roles.includes(
+                                    safeProfile.tenant_role || "",
+                                ) && (
+                                    <a
+                                        href={item.href}
+                                        class={`flex items-center px-5 py-4 rounded-2xl text-sm font-bold transition-all ${
+                                            pathname === item.href
+                                                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                                                : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                        }`}
+                                    >
+                                        {item.label}
+                                    </a>
+                                ),
+                        )
+                    }
+                </nav>
+
+                <div class="pt-6 mt-6 border-t border-white/5 space-y-4">
+                    {
+                        safeProfile.tenant_role === "owner" && (
+                            <a
+                                href="/app/settings"
+                                class={`flex items-center px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    pathname === "/app/settings"
+                                        ? "bg-white/10 text-white border border-white/10"
+                                        : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                }`}
+                            >
+                                Paramètres
+                            </a>
+                        )
+                    }
+                    <button
+                        id="logout-btn-mobile"
+                        class="w-full flex items-center px-5 py-4 rounded-2xl hover:bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left group"
+                    >
+                        <span>Se déconnecter</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Logout Confirmation Modal -->
         <div id="logout-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
             <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay"></div>
@@ -173,6 +253,14 @@ const navItems = [
             #logout-modal.is-active > div:last-child {
                 transform: scale(1);
             }
+
+            #mobile-menu.is-active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            #mobile-menu.is-active > div:last-child {
+                transform: translateX(0);
+            }
         </style>
 
         <script>
@@ -197,10 +285,31 @@ const navItems = [
                 window.location.href = "/";
             });
 
+            // Mobile Menu Logic
+            const mobileMenu = document.querySelector("#mobile-menu");
+            const mobileMenuBtn = document.querySelector("#mobile-menu-toggle");
+            const mobileMenuClose = document.querySelector("#mobile-menu-close");
+            const mobileMenuOverlay = document.querySelector(".mobile-menu-overlay");
+            const logoutBtnMobile = document.querySelector("#logout-btn-mobile");
+
+            const toggleMobileMenu = () => {
+                mobileMenu?.classList.toggle('is-active');
+                document.body.classList.toggle('overflow-hidden');
+            };
+
+            mobileMenuBtn?.addEventListener("click", toggleMobileMenu);
+            mobileMenuClose?.addEventListener("click", toggleMobileMenu);
+            mobileMenuOverlay?.addEventListener("click", toggleMobileMenu);
+            logoutBtnMobile?.addEventListener("click", () => {
+                toggleMobileMenu();
+                toggleModal();
+            });
+
             // Close on Escape
             window.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && modal?.classList.contains('is-active')) {
-                    toggleModal();
+                if (e.key === 'Escape') {
+                    if (modal?.classList.contains('is-active')) toggleModal();
+                    if (mobileMenu?.classList.contains('is-active')) toggleMobileMenu();
                 }
             });
         </script>
