@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-  apiVersion: "2022-11-15",
+  apiVersion: "2024-06-20",
 });
 
 const supabase = createClient(
@@ -17,18 +17,48 @@ const supabase = createClient(
 );
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS")
+  if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
 
   try {
-    const { customer_data, booking_data } = await req.json();
+    const body = await req.json();
 
-    // 1. CALCULS FINANCIERS OBLIGATOIRES (TVA 10%)
-    const total = Number(booking_data.total_amount);
-    const vatRate = 0.1;
-    const subtotal = total / (1 + vatRate);
+    const customer_data = body.customer_data;
+    const booking_data = body.booking_data;
 
-    // 2. GESTION DU CUSTOMER (Lien obligatoire pour customer_id)
+    if (!booking_data) {
+      throw new Error("booking_data missing");
+    }
+
+    if (!booking_data.type) {
+      throw new Error("booking_type is required");
+    }
+
+    if (!booking_data.tenant_id) {
+      throw new Error("tenant_id required");
+    }
+
+    // =========================
+    // CALCULS FINANCIERS
+    // =========================
+
+    const total = Number(booking_data.total_amount ?? 0);
+
+    if (!total || total <= 0) {
+      throw new Error("invalid total");
+    }
+
+    const VAT_RATE = 0.1;
+
+    const subtotal = Number((total / (1 + VAT_RATE)).toFixed(2));
+
+    const vatAmount = Number((total - subtotal).toFixed(2));
+
+    // =========================
+    // CUSTOMER
+    // =========================
+
     const { data: customer, error: cErr } = await supabase
       .from("customers")
       .upsert(
@@ -44,77 +74,198 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    if (cErr) throw new Error(`SQL Customer: ${cErr.message}`);
+    if (cErr || !customer) {
+      throw new Error("Customer error");
+    }
 
-    // 3. INSERTION BOOKING (Respect strict des colonnes NO NULL)
+    // =========================
+    // VEHICLE CHECK
+    // =========================
+
+    const vehicleId = booking_data.vehicle_id;
+
+    if (!vehicleId) {
+      throw new Error("vehicle_id required");
+    }
+
+    const passengers = Number(booking_data.passengers ?? 1);
+    const luggage = Number(booking_data.luggage ?? 0);
+
+    const { data: vehicle, error: vErr } = await supabase
+      .from("vehicles")
+      .select("capacity, luggage_capacity, tenant_id, status")
+      .eq("id", vehicleId)
+      .single();
+
+    if (vErr || !vehicle) {
+      throw new Error("Vehicle not found");
+    }
+
+    if (vehicle.status !== "active") {
+      throw new Error("Vehicle inactive");
+    }
+
+    if (vehicle.tenant_id !== booking_data.tenant_id) {
+      throw new Error("Vehicle tenant mismatch");
+    }
+
+    if (passengers > vehicle.capacity) {
+      throw new Error("Too many passengers");
+    }
+
+    if (luggage > vehicle.luggage_capacity) {
+      throw new Error("Too much luggage");
+    }
+
+    // =========================
+    // INSERT BOOKING
+    // =========================
+
     const { data: booking, error: bErr } = await supabase
       .from("bookings")
       .insert({
-        original_tenant_id: booking_data.tenant_id, // Obligatoire
-        current_tenant_id: booking_data.tenant_id, // Obligatoire
-        pickup_address: booking_data.pickup_address, // Obligatoire
-        dropoff_address: booking_data.dropoff_address, // Obligatoire
-        pickup_time: booking_data.pickup_time, // Obligatoire
-        total_amount: total, // Obligatoire
-        subtotal_amount: subtotal, // Obligatoire
-        customer_id: customer.id, // Obligatoire
-        payment_mode: "card", // Obligatoire (Enum validé)
-        status: "pending", // Sécurité additionnelle
-        passenger_count: booking_data.passengers || 1,
+        original_tenant_id: booking_data.tenant_id,
+        current_tenant_id: booking_data.tenant_id,
+
+        pickup_address: booking_data.pickup_address,
+        dropoff_address: booking_data.dropoff_address,
+        pickup_time: booking_data.pickup_time,
+
+        vehicle_id: vehicleId,
+
+        total_amount: total,
+        subtotal_amount: subtotal,
+        vat_amount: vatAmount,
+
+        customer_id: customer.id,
+
+        payment_mode: "card",
+        status: "accepted_pending_payment",
+
+        passenger_count: passengers,
+        luggage_count: luggage,
+
+        booking_type: booking_data.type,
       })
       .select()
       .single();
 
-    if (bErr) throw new Error(`SQL Booking: ${bErr.message}`);
+    if (bErr || !booking) {
+      throw new Error("Booking insert failed");
+    }
 
-    // 4. RÉCUPÉRATION DU COMPTE STRIPE CHAUFFEUR
-    const { data: tenant } = await supabase
+    // =========================
+    // TENANT STRIPE
+    // =========================
+
+    const { data: tenant, error: tErr } = await supabase
       .from("tenants")
       .select("stripe_account_id, platform_fee_rate")
       .eq("id", booking_data.tenant_id)
       .single();
 
-    if (!tenant?.stripe_account_id) throw new Error("Compte Stripe absent.");
+    if (tErr || !tenant) {
+      throw new Error("Tenant not found");
+    }
 
-    // 5. CRÉATION SESSION STRIPE
+    if (!tenant.stripe_account_id) {
+      throw new Error("Stripe account missing");
+    }
+
+    // =========================
+// CHECK STRIPE STATUS
+// =========================
+
+const account = await stripe.accounts.retrieve(
+  tenant.stripe_account_id
+);
+
+if (!account.charges_enabled) {
+  throw new Error(
+    "Driver Stripe account not ready"
+  );
+}
+
+    // =========================
+    // STRIPE SESSION
+    // =========================
+
     const amountInCents = Math.round(total * 100);
-    const feeRate = tenant.platform_fee_rate || 0;
+
+    const feeRate = tenant.platform_fee_rate ?? 0;
+
     const feeInCents = Math.round((feeRate / 100) * amountInCents);
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: customer.email,
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: `Course VTC`,
-              description: `${booking_data.pickup_address} → ${booking_data.dropoff_address}`,
-            },
-            unit_amount: amountInCents,
-          },
-          quantity: 1,
-        },
-      ],
-      payment_intent_data: {
-        application_fee_amount: feeInCents > 0 ? feeInCents : undefined,
-        transfer_data: { destination: tenant.stripe_account_id },
-        metadata: { booking_id: booking.id },
-      },
-      success_url: `${req.headers.get("origin")}/success?id=${booking.id}`,
-      cancel_url: `${req.headers.get("origin")}/transfert`,
-    });
+const session = await stripe.checkout.sessions.create({
+  mode: "payment",
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+  metadata: {
+    booking_id: booking.id,
+  },
+
+  customer_email: customer.email,
+
+  line_items: [
+    {
+      price_data: {
+        currency: "eur",
+        product_data: {
+          name: "Course VTC",
+          description:
+            `${booking_data.pickup_address} → ${booking_data.dropoff_address}`,
+        },
+        unit_amount: amountInCents,
+      },
+      quantity: 1,
+    },
+  ],
+
+payment_intent_data: {
+  application_fee_amount:
+    feeInCents > 0 ? feeInCents : undefined,
+
+  transfer_data: {
+    destination: tenant.stripe_account_id,
+  },
+
+  on_behalf_of: tenant.stripe_account_id,
+
+  metadata: {
+    booking_id: booking.id,
+  },
+},
+
+  success_url:
+    `${req.headers.get("origin")}/success?id=${booking.id}`,
+
+  cancel_url:
+    `${req.headers.get("origin")}/transfert`,
+});
+
+    return new Response(
+      JSON.stringify({ url: session.url }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: 200,
+      },
+    );
+
   } catch (err) {
-    console.error("🔥 Erreur:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+
+    console.error("🔥 Error:", err.message);
+
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: 400,
+      },
+    );
   }
 });

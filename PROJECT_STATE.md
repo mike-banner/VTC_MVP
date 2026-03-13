@@ -1,224 +1,134 @@
-# 📌 PROJECT_STATE — VTC HUB
+# 📌 ÉTAT DU PROJET — VTC HUB (MVP)
 
-## 🎯 Current Version: V1 — Production-Ready ERP Foundation
+## 🏁 État actuel validé
 
-VTC HUB est actuellement en **Version 1 (V1)**.
+D’après les dernières évolutions et vérifications :
 
-Cette version représente désormais une **base ERP stable, sécurisée et prête pour production réelle**.
+**Structure de la table `bookings` :**
 
-Le hardening SQL a été appliqué.
+| Champ                      | Rôle                                      |
+| -------------------------- | ----------------------------------------- |
+| `booking_type`             | Type de course (ex: `transfer`, `hourly`) |
+| `driver_id`                | Chauffeur assigné                         |
+| `vehicle_id`               | Véhicule assigné                          |
+| `passenger_count`          | Nombre de passagers                       |
+| `luggage_count`            | Nombre de bagages                         |
+| `subtotal_amount`          | Prix HT                                   |
+| `vat_amount`               | TVA                                       |
+| `total_amount`             | Prix TTC                                  |
+| `stripe_payment_intent_id` | Identifiant de paiement Stripe            |
+| `status`                   | État actuel de la course                  |
 
----
-
-# ✅ V1 — Active Scope
-
-## 🏢 Multi-Tenant
-
-- 1 tenant par entreprise
-- Isolation stricte via `tenant_id`
-- RLS activé sur toutes les tables sensibles
-- `current_tenant_id()` utilisé dans les policies
-- Séparation `platform_role` / `tenant_role`
-- Aucune fuite inter-tenant possible au niveau DB
-
----
-
-## 🔐 Auth & Activation
-
-- Signup via Supabase Auth
-- Rôle initial `tenant_role = 'pending'` via trigger `handle_new_user`
-- Middleware force la redirection vers `/onboarding` pour les profils `pending`
-- Onboarding staging isolé avec email récupéré via `auth.getUser()` (Source de Vérité)
-- RLS activé sur `onboarding`
-- Lecture limitée :
-  - au propriétaire (`profile_id = auth.uid()`)
-  - ou admin plateforme (via vue dédiée `onboarding_admin_view`)
-- Validation manuelle admin via BackOffice enrichi (Icons + Détails)
-- Activation atomique via `approve_onboarding_tx`
-- Owner créé automatiquement avec email et téléphone du dossier
-- Aucune modification directe onboarding post création (hors service role)
+> **Note** : La structure DB est jugée **suffisante pour la V1**. Pas de nouvelle migration immédiate nécessaire sur le cœur du modèle.
 
 ---
 
-## 🚗 Booking Engine
+## ✅ Ce qui est fonctionnel
 
-- Création booking
-- `distance_km` envoyé par frontend
-- Recalcul prix côté backend
-- Application `minimum_fare`
-- `status` ENUM strict
-- `status` NOT NULL
-- Statuts :
-  - pending
-  - confirmed
-  - completed
-  - cancelled
+### Architecture Technique
 
-### 🔒 Hardening appliqué
+| Couche   | Technologie            |
+| -------- | ---------------------- |
+| Frontend | Astro (Multi-domaine)  |
+| Backend  | Supabase               |
+| Auth     | Supabase Auth          |
+| Database | PostgreSQL             |
+| Logique  | Edge Functions (Deno)  |
+| Paiement | Stripe Connect Express |
+| Infra    | Cloudflare             |
 
-- Impossible d’avoir `status = NULL`
-- Trigger SQL protège champs critiques :
-  - total_amount
-  - pickup_address
-  - dropoff_address
-  - pickup_time
-  - payment_mode
+### Isolation Multi-tenant
 
-- Ces champs deviennent immuables dès que `status != pending`
-- Protection contre modification frauduleuse après acceptation
+Isolation stricte garantie par :
 
----
+- Identité : `profiles.id = auth.uid()` relié à `profiles.tenant_id`.
+- Données : Toutes les tables métier contiennent un `tenant_id`.
+- Sécurité (RLS) : `tenant_id = (select tenant_id from profiles where id = auth.uid())`.
 
-## 🔁 Booking Shares (Infrastructure V4 non active)
+### Flux Booking & Finances
 
-Bien que hors scope V1, la structure est sécurisée :
+1.  **Réservation** : Le client choisit son trajet/service.
+2.  **Calcul** : Prix + TVA calculés côté backend (`create-booking`).
+3.  **Insertion** : Création du record dans `bookings`.
+4.  **Paiement** : Création d'une `Stripe Checkout Session` via Edge Function.
+5.  **Validation** : Le Webhook Stripe met à jour `booking.status = 'paid'`.
 
-- `status` NOT NULL
-- Index partiel :
-  - 1 seul share accepté par booking
+**Champs Financiers :**
 
-- Protection contre double acceptation concurrente
+- `subtotal_amount` (HT), `vat_amount` (TVA), `total_amount` (TTC).
+- Encaissement direct sur le compte **Stripe Connect Express** de l'entreprise (`tenants.stripe_account_id`).
 
----
+### UI & Dashboard (VTC MVP)
 
-## 🚘 Vehicles
-
-- Category
-- Capacity
-- 1..N véhicules par tenant
-- Isolation stricte RLS
+- **Gestion Tarifaire** : Configuration des forfaits, zones et prix au km.
+- **Gestion Flotte** : Ajout et suivi des véhicules et chauffeurs.
+- **Historique des Bookings** : Liste tabulée par statut (Toutes, À Valider, En Paiement, Terminées).
+- **Dashboard Avancé** :
+  - Vue "Missions en ligne" (liste verticale fluide).
+  - **Modale de détails** : Clic sur une mission pour voir toutes les infos (Client, Trajet, Finance, Statut).
+  - **Distinction de service** : Badge visuel pour différencier les "Transferts" des "Mises à Dispo (Hourly)".
 
 ---
 
-## 💰 Pricing
+## 🚦 Statuts Booking (Logique Métier)
 
-- base_price
-- price_per_km
-- minimum_fare
-- 1 pricing active minimum
-- Isolation stricte RLS
+Flux opérationnel complet :
 
----
-
-## 💳 Paiement
-
-- Stripe optionnel
-- Chaque tenant connecte SON Stripe
-- Aucun encaissement centralisé
-- Aucune marketplace
-
-### 🔒 Hardening financier
-
-- `commissions.booking_id` UNIQUE
-- Impossible d’avoir 2 commissions pour un booking
-- Sécurité déplacée au niveau SQL (pas uniquement Edge Function)
+1.  `pending` (Attente réservation)
+2.  `waiting_validation` (Pour les mises à dispo sans tarif fixe)
+3.  `paid` (Payé, prêt pour assignation)
+4.  `assigned` (Chauffeur assigné)
+5.  `accepted` (Chauffeur a accepté la mission)
+6.  `on_the_way` (Chauffeur en route vers le client)
+7.  `in_progress` (Course en cours)
+8.  `completed` (Terminée)
+9.  `cancelled` / `no_show` (Annulations)
 
 ---
 
-# 🔐 Data Integrity Guarantees (Hardening V1)
+## 🏗️ Modèle Réseau & Partage (Prévu)
 
-Les protections suivantes sont maintenant assurées au niveau base :
+L'infrastructure est déjà prête pour les évolutions futures :
 
-- RLS activé partout
-- Onboarding isolé et sécurisé (en attente -> validation -> actif)
-- Email `auth.users` comme source de vérité unique (pas de duplicata dans `profiles`)
-- Commission unique par booking
-- Booking.status non nullable
-- Booking immuable après pending
-- Mono-cercle forcé (anti dérive V4)
-- Index ajoutés sur colonnes critiques
-- Protection contre race conditions sur acceptation share
+- **Cercles privés** : Gestion de groupements de chauffeurs.
+- **Partage de course** : Délégation de mission à d'autres membres du réseau.
+- **Commissions plateforme** : Appliquées uniquement sur le partage de course.
+  - Table `commissions` existante (`booking_id`, `gross_amount`, `commission_rate`, `commission_amount`).
 
 ---
 
-# 🚫 Explicitly Out of Scope (Not V1 Active)
+## 🛠️ Ce qui reste à implémenter (Phase V2)
 
-Les éléments suivants existent en base mais ne font PAS partie de V1 active :
+### 1️⃣ Backoffice Chauffeur (Interface Driver)
 
-- Commission plateforme automatique
-- Cercle / circle_memberships actif
-- Partage de courses actif
-- Parrainage
-- Commission réseau
-- Marketplace
-- Facturation automatique
-- Export comptable
-- ERP financier avancé
-- Multi-driver permissions fines avancées
+- Tableau de bord dédié au chauffeur (hors admin).
+- Actions : Accepter/Refuser une mission assignée.
+- Workflow terrain : "Je suis en route", "Client à bord", "Course terminée".
 
-La base est prête, mais les features restent désactivées stratégiquement.
+### 2️⃣ Sécurisation RLS Driver
 
----
+- Restriction de vue : `bookings.driver_id = current_driver_id`.
 
-# 🗺️ Roadmap Direction
+### 3️⃣ Edge Functions Opérationnelles
 
-## V2
+- `assign-driver`
+- `driver-accept-booking`
+- `driver-start-trip`
+- `driver-complete-trip`
 
-- Multi-driver avancé
-- Assignation chauffeur
-- Facturation
-- Permissions fines
+### 4️⃣ Transitions de Statuts Sécurisées
 
-## V3
+- Vérification SQL (`validate_booking_status_transition()`) pour empêcher les sauts d'étapes incohérents (ex: `paid` -> `completed` sans passer par `in_progress`).
 
-- ERP financier complet
-- Rapports avancés
-- Suivi cash
+### 5️⃣ Pricing Dynamique Avancé
 
-## V4
-
-- Réseau / Cercle
-- Partage de courses
-- Commission réseau
+- Exploitation complète de la table `pricing_rules` pour le calcul temps réel des forfaits complexes.
 
 ---
 
-# 🧠 Design Principles Locked
+## 🎯 Prochain Objectif Critique
 
-- ERP-first, not marketplace
-- No centralized financial handling
-- Backend price validation mandatory
-- Activation atomic via SQL transaction
-- Multi-tenant strict isolation
-- Hardening critique déplacé au niveau SQL
-- Progressive feature activation (V2/V3/V4)
+Lancer la brique :
+**VTC SAAS — DRIVER DASHBOARD & WORKFLOW V1**
 
----
-
-# ⚠️ Development Rule
-
-Toute nouvelle fonctionnalité doit :
-
-1. Respecter le périmètre V1 si ajoutée maintenant.
-2. Être explicitement marquée V2/V3/V4 sinon.
-3. Ne jamais introduire de logique marketplace ou encaissement centralisé.
-4. Ne jamais déplacer une sécurité SQL vers du code frontend.
-
----
-
-# 🎯 Current Objective
-
-V1 est maintenant :
-
-- Production-ready au niveau base
-- Structurellement sécurisé
-- Prêt pour vente réelle
-
-Prochain verrou stratégique :
-
-- Audit Stripe webhook (idempotence)
-- Logging minimal d’audit
-- Tests concurrentiels réels
-
----
-
-Ce fichier sert de verrou stratégique et technique.
-Il reflète désormais l’état réel du système.
-
----
-
-Maintenant on décide :
-
-🔥 Sécurisation Stripe webhook
-ou
-💼 Structuration de l’offre commerciale pour commencer à vendre ?
+C'est l'étape nécessaire pour transformer l'outil de gestion en outil opérationnel pour les chauffeurs sur le terrain.

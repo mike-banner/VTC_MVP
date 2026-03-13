@@ -1,5 +1,6 @@
 ---
 // src/pages/app/dashboard.astro
+import { StripeConnectionCard } from "@/components/dashboard/StripeConnectionCard";
 import { supabase } from "@/lib/supabase/client";
 import AppLayout from "../../layouts/AppLayout.astro";
 
@@ -20,12 +21,12 @@ const startOfMonth = new Date(
     1,
 ).toISOString();
 
-// 1️⃣ Courses du jour (Métier)
-const { count: dailyCount } = await supabase
+// 1️⃣ Courses du mois (Métier)
+const { count: monthlyCount } = await supabase
     .from("bookings")
     .select("*", { count: "exact", head: true })
     .eq("current_tenant_id", profile.tenant_id!)
-    .gte("pickup_time", startOfToday);
+    .gte("pickup_time", startOfMonth);
 
 // 2️⃣ Données Financières (Source: Vue Ledger)
 const { data: kpi } = await supabase
@@ -36,17 +37,36 @@ const { data: kpi } = await supabase
 
 const monthlyRevenue = kpi?.monthly_net_revenue || 0;
 
-// 3️⃣ Dernières courses (Affichage rapide)
-const { data: recentBookings } = await supabase
+// 3️⃣ Prochaines courses (Mise en avant)
+const { data: upcomingBookings } = await supabase
     .from("bookings")
     .select("*, customers!inner(*)")
     .eq("current_tenant_id", profile.tenant_id!)
-    .order("created_at", { ascending: false })
-    .limit(5);
+    .gte("pickup_time", now.toISOString())
+    .order("pickup_time", { ascending: true })
+    .limit(3);
+
+// 4️⃣ Courses en attente de validation (Mise à dispo)
+const { data: validatingBookings } = await supabase
+    .from("bookings")
+    .select("*, customers!inner(*)")
+    .eq("current_tenant_id", profile.tenant_id!)
+    .eq("status", "waiting_validation")
+    .order("created_at", { ascending: true });
+
+// 5️⃣ Dernières courses (Historique court)
+const { data: pastBookings } = await supabase
+    .from("bookings")
+    .select("*, customers!inner(*)")
+    .eq("current_tenant_id", profile.tenant_id!)
+    .lt("pickup_time", now.toISOString())
+    .neq("status", "cancelled")
+    .order("pickup_time", { ascending: false })
+    .limit(2);
 ---
 
 <AppLayout title="Dashboard">
-    <div class="flex-1 flex flex-col p-12 overflow-hidden h-full">
+    <div class="flex-1 flex flex-col p-12 overflow-y-auto">
         <!-- FIXED TOP SECTION -->
         <div class="flex-shrink-0 border-b border-white/5 pb-10 mb-10">
             <div class="mb-10">
@@ -56,150 +76,395 @@ const { data: recentBookings } = await supabase
                     {profile?.tenant_role || "Chauffeur"}
                 </span>
                 <h1
-                    class="text-4xl font-black mt-2 tracking-tighter italic uppercase text-white"
+                    class="text-4xl font-black mt-2 tracking-tighter uppercase text-white"
                 >
                     Tableau de bord
                 </h1>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div
-                    class="glass p-8 rounded-3xl border border-white/5 transition-all hover:border-indigo-500/30 group bg-white/[0.02]"
-                >
-                    <p
-                        class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3 group-hover:text-indigo-400 transition-colors"
-                    >
-                        CA du Mois
-                    </p>
-                    <p class="text-4xl font-black tabular-nums text-white">
-                        {
-                            monthlyRevenue.toLocaleString("fr-FR", {
-                                minimumFractionDigits: 2,
-                            })
-                        } €
-                    </p>
-                </div>
-
-                <div
-                    class="glass p-8 rounded-3xl border border-white/5 bg-white/[0.02]"
-                >
-                    <p
-                        class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3"
-                    >
-                        Courses du Jour
-                    </p>
-                    <p class="text-4xl font-black tabular-nums text-white">
-                        {dailyCount || 0}
-                    </p>
-                </div>
-
-                <div
-                    class="glass p-8 rounded-3xl border border-white/5 bg-white/[0.02]"
-                >
-                    <p
-                        class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3"
-                    >
-                        Note Moyenne
-                    </p>
-                    <p class="text-4xl font-black tabular-nums text-white">
-                        5.0 <span class="text-indigo-500 text-xl">★</span>
-                    </p>
-                </div>
+            <div class="mb-10">
+                <StripeConnectionCard
+                    client:only="react"
+                    tenantId={profile.tenant_id!}
+                    monthlyCount={monthlyCount || 0}
+                    monthlyRevenue={monthlyRevenue}
+                />
             </div>
+
+
         </div>
 
         <!-- DYNAMIC CONTENT SECTION -->
-        <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {
-                recentBookings && recentBookings.length > 0 ? (
-                    <div class="flex-1 flex flex-col min-h-0">
-                        <h3 class="text-lg font-black uppercase italic tracking-tighter flex items-center gap-3 text-white mb-6 flex-shrink-0">
-                            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                            Dernières Activités
-                        </h3>
-                        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                            <div class="glass rounded-3xl overflow-hidden border border-white/5 bg-white/[0.01]">
-                                <table class="w-full text-left border-collapse">
-                                    <thead class="bg-white/5 sticky top-0 z-10">
-                                        <tr class="border-b border-white/5">
-                                            <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                                Détails
-                                            </th>
-                                            <th class="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                                Statut / Prix
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-white/5">
-                                        {recentBookings.map((booking) => (
-                                            <tr class="hover:bg-white/5 transition-colors group">
-                                                <td class="px-8 py-8">
-                                                    <div class="font-bold text-white uppercase italic tracking-tighter text-lg">
-                                                        {booking.customers.first_name} {booking.customers.last_name}
-                                                    </div>
-                                                    <div class="text-[10px] text-slate-500 font-bold uppercase mt-1">
-                                                        {booking.customers.email}
-                                                    </div>
-                                                    <div class="text-[10px] text-slate-500 font-bold uppercase mt-2 group-hover:text-slate-300 transition-colors">
-                                                        {booking.pickup_address}
-                                                    </div>
-                                                </td>
-                                                <td class="px-8 py-8 text-right underline-offset-4">
-                                                    <span
-                                                        class={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                                                            booking.status ===
-                                                            "completed"
-                                                                ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                                                                : booking.status ===
-                                                                    "cancelled"
-                                                                  ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                                                                  : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                                                        }`}
-                                                    >
-                                                        {booking.status}
-                                                    </span>
-                                                    <div class="mt-3 font-black text-2xl text-white tabular-nums">
-                                                        {Number(
-                                                            booking.total_amount,
-                                                        ).toFixed(2)}{" "}
-                                                        €
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+        <div class="flex flex-col gap-12">
+            <!-- 🚥 À VALIDER (COURTES ÉCHÉANCES) -->
+            {validatingBookings && validatingBookings.length > 0 && (
+                <div>
+                    <h3 class="text-lg font-black uppercase tracking-tighter flex items-center gap-3 text-amber-500 mb-6">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                        À Valider (Mises à Dispo)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {validatingBookings.map((booking) => (
+                            <div class="glass p-6 rounded-[2rem] border border-amber-500/10 bg-amber-500/[0.02] hover:border-amber-500/40 transition-all">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[9px] font-black tracking-widest text-amber-500 uppercase">
+                                        Action Recommandée
+                                    </div>
+                                    <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                                        {new Date(booking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                    </div>
+                                </div>
+                                <div class="mb-6">
+                                    <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Client</p>
+                                    <p class="text-lg font-black text-white uppercase tracking-tighter">
+                                        {booking.customers.first_name} {booking.customers.last_name}
+                                    </p>
+                                </div>
+                                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                                    <span class="text-[10px] font-black uppercase text-slate-400">Montant Est.</span>
+                                    <span class="text-xl font-black text-white italic">{Number(booking.total_amount).toFixed(0)}€</span>
+                                </div>
+                                <a href={`/app/bookings?status=waiting_validation`} class="mt-6 block w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest text-center rounded-xl transition-all active:scale-95 shadow-lg shadow-amber-500/20">
+                                    Valider le tarif
+                                </a>
                             </div>
-                        </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <!-- ⚡️ PROCHAINES COURSES (MISE EN AVANT) -->
+            <div>
+                <h3 class="text-lg font-black uppercase tracking-tighter flex items-center gap-3 text-white mb-6">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                    Prochaines Missions
+                </h3>
+
+                {upcomingBookings && upcomingBookings.length > 0 ? (
+                    <div class="glass rounded-[2rem] overflow-hidden border border-white/5 bg-white/[0.01]">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-white/5 sticky top-0 z-10">
+                                <tr class="border-b border-white/5">
+                                    <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Heure / Client</th>
+                                    <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Trajet</th>
+                                    <th class="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                {upcomingBookings.map((booking) => (
+                                    <tr
+                                        class="hover:bg-indigo-500/[0.05] transition-all cursor-pointer group booking-row"
+                                        data-booking={JSON.stringify(booking)}
+                                    >
+                                        <td class="px-8 py-6">
+                                            <div class="flex items-center gap-4">
+                                                <div class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase">
+                                                    {new Date(booking.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-black text-white uppercase tracking-tighter">
+                                                        {booking.customers.first_name} {booking.customers.last_name}
+                                                    </p>
+                                                    <div class="flex items-center gap-2 mt-1">
+                                                        <span class={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
+                                                            booking.booking_type === 'hourly'
+                                                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                            : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                                        }`}>
+                                                            {booking.booking_type === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
+                                                        </span>
+                                                        <span class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Client</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-6">
+                                            <div class="flex flex-col gap-1">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-1 h-1 rounded-full bg-indigo-500 shrink-0" />
+                                                    <p class="text-[11px] text-slate-300 font-medium truncate max-w-[200px]">{booking.pickup_address}</p>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-1 h-1 rounded-full bg-red-500 shrink-0" />
+                                                    <p class="text-[11px] text-slate-500 font-medium truncate max-w-[200px]">{booking.dropoff_address || 'Non spécifiée'}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-6 text-right">
+                                            <div class="text-xl font-black text-white italic tabular-nums">{Number(booking.total_amount).toFixed(0)}€</div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 ) : (
-                    <div class="flex-1 flex flex-col items-center justify-center text-center pb-12">
-                        <div class="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-8 border border-white/5 shadow-2xl">
-                            <svg
-                                class="w-12 h-12 text-slate-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="1.2"
-                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-black mb-4 uppercase italic tracking-wider text-slate-100">
-                            Aucune course pour le moment
-                        </h3>
-                        <p class="text-slate-500 max-w-sm font-medium leading-relaxed">
-                            Votre compte est actif. Vos futures courses
-                            s'afficheront ici en temps réel dès leur
-                            enregistrement.
-                        </p>
+                    <div class="glass p-8 rounded-[2rem] border border-white/5 bg-white/[0.01] text-center text-slate-500 text-sm">
+                        Aucune mission programmée pour le moment.
                     </div>
-                )
-            }
+                )}
+            </div>
+
+            <!-- 📜 DERNIÈRES ACTIVITÉS (PAST - LAST 2) -->
+            <div>
+                <h3 class="text-lg font-black uppercase tracking-tighter flex items-center gap-3 text-white mb-6 opacity-30">
+                    Dernières activités
+                </h3>
+
+                {pastBookings && pastBookings.length > 0 ? (
+                    <div class="glass rounded-[2rem] overflow-hidden border border-white/5 bg-white/[0.01]">
+                        <table class="w-full text-left border-collapse">
+                            <tbody class="divide-y divide-white/5">
+                                {pastBookings.map((booking) => (
+                                    <tr class="hover:bg-white/[0.02] transition-colors group">
+                                        <td class="px-8 py-6">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-white transition-colors">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <div class="font-bold text-white uppercase tracking-tighter">
+                                                        {booking.customers.first_name} {booking.customers.last_name}
+                                                    </div>
+                                                    <div class="flex items-center gap-2 mt-0.5">
+                                                        <span class={`text-[8px] font-black uppercase tracking-widest ${
+                                                            booking.booking_type === 'hourly' ? 'text-amber-500/70' : 'text-indigo-400/70'
+                                                        }`}>
+                                                            {booking.booking_type === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
+                                                        </span>
+                                                        <span class="text-[10px] text-slate-600 font-bold uppercase">
+                                                            {new Date(booking.pickup_time).toLocaleDateString('fr-FR')} — Terminé
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-6 text-right">
+                                            <div class="font-black text-white tabular-nums">
+                                                {Number(booking.total_amount).toFixed(2)} €
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p class="text-slate-600 text-sm">Aucun historique disponible.</p>
+                )}
+            </div>
         </div>
     </div>
 </AppLayout>
+
+<!-- MODAL DÉTAILS BOOKING -->
+<div id="booking-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay"></div>
+    <div class="relative glass max-w-4xl w-full max-h-[90vh] rounded-[3rem] border border-white/10 shadow-2xl overflow-y-auto custom-scrollbar transform scale-95 transition-all duration-300">
+        <div class="p-8 sm:p-10">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-3xl font-black uppercase text-white tracking-tighter">Détails Course</h2>
+                    <div class="flex items-center gap-2">
+                        <p id="modal-booking-ref" class="text-slate-500 text-xs font-bold uppercase tracking-widest">REF: #---</p>
+                        <span id="modal-booking-type" class="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-white/10 text-slate-400">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-8">
+                <!-- CLIENT -->
+                <div class="bg-white/5 p-6 rounded-2xl border border-white/5 space-y-4">
+                    <div>
+                        <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Client</p>
+                        <p id="modal-client-name" class="text-xl font-black text-white uppercase tracking-tighter">---</p>
+                    </div>
+                    <div class="flex flex-wrap gap-4 pt-4 border-t border-white/5">
+                        <a id="modal-client-phone-link" href="#" class="flex items-center gap-2 group/link">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover/link:bg-emerald-500/20 transition-colors">
+                                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                            </div>
+                            <span id="modal-client-phone" class="text-xs text-slate-300 font-bold group-hover/link:text-white transition-colors">---</span>
+                        </a>
+                        <a id="modal-client-email-link" href="#" class="flex items-center gap-2 group/link">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center group-hover/link:bg-indigo-500/20 transition-colors">
+                                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <span id="modal-client-email" class="text-xs text-slate-300 font-bold group-hover/link:text-white transition-colors">---</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- TRAJET & INFOS -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <div class="bg-white/5 p-6 rounded-2xl border border-white/5 space-y-4">
+                            <div class="flex gap-3">
+                                <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                                <div>
+                                    <p class="text-[9px] font-black uppercase text-slate-500 mb-1">Départ</p>
+                                    <p id="modal-pickup" class="text-xs text-slate-200 font-bold leading-tight">---</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <div class="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                                <div>
+                                    <p class="text-[9px] font-black uppercase text-slate-500 mb-1">Arrivée</p>
+                                    <p id="modal-dropoff" class="text-xs text-slate-200 font-bold leading-tight">---</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white/5 p-6 rounded-2xl border border-white/4 shadow-inner flex flex-col justify-center">
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Rendez-vous</p>
+                            <p id="modal-time" class="text-2xl font-black text-white italic">---</p>
+                            <p id="modal-date" class="text-[10px] text-indigo-400 font-black uppercase mt-1">---</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- PASSAGERS & BAGAGES -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest">Passagers</p>
+                                    <p id="modal-passengers" class="text-lg font-black text-white">---</p>
+                                </div>
+                            </div>
+                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest">Bagages</p>
+                                    <p id="modal-luggage" class="text-lg font-black text-white">---</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NOTES SUPPLÉMENTAIRES -->
+                        <div class="bg-white/5 p-6 rounded-2xl border border-white/5">
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-3">Notes supplémentaires</p>
+                            <div id="modal-notes" class="text-[11px] text-slate-400 font-medium leading-relaxed bg-black/20 p-4 rounded-xl border border-white/5 min-h-[80px]">
+                                ---
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FINANCES -->
+                <div class="flex items-center justify-between p-5 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-600/20">
+                    <div>
+                        <p class="text-[9px] font-black uppercase text-white/60 tracking-widest mb-0.5">Montant TTC</p>
+                        <p id="modal-amount" class="text-2xl font-black text-white italic tabular-nums">---€</p>
+                    </div>
+                    <div id="modal-status-badge" class="px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-lg border border-white/20 text-[9px] font-black uppercase tracking-widest text-white">
+                        ---
+                    </div>
+                </div>
+            </div>
+
+            <button class="close-modal mt-10 w-full py-4 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-white/5 shadow-xl">
+                Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('booking-modal');
+    const closeBtns = document.querySelectorAll('.close-modal');
+    const overlay = document.querySelector('.modal-overlay');
+
+    const toggleModal = () => {
+        modal?.classList.toggle('opacity-0');
+        modal?.classList.toggle('pointer-events-none');
+        modal?.querySelector('.relative')?.classList.toggle('scale-95');
+        document.body.classList.toggle('overflow-hidden');
+    };
+
+    document.querySelectorAll('.booking-row').forEach(row => {
+        row.addEventListener('click', () => {
+            const booking = JSON.parse(row.getAttribute('data-booking') || '{}');
+
+            // Populate Modal
+            const nameEl = document.getElementById('modal-client-name');
+            const emailEl = document.getElementById('modal-client-email');
+            const emailLinkEl = document.getElementById('modal-client-email-link') as HTMLAnchorElement;
+            const phoneEl = document.getElementById('modal-client-phone');
+            const phoneLinkEl = document.getElementById('modal-client-phone-link') as HTMLAnchorElement;
+            const pickupEl = document.getElementById('modal-pickup');
+            const dropoffEl = document.getElementById('modal-dropoff');
+            const passengersEl = document.getElementById('modal-passengers');
+            const luggageEl = document.getElementById('modal-luggage');
+            const notesEl = document.getElementById('modal-notes');
+            const timeEl = document.getElementById('modal-time');
+            const dateEl = document.getElementById('modal-date');
+            const amountEl = document.getElementById('modal-amount');
+            const refEl = document.getElementById('modal-booking-ref');
+            const typeEl = document.getElementById('modal-booking-type');
+            const statusEl = document.getElementById('modal-status-badge');
+
+            if (nameEl) nameEl.innerText = `${booking.customers.first_name} ${booking.customers.last_name}`;
+
+            if (emailEl) emailEl.innerText = booking.customers.email;
+            if (emailLinkEl) emailLinkEl.href = `mailto:${booking.customers.email}`;
+
+            if (phoneEl) phoneEl.innerText = booking.customers.phone || 'Non renseigné';
+            if (phoneLinkEl) {
+                if (booking.customers.phone) {
+                    phoneLinkEl.href = `tel:${booking.customers.phone}`;
+                    phoneLinkEl.style.display = 'flex';
+                } else {
+                    phoneLinkEl.style.display = 'none';
+                }
+            }
+
+            if (pickupEl) pickupEl.innerText = booking.pickup_address;
+            if (dropoffEl) dropoffEl.innerText = booking.dropoff_address || 'Non spécifiée';
+            if (passengersEl) passengersEl.innerText = booking.passenger_count?.toString() || '1';
+            if (luggageEl) luggageEl.innerText = booking.luggage_count?.toString() || '0';
+            if (notesEl) notesEl.innerText = booking.notes || 'Aucune note particulière.';
+            if (refEl) refEl.innerText = `REF: #${booking.id.split('-')[0].toUpperCase()}`;
+            if (statusEl) statusEl.innerText = booking.status;
+            if (amountEl) amountEl.innerText = `${Number(booking.total_amount).toFixed(2)}€`;
+
+            if (typeEl) {
+                const isHourly = booking.booking_type === 'hourly';
+                typeEl.innerText = isHourly ? 'MISE À DISPOSITION' : 'TRANSFERT';
+                typeEl.className = `px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                    isHourly
+                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                }`;
+            }
+
+            const dateObj = new Date(booking.pickup_time);
+            if (timeEl) timeEl.innerText = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            if (dateEl) dateEl.innerText = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+            toggleModal();
+        });
+    });
+
+    closeBtns.forEach(btn => btn.addEventListener('click', toggleModal));
+    overlay?.addEventListener('click', toggleModal);
+</script>

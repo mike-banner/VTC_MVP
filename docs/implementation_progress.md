@@ -36,9 +36,12 @@ Ce document récapitule l'ensemble des fonctionnalités implémentées depuis le
 
 ## ✅ 4. En cours / À Finaliser (V1+)
 
-- [x] **Moteur de Règles d'Annulation** : Automated cancellation engine based on versioned policies. Integration with Stripe (Terminé).
-- [x] **Dashboard Tenant** : Finalisation de l'interface graphique pour le suivi des revenus et activités.
+- [x] **Dashboard Tenant** :
+  - [x] **Vue "Missions en ligne"** : Affichage vertical fluide des prochaines courses.
+  - [x] **Modale de Détails** : Clic sur une mission pour voir toutes les infos (Client, Trajet, Finance, Statut).
+  - [x] **Distinction de service** : Badge visuel pour différencier les "Transferts" des "Mises à Dispo (Hourly)".
 - [x] **Multi-Site (Tenant Slug)** : Isolation des tunnels de réservation par slug personnalisé (`site_slug`).
+- [x] **Gestion des types de booking** : Ajout de l'énumération `hourly` et gestion visuelle dédiée dans l'ERP.
 - [ ] **Export CSV Finance** : Bouton d'export des mouvements pour les experts-comptables depuis le frontend.
 - [ ] **Gestion des Frais Stripe** : Arbitrage business sur la répercussion des frais fixes Stripe en cas de refund.
 
@@ -64,9 +67,13 @@ Ce document récapitule l'ensemble des fonctionnalités implémentées depuis le
 
 ## 🔮 7. Roadmap Future (V2 - V4)
 
-- [ ] **V1.1 (Hardening)** : Bloquer l'annulation après `pickup_time`, Audit manuel, Non-refundable commission option.
-- [ ] **V2 (Pro)** : Facturation automatique PDF, Multi-driver avancé, Assignation manuelle/auto.
-- [ ] **V3 (ERP)** : Suivi des dépenses (essence, entretien), Analytics avancés.
+- [ ] **V1.1 (Operational)** :
+  - [ ] **Driver Backoffice** (Tableau de bord chauffeur, actions accepter/refuser).
+  - [ ] **Workflow Terrain** (En route, Arrivé, Terminé).
+  - [ ] **Assignation Chauffeur** (Interface admin stable).
+  - [ ] **Transitions Sécurisées SQL** (Trigger de validation des états).
+- [ ] **V2 (Pro)** : Facturation automatique PDF, Multi-driver avancé, Analytics avancés.
+- [ ] **V3 (ERP)** : Suivi des dépenses (essence, entretien), Gestion de flotte exhaustive.
 - [ ] **V4 (Réseau)** : Cercles d'entreprises, Partage de courses entre tenants, Commissions réseau.
 
 ---
