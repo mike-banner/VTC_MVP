@@ -37,9 +37,11 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
           .from("tenants")
           .select("id, stripe_account_id")
           .eq("id", tenantId)
-          .single();
+          .limit(1)
+          .maybeSingle();
 
         if (tenantError) throw tenantError;
+        if (!tenant) throw new Error("Tenant non trouvé.");
         setStripeAccountId(tenant.stripe_account_id);
         setInitialAccountIdMissing(!tenant.stripe_account_id);
 
@@ -135,41 +137,45 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
         }`}
       />
 
-      <div className='relative grid grid-cols-1 md:grid-cols-3 gap-12 items-center'>
-        {/* Col 1: Monthly Count */}
-        <div className='flex flex-col'>
-          <p className='text-[10px] font-black uppercase text-slate-500 tracking-[0.3em] mb-2 leading-none'>
-            Missions du mois
-          </p>
-          <div className='flex items-baseline gap-3'>
-            <span className='text-4xl font-black tabular-nums text-white tracking-tighter'>
-              {monthlyCount}
-            </span>
-            <span className='text-slate-600 font-bold text-sm uppercase'>
-              Courses
-            </span>
-          </div>
-        </div>
-
-        {/* Col 2: Total Revenue */}
-        <div className='flex flex-col md:items-center'>
-          <div className='flex flex-col'>
-            <p className='text-[10px] font-black uppercase text-slate-500 tracking-[0.3em] mb-2 leading-none'>
-              Total généré
+      <div className='relative flex flex-col md:flex-row md:items-center justify-between gap-10'>
+        {/* KPIs Section */}
+        <div className='grid grid-cols-2 gap-8 md:gap-12 flex-1'>
+          {/* Col 1: Monthly Count */}
+          <a
+            href='/app/bookings'
+            className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-4 rounded-2xl transition-all'>
+            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
+              Missions / Mois
             </p>
-            <div className='flex items-baseline gap-2'>
-              <span className='text-4xl font-black tabular-nums text-white tracking-tighter'>
+            <div className='flex items-baseline leading-none'>
+              <span className='text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
+                {monthlyCount}
+              </span>
+            </div>
+          </a>
+
+          {/* Col 2: Total Revenue */}
+          <a
+            href='/app/bookings'
+            className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-4 rounded-2xl transition-all'>
+            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
+              Total / Mois
+            </p>
+            <div className='flex items-baseline gap-1 leading-none'>
+              <span className='text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
                 {monthlyRevenue.toLocaleString("fr-FR", {
                   minimumFractionDigits: 0,
                 })}
               </span>
-              <span className='text-indigo-500 font-black text-xl'>€</span>
+              <span className='text-indigo-500 font-black text-base transition-colors leading-none'>
+                €
+              </span>
             </div>
-          </div>
+          </a>
         </div>
 
-        {/* Col 3: Actions & Status */}
-        <div className='flex flex-col items-end gap-5'>
+        {/* Action Section */}
+        <div className='flex flex-col md:items-end gap-5 shrink-0'>
           <div className='flex items-center gap-3'>
             <div
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors duration-500 ${

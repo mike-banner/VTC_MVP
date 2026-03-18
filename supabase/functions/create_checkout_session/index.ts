@@ -11,9 +11,20 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
 });
 
-const supabase = createClient(
+const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+    },
+  },
 );
 
 Deno.serve(async (req) => {
@@ -24,58 +35,60 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
+    console.log("BODY =", body);
+
     const customer_data = body.customer_data;
     const booking_data = body.booking_data;
 
-    if (!booking_data) {
-      throw new Error("booking_data missing");
-    }
+    if (!booking_data) throw new Error("booking_data missing");
+    if (!booking_data.type) throw new Error("booking_type missing");
+    if (!booking_data.tenant_id) throw new Error("tenant_id missing");
 
-    if (!booking_data.type) {
-      throw new Error("booking_type is required");
-    }
+    const tenantId = booking_data.tenant_id;
 
-    if (!booking_data.tenant_id) {
-      throw new Error("tenant_id required");
-    }
+    const total = Number(
+      booking_data?.total_amount ?? booking_data?.total ?? 0,
+    );
 
-    // =========================
-    // CALCULS FINANCIERS
-    // =========================
+    const safeTotal = total > 0 ? total : 1;
 
-    const total = Number(booking_data.total_amount ?? 0);
-
-    if (!total || total <= 0) {
-      throw new Error("invalid total");
-    }
-
-    const VAT_RATE = 0.1;
-
-    const subtotal = Number((total / (1 + VAT_RATE)).toFixed(2));
-
-    const vatAmount = Number((total - subtotal).toFixed(2));
+    console.log("TOTAL =", total);
+    console.log("SAFE TOTAL =", safeTotal);
 
     // =========================
-    // CUSTOMER
+    // CUSTOMER UPSERT
     // =========================
 
-    const { data: customer, error: cErr } = await supabase
+    console.log("UPSERT CUSTOMER INPUT", {
+      tenantId,
+      email: customer_data?.email,
+    });
+
+    const { data: customer, error: cErr } = await supabaseAdmin
       .from("customers")
       .upsert(
         {
-          tenant_id: booking_data.tenant_id,
+          tenant_id: tenantId,
           email: customer_data.email,
           first_name: customer_data.first_name,
           last_name: customer_data.last_name,
           phone: customer_data.phone,
         },
-        { onConflict: "tenant_id,email" },
+        {
+          onConflict: "tenant_id,email",
+        },
       )
       .select()
       .single();
 
-    if (cErr || !customer) {
-      throw new Error("Customer error");
+    if (cErr) {
+      console.log("CUSTOMERS ERROR =", cErr);
+      throw new Error(cErr.message);
+    }
+
+    if (!customer) {
+      console.log("CUSTOMER NULL");
+      throw new Error("customer null");
     }
 
     // =========================
@@ -88,184 +101,131 @@ Deno.serve(async (req) => {
       throw new Error("vehicle_id required");
     }
 
-    const passengers = Number(booking_data.passengers ?? 1);
-    const luggage = Number(booking_data.luggage ?? 0);
-
-    const { data: vehicle, error: vErr } = await supabase
+    const { data: vehicle, error: vErr } = await supabaseAdmin
       .from("vehicles")
-      .select("capacity, luggage_capacity, tenant_id, status")
+      .select("tenant_id,status")
       .eq("id", vehicleId)
       .single();
 
-    if (vErr || !vehicle) {
-      throw new Error("Vehicle not found");
+    if (vErr) {
+      console.log("VEHICLE ERROR =", vErr);
+      throw new Error(vErr.message);
     }
+
+    if (!vehicle) throw new Error("vehicle not found");
 
     if (vehicle.status !== "active") {
-      throw new Error("Vehicle inactive");
+      throw new Error("vehicle inactive");
     }
 
-    if (vehicle.tenant_id !== booking_data.tenant_id) {
-      throw new Error("Vehicle tenant mismatch");
-    }
-
-    if (passengers > vehicle.capacity) {
-      throw new Error("Too many passengers");
-    }
-
-    if (luggage > vehicle.luggage_capacity) {
-      throw new Error("Too much luggage");
+    if (vehicle.tenant_id !== tenantId) {
+      throw new Error("vehicle tenant mismatch");
     }
 
     // =========================
-    // INSERT BOOKING
+    // TENANT
     // =========================
 
-    const { data: booking, error: bErr } = await supabase
-      .from("bookings")
-      .insert({
-        original_tenant_id: booking_data.tenant_id,
-        current_tenant_id: booking_data.tenant_id,
-
-        pickup_address: booking_data.pickup_address,
-        dropoff_address: booking_data.dropoff_address,
-        pickup_time: booking_data.pickup_time,
-
-        vehicle_id: vehicleId,
-
-        total_amount: total,
-        subtotal_amount: subtotal,
-        vat_amount: vatAmount,
-
-        customer_id: customer.id,
-
-        payment_mode: "card",
-        status: "accepted_pending_payment",
-
-        passenger_count: passengers,
-        luggage_count: luggage,
-
-        booking_type: booking_data.type,
-      })
-      .select()
-      .single();
-
-    if (bErr || !booking) {
-      throw new Error("Booking insert failed");
-    }
-
-    // =========================
-    // TENANT STRIPE
-    // =========================
-
-    const { data: tenant, error: tErr } = await supabase
+    const { data: tenant, error: tErr } = await supabaseAdmin
       .from("tenants")
       .select("stripe_account_id, platform_fee_rate")
-      .eq("id", booking_data.tenant_id)
+      .eq("id", tenantId)
       .single();
 
-    if (tErr || !tenant) {
-      throw new Error("Tenant not found");
+    if (tErr) {
+      console.log("TENANT ERROR =", tErr);
+      throw new Error(tErr.message);
     }
+
+    if (!tenant) throw new Error("tenant not found");
 
     if (!tenant.stripe_account_id) {
-      throw new Error("Stripe account missing");
+      throw new Error("stripe not connected");
     }
 
-    // =========================
-// CHECK STRIPE STATUS
-// =========================
+    const account = await stripe.accounts.retrieve(tenant.stripe_account_id);
 
-const account = await stripe.accounts.retrieve(
-  tenant.stripe_account_id
-);
-
-if (!account.charges_enabled) {
-  throw new Error(
-    "Driver Stripe account not ready"
-  );
-}
+    if (!account.charges_enabled) {
+      throw new Error("stripe not ready");
+    }
 
     // =========================
     // STRIPE SESSION
     // =========================
 
-    const amountInCents = Math.round(total * 100);
+    const amountInCents = Math.round(safeTotal * 100);
 
     const feeRate = tenant.platform_fee_rate ?? 0;
 
     const feeInCents = Math.round((feeRate / 100) * amountInCents);
 
-const session = await stripe.checkout.sessions.create({
-  mode: "payment",
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
 
-  metadata: {
-    booking_id: booking.id,
-  },
+      customer_email: customer.email,
 
-  customer_email: customer.email,
-
-  line_items: [
-    {
-      price_data: {
-        currency: "eur",
-        product_data: {
-          name: "Course VTC",
-          description:
-            `${booking_data.pickup_address} → ${booking_data.dropoff_address}`,
-        },
-        unit_amount: amountInCents,
+      metadata: {
+        tenant_id: tenantId,
+        booking_type: booking_data.type,
+        pickup_address: booking_data.pickup_address,
+        dropoff_address: booking_data.dropoff_address,
+        pickup_time: booking_data.pickup_time,
+        vehicle_id: booking_data.vehicle_id,
+        total_amount: safeTotal,
+        customer_id: customer.id,
       },
-      quantity: 1,
-    },
-  ],
 
-payment_intent_data: {
-  application_fee_amount:
-    feeInCents > 0 ? feeInCents : undefined,
-
-  transfer_data: {
-    destination: tenant.stripe_account_id,
-  },
-
-  on_behalf_of: tenant.stripe_account_id,
-
-  metadata: {
-    booking_id: booking.id,
-  },
-},
-
-  success_url:
-    `${req.headers.get("origin")}/success?id=${booking.id}`,
-
-  cancel_url:
-    `${req.headers.get("origin")}/transfert`,
-});
-
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: "Course VTC",
+            },
+            unit_amount: amountInCents,
+          },
+          quantity: 1,
         },
-        status: 200,
-      },
-    );
+      ],
 
+      payment_intent_data: {
+        application_fee_amount: feeInCents > 0 ? feeInCents : undefined,
+
+        transfer_data: {
+          destination: tenant.stripe_account_id,
+        },
+
+        on_behalf_of: tenant.stripe_account_id,
+      },
+
+      success_url: `${req.headers.get("origin")}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get("origin")}/transfert`,
+    });
+
+    await supabaseAdmin.from("stripe_events").insert({
+      session_id: session.id,
+      status: "checkout_created",
+      tenant_id: tenantId,
+      booking_type: booking_data.type,
+      amount: safeTotal,
+      metadata: {
+        customer_id: customer.id,
+        vehicle_id: booking_data.vehicle_id,
+      },
+    });
+
+    return new Response(JSON.stringify({ url: session.url }), {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    });
   } catch (err) {
+    console.log("FINAL ERROR =", err);
 
-    console.error("🔥 Error:", err.message);
-
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-        status: 400,
-      },
-    );
+    return new Response(JSON.stringify({ error: err.message }), {
+      headers: corsHeaders,
+      status: 400,
+    });
   }
 });

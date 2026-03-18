@@ -16,7 +16,8 @@ export const createZone = async (tenantId: string, name: string) => {
     .from("zones")
     .insert([{ tenant_id: tenantId, name }])
     .select()
-    .single();
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
   return data;
 };
@@ -46,7 +47,8 @@ export const createFixedRoute = async (route: {
     .from("fixed_routes")
     .insert([route])
     .select()
-    .single();
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
   return data;
 };
@@ -66,7 +68,8 @@ export const updateFixedRoute = async (
     .update(route)
     .eq("id", id)
     .select()
-    .single();
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
   return data;
 };

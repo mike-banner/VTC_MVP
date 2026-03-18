@@ -30,7 +30,12 @@ Deno.serve(async (req) => {
       .from("tenants")
       .select("id, email, stripe_account_id")
       .eq("id", tenant_id)
-      .single();
+      .limit(1)
+      .maybeSingle();
+
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
 
     let accountId = tenant.stripe_account_id;
 

@@ -26,7 +26,7 @@ if (currentStatus !== "all") {
     if (currentStatus === "completed") {
         query = query.in("status", ["completed", "paid"]);
     } else {
-        query = query.eq("status", currentStatus);
+        query = query.eq("status", currentStatus as any);
     }
 }
 
@@ -39,7 +39,9 @@ if (profile.tenant_role === "driver") {
         .from("drivers")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .eq("tenant_id", profile.tenant_id!)
+        .limit(1)
+        .maybeSingle();
 
     if (driver) {
         query = query.eq("driver_id", driver.id);
@@ -56,10 +58,26 @@ if (error) console.error("Error fetching bookings:", error);
 
 const tabs = [
     { id: 'all', label: 'Toutes', count: null },
-    { id: 'waiting_validation', label: 'À Valider', count: null },
+    { id: 'pending', label: 'À Valider', count: null },
     { id: 'accepted_pending_payment', label: 'En Paiement', count: null },
     { id: 'completed', label: 'Terminées', count: null },
 ];
+
+const STATUS_LABELS_FR: Record<string, string> = {
+    pending: "En attente",
+    accepted: "Confirmée",
+    accepted_pending_payment: "En attente de paiement",
+    paid: "Payée",
+    completed: "Terminée",
+    cancelled: "Annulée",
+    cancelled_pending_refund: "Remboursement en cours",
+    cancelled_refunded: "Remboursée",
+    cancelled_no_refund: "Annulée",
+    deprecated_refunded: "Remboursée",
+    no_show: "Non présentation",
+    expired_payment: "Paiement expiré",
+    refund_failed: "Échec remboursement"
+};
 
 const typeFilters = [
     { id: 'all', label: 'Tous les bookings' },
@@ -161,106 +179,106 @@ const getFilterUrl = (params: Record<string, string>) => {
             {
                 bookings && bookings.length > 0 ? (
                     <div class="glass rounded-3xl overflow-hidden border border-white/5 bg-white/[0.01]">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-white/5 sticky top-0 z-10">
-                                <tr class="border-b border-white/5">
-                                    <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                        Client / Détails
-                                    </th>
-                                    <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                        Date & Heure
-                                    </th>
-                                    <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                        Type
-                                    </th>
-                                    <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                        Statut
-                                    </th>
-                                    <th class="px-8 py-3 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                        Montant
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-white/5">
-                                {bookings.map((booking) => (
-                                    <tr class="hover:bg-white/5 transition-colors group">
-                                        <td class="px-8 py-4">
-                                            <div class="font-black text-white uppercase italic tracking-tighter text-lg leading-tight">
-                                                {booking.customers.first_name || ""} {booking.customers.last_name || ""}
-                                                {(!booking.customers.first_name && !booking.customers.last_name) && "Client"}
-                                            </div>
-                                            <div class="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-widest">
-                                                {booking.customers.email}
-                                            </div>
-                                            <div class="mt-4 flex flex-col gap-1.5 pt-4 border-t border-white/5">
-                                                <div class="flex items-start gap-2">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1"></span>
-                                                    <div>
-                                                        <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Départ</div>
-                                                        <div class="text-[11px] font-bold text-slate-300 uppercase tracking-tight line-clamp-1">{booking.pickup_address}</div>
-                                                    </div>
-                                                </div>
-                                                {booking.booking_type === 'transfer' ? (
-                                                    <div class="flex items-start gap-2 mt-2">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1"></span>
-                                                        <div>
-                                                            <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Arrivée</div>
-                                                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-tight line-clamp-1">{booking.dropoff_address}</div>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div class="flex items-start gap-2 mt-2 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1"></span>
-                                                        <div>
-                                                            <div class="text-[9px] text-amber-500 font-black uppercase tracking-widest leading-none mb-1">Service</div>
-                                                            <div class="text-[11px] font-black text-amber-400 uppercase tracking-tighter">Mise à Disposition</div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-4 font-medium">
-                                            <div class="flex flex-col">
-                                                <span class="text-sm text-white font-black tabular-nums">
-                                                    {new Date(booking.pickup_time).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
-                                                </span>
-                                                <span class="text-[11px] text-slate-500 font-bold mt-1">
-                                                    {new Date(booking.pickup_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-4">
-                                            <span class={`inline-flex px-1.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                                                booking.booking_type === 'hourly'
-                                                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                                            }`}>
-                                                {booking.booking_type === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
-                                            </span>
-                                        </td>
-                                        <td class="px-8 py-4">
-                                            <span
-                                                class={`inline-flex px-1.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                                                    booking.status === "completed"
-                                                        ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                                                        : booking.status === "cancelled"
-                                                          ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                                                          : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                                                }`}
-                                            >
-                                                {booking.status}
-                                            </span>
-                                        </td>
-                                        <td class="px-8 py-4 text-right font-black text-2xl text-white tabular-nums">
-                                            {Number(
-                                                booking.total_amount,
-                                            ).toFixed(2)}{" "}
-                                            €
-                                        </td>
+                        <div class="table-container">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-white/5 sticky top-0 z-10">
+                                    <tr class="border-b border-white/5">
+                                        <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            Client / Détails
+                                        </th>
+                                        <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            Date & Heure
+                                        </th>
+                                        <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            Type
+                                        </th>
+                                        <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            Statut
+                                        </th>
+                                        <th class="px-8 py-3 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            Montant
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    {bookings.map((booking) => (
+                                        <tr class="hover:bg-white/5 transition-colors group">
+                                            <td class="px-8 py-4">
+                                                <div class="font-black text-white uppercase italic tracking-tighter text-lg leading-tight">
+                                                    {booking.customers.first_name || ""} {booking.customers.last_name || ""}
+                                                    {(!booking.customers.first_name && !booking.customers.last_name) && "Client"}
+                                                </div>
+                                                <div class="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-widest">
+                                                    {booking.customers.email}
+                                                </div>
+                                                <div class="mt-4 flex flex-col gap-1.5 pt-4 border-t border-white/5">
+                                                    <div class="flex items-start gap-2">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1"></span>
+                                                        <div>
+                                                            <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Départ</div>
+                                                            <div class="text-[11px] font-bold text-slate-300 uppercase tracking-tight line-clamp-1">{booking.pickup_address}</div>
+                                                        </div>
+                                                    </div>
+                                                    {(booking.booking_type as any) === 'transfer' ? (
+                                                        <div class="flex items-start gap-2 mt-2">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1"></span>
+                                                            <div>
+                                                                <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Arrivée</div>
+                                                                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-tight line-clamp-1">{booking.dropoff_address}</div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div class="flex items-start gap-2 mt-2 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1"></span>
+                                                            <div>
+                                                                <div class="text-[9px] text-amber-500 font-black uppercase tracking-widest leading-none mb-1">Service</div>
+                                                                <div class="text-[11px] font-black text-amber-400 uppercase tracking-tighter">Mise à Disposition</div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td class="px-8 py-4 font-medium">
+                                                <div class="flex flex-col">
+                                                    <span class="text-sm text-white font-black tabular-nums">
+                                                        {new Date(booking.pickup_time).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                                                    </span>
+                                                    <span class="text-[11px] text-slate-500 font-bold mt-1">
+                                                        {new Date(booking.pickup_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="px-8 py-4">
+                                                <span class={`inline-flex px-1.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                                                    (booking.booking_type as any) === 'hourly'
+                                                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                    : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                                }`}>
+                                                    {(booking.booking_type as any) === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
+                                                </span>
+                                            </td>
+                                            <td class="px-8 py-4">
+                                                <span class={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                                                    booking.status === "completed" || booking.status === "paid"
+                                                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                                        : booking.status === "cancelled"
+                                                            ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                                                            : "bg-white/10 text-slate-400 border-white/10"
+                                                }`}>
+                                                    {STATUS_LABELS_FR[booking.status] || booking.status}
+                                                </span>
+                                            </td>
+                                            <td class="px-8 py-4 text-right font-black text-2xl text-white tabular-nums">
+                                                {Number(
+                                                    booking.total_amount,
+                                                ).toFixed(2)}{" "}
+                                                €
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 ) : (
                     <div class="h-full flex flex-col items-center justify-center text-center pb-20">

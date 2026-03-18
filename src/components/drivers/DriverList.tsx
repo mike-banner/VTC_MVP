@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { ConfirmationModal } from "../common/ConfirmationModal";
 import { DriverModal } from "./DriverModal";
 
 interface Driver {
@@ -36,6 +37,13 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
   const [showModal, setShowModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 
+  // States pour les Confirmations
+  const [confirmInit, setConfirmInit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   const fetchDrivers = async () => {
     try {
       setLoading(true);
@@ -49,37 +57,33 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
   };
 
   const handleInitialize = async () => {
-    if (
-      window.confirm(
-        "Voulez-vous vous enregistrer automatiquement comme premier chauffeur en utilisant vos informations d'inscription ?",
-      )
-    ) {
-      try {
-        setInitLoading(true);
-        const res = await initializePrimaryDriver(tenantId, userId);
-        if (res.success) {
-          fetchDrivers();
-        } else {
-          alert(res.error || res.message || "Erreur lors de l'initialisation");
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setInitLoading(false);
+    try {
+      setInitLoading(true);
+      const res = await initializePrimaryDriver(tenantId, userId);
+      if (res.success) {
+        fetchDrivers();
+        setConfirmInit(false);
+      } else {
+        // Optionnel : on pourrait aussi utiliser un modal d'erreur ici au lieu d'une alerte
+        alert(res.error || res.message || "Erreur lors de l'initialisation");
       }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setInitLoading(false);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (
-      window.confirm(`Voulez-vous vraiment supprimer le chauffeur ${name} ?`)
-    ) {
-      try {
-        await deleteDriver(id);
-        fetchDrivers();
-      } catch (err) {
-        alert("Erreur lors de la suppression");
-      }
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      setLoading(true); // Re-trigger loading state or use a local delete loading state
+      await deleteDriver(confirmDelete.id);
+      fetchDrivers();
+      setConfirmDelete(null);
+    } catch (err) {
+      alert("Erreur lors de la suppression");
+      setLoading(false);
     }
   };
 
@@ -105,14 +109,6 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
 
   return (
     <div className='flex flex-col h-full'>
-      <div className='flex justify-between items-end mb-10'>
-        <div>
-          <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500'>
-            Liste de vos chauffeurs ({drivers.length})
-          </p>
-        </div>
-      </div>
-
       {loading ? (
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
           {[1, 2, 3].map((i) => (
@@ -142,7 +138,10 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
                   </button>
                   <button
                     onClick={() =>
-                      handleDelete(d.id, `${d.first_name} ${d.last_name}`)
+                      setConfirmDelete({
+                        id: d.id,
+                        name: `${d.first_name} ${d.last_name}`,
+                      })
                     }
                     className='p-2 text-slate-600 hover:text-red-500 transition-colors'>
                     <Trash2 className='w-4 h-4' />
@@ -190,7 +189,7 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
 
           <div className='flex flex-col sm:flex-row gap-4'>
             <button
-              onClick={handleInitialize}
+              onClick={() => setConfirmInit(true)}
               disabled={initLoading}
               className='flex items-center gap-3 px-10 py-5 bg-white text-black hover:bg-indigo-50 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl shadow-white/10 active:scale-95 disabled:opacity-50'>
               {initLoading ? (
@@ -211,12 +210,36 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
         </div>
       )}
 
+      {/* Modal d'édition / création */}
       <DriverModal
         tenantId={tenantId}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSuccess={fetchDrivers}
         driver={selectedDriver}
+      />
+
+      {/* Confirmation Initialisation */}
+      <ConfirmationModal
+        isOpen={confirmInit}
+        onClose={() => setConfirmInit(false)}
+        onConfirm={handleInitialize}
+        loading={initLoading}
+        title='Initialisation Chauffeur'
+        message="Voulez-vous vous enregistrer automatiquement comme premier chauffeur en utilisant vos informations d'inscription ?"
+        confirmLabel="S'enregistrer"
+        confirmVariant='primary'
+      />
+
+      {/* Confirmation Suppression */}
+      <ConfirmationModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        title='Supprimer Chauffeur'
+        message={`Es-tu sûr de vouloir supprimer ${confirmDelete?.name} ? Cette action est irréversible.`}
+        confirmLabel='Supprimer'
+        confirmVariant='danger'
       />
     </div>
   );

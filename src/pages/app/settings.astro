@@ -18,7 +18,7 @@ const supabaseAdmin = createAdminClient();
 // 1️⃣ Récupérer les infos du tenant pour la confirmation
 const { data: tenant } = await supabaseAdmin
   .from("tenants")
-  .select("name")
+  .select("name, logo_url")
   .eq("id", profile!.tenant_id)
   .single();
 
@@ -27,7 +27,7 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
 ---
 
 <AppLayout title="Paramètres - Owner">
-    <div class="flex-1 flex flex-col p-12 overflow-hidden h-full relative">
+    <div id="settings-page" data-confirmation-phrase={confirmationPhrase} class="flex-1 flex flex-col p-12 overflow-hidden h-full relative">
         <!-- FIXED HEADER -->
         <div class="flex-shrink-0 border-b border-white/5 pb-10 mb-10">
             <span
@@ -48,6 +48,58 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
         <div
             class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8 pb-20"
         >
+            <div
+                class="glass p-10 rounded-[2.5rem] border border-white/5 bg-white/[0.01]"
+            >
+                <h3
+                    class="text-xl font-black uppercase italic tracking-tighter text-white mb-8 flex items-center gap-3"
+                >
+                    <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                    Identité Visuelle
+                </h3>
+
+                <div class="flex flex-col md:flex-row gap-10 items-start">
+                    <!-- Logo Preview -->
+                    <div class="relative group">
+                        <div class="w-40 h-40 bg-white/5 border-2 border-dashed border-white/10 rounded-[2rem] flex items-center justify-center overflow-hidden transition-all group-hover:border-indigo-500/50">
+                            {tenant?.logo_url ? (
+                                <img id="logo-preview" src={tenant.logo_url} class="w-full h-full object-contain p-4" />
+                            ) : (
+                                <div id="logo-placeholder" class="text-slate-600 flex flex-col items-center gap-2">
+                                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-[8px] font-black uppercase tracking-widest text-center">Aucun Logo</p>
+                                </div>
+                            )}
+                            <img id="logo-preview-new" class="hidden w-full h-full object-contain p-4" />
+                        </div>
+                    </div>
+
+                    <!-- Upload Controls -->
+                    <div class="flex-1 space-y-6 w-full">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Logo de l'entreprise</p>
+                            <p class="text-xs text-slate-400 mb-6 italic leading-relaxed">Format recommandé : PNG transparent ou SVG. Taille max : 2Mo.</p>
+
+                            <div class="flex flex-wrap gap-4">
+                                <label class="cursor-pointer px-6 py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all active:scale-95 inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    Choisir un fichier
+                                    <input type="file" id="logo-input" class="hidden" accept="image/*" />
+                                </label>
+
+                                <button id="save-logo-btn" class="hidden px-6 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Enregistrer le logo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div
                 class="glass p-10 rounded-[2.5rem] border border-white/5 bg-white/[0.01]"
             >
@@ -157,15 +209,110 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
         }
     </style>
 
-    <script define:vars={{ confirmationPhrase }}>
+    <script>
         import { supabase } from "@/lib/supabase/client";
+
+        const container = document.getElementById('settings-page');
+        const confirmationPhrase = container?.getAttribute('data-confirmation-phrase');
 
         const openBtn = document.getElementById('open-delete-modal');
         const modal = document.getElementById('delete-modal');
         const cancelBtn = document.getElementById('cancel-delete');
-        const confirmBtn = document.getElementById('confirm-delete-btn');
-        const input = document.getElementById('confirmation-input');
+        const confirmBtn = document.getElementById('confirm-delete-btn') as HTMLButtonElement;
+        const input = document.getElementById('confirmation-input') as HTMLInputElement;
         const overlay = document.querySelector('.modal-overlay');
+
+        // --- GESTION LOGO ---
+        const logoInput = document.getElementById('logo-input') as HTMLInputElement;
+        const saveLogoBtn = document.getElementById('save-logo-btn') as HTMLButtonElement;
+        const logoPreviewOld = document.getElementById('logo-preview');
+        const logoPlaceholder = document.getElementById('logo-placeholder');
+        const logoPreviewNew = document.getElementById('logo-preview-new') as HTMLImageElement;
+        let selectedLogoFile = null;
+
+        logoInput?.addEventListener('change', (e) => {
+            const target = e.target as HTMLInputElement;
+            const file = target.files?.[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert("Le fichier est trop volumineux (Max 2Mo)");
+                return;
+            }
+
+            selectedLogoFile = file;
+            const url = URL.createObjectURL(file);
+
+            if (logoPreviewOld) logoPreviewOld.classList.add('hidden');
+            if (logoPlaceholder) logoPlaceholder.classList.add('hidden');
+
+            if (logoPreviewNew) {
+                logoPreviewNew.src = url;
+                logoPreviewNew.classList.remove('hidden');
+            }
+
+            if (saveLogoBtn) saveLogoBtn.classList.remove('hidden');
+        });
+
+        saveLogoBtn?.addEventListener('click', async () => {
+            if (!selectedLogoFile) return;
+
+            saveLogoBtn.disabled = true;
+            saveLogoBtn.innerText = "TÉLÉCHARGEMENT...";
+            console.log("[Logo] Start upload for:", selectedLogoFile.name);
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error("Session introuvable");
+
+                const { data: profileData, error: profileErr } = await supabase
+                    .from('profiles')
+                    .select('tenant_id')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileErr) throw profileErr;
+                const tid = profileData?.tenant_id;
+                if (!tid) throw new Error("ID Entreprise non trouvé (Tenant ID)");
+
+                const fileExt = selectedLogoFile.name.split('.').pop()?.toLowerCase();
+                const fileName = `logos/${tid}/logo.${fileExt}`;
+
+                // 1. Upload to Storage
+                const { error: uploadError } = await supabase.storage
+                    .from('assets')
+                    .upload(fileName, selectedLogoFile, {
+                        upsert: true,
+                        contentType: selectedLogoFile.type
+                    });
+
+                if (uploadError) throw uploadError;
+
+                // 2. Get Public URL with cache buster
+                const { data: { publicUrl } } = supabase.storage
+                    .from('assets')
+                    .getPublicUrl(fileName);
+
+                const finalUrl = `${publicUrl}?t=${Date.now()}`;
+
+                // 3. Update Tenant
+                const { error: updateError } = await supabase
+                    .from('tenants')
+                    .update({ logo_url: finalUrl })
+                    .eq('id', tid);
+
+                if (updateError) throw updateError;
+
+                console.log("[Logo] Success! New URL:", finalUrl);
+                alert("Logo mis à jour avec succès !");
+                window.location.reload();
+            } catch (err) {
+                console.error("[Logo] Error:", err);
+                alert("Erreur lors du téléchargement du logo : " + err.message);
+                saveLogoBtn.disabled = false;
+                saveLogoBtn.innerText = "Enregistrer le logo";
+            }
+        });
 
         const toggleModal = () => {
             modal?.classList.toggle('is-active');
@@ -183,7 +330,8 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
         overlay?.addEventListener('click', toggleModal);
 
         input?.addEventListener('input', (e) => {
-            const val = e.target.value;
+            const target = e.target as HTMLInputElement;
+            const val = target.value;
             if (val === confirmationPhrase) {
                 confirmBtn.disabled = false;
                 confirmBtn.classList.remove('bg-red-600/20', 'text-red-600/40');

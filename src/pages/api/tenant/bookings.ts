@@ -45,7 +45,9 @@ export const GET: APIRoute = async ({ request, locals, cookies }) => {
         .from("drivers")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .eq("tenant_id", profile.tenant_id!)
+        .limit(1)
+        .maybeSingle();
 
       if (driver) {
         query = query.eq("driver_id", driver.id);

@@ -173,16 +173,22 @@ Le système expose des vues SQL pour le reporting :
 
 ---
 
-# 🔮 Future Flows (Versions ultérieures)
+# 🔮 Architecture Future (Planning)
 
-## V2
+## Découplage Type vs Flow
 
-- Dashboard financier temps réel par tenant avec graphiques.
-- Export CSV natif depuis le frontend.
+Le système doit séparer le **Service** (ce qui est réservé) du **Workflow** (comment c'est traité).
 
-## V4
+- **Booking Type** (Service) : `transfer`, `hourly`, `manual`, `dispatch`, `share`.
+- **Booking Flow** (Workflow) : `pay_first`, `accept_then_pay`, `accept_only`, `internal_dispatch`, `network_share`.
 
-- Cercle & Partage de courses avec commissions complexes entre tiers.
+### Exemples de workflows prévus :
+
+1. **FLOW pay_first** : `form → stripe → paid → booking` (B2C Standard)
+2. **FLOW accept_then_pay** : `booking → accepted → payment → paid` (Pro / Manual)
+3. **FLOW accept_only** : `booking → accepted → completed` (Cash / Admin)
+4. **FLOW dispatch** : `booking → pending → assigned → accepted` (Flotte)
+5. **FLOW share** : `booking → shared → accepted_by_other → paid` (Réseau/Cercle)
 
 ---
 

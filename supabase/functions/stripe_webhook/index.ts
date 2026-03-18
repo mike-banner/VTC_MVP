@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@12.18.0?target=deno&no-check";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-  apiVersion: "2026-02-25.clover",
+  apiVersion: "2024-06-20",
 });
 
 const supabase = createClient(
@@ -12,7 +12,10 @@ const supabase = createClient(
 
 Deno.serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
-  if (!signature) return new Response("Missing signature", { status: 400 });
+
+  if (!signature) {
+    return new Response("Missing signature", { status: 400 });
+  }
 
   const rawBody = await req.arrayBuffer();
   const body = new TextDecoder().decode(rawBody);
@@ -25,273 +28,136 @@ Deno.serve(async (req) => {
       signature,
       Deno.env.get("STRIPE_WEBHOOK_SECRET")!,
     );
-  } catch {
+  } catch (err) {
+    console.log("SIGNATURE ERROR", err);
     return new Response("Invalid signature", { status: 400 });
   }
 
-  // 🔥 Log réception immédiate
-  await supabase.from("stripe_webhook_logs").insert({
-    stripe_event_id: event.id,
-    event_type: event.type,
-    payload: event,
-    status: "received",
-  });
+  const obj: any = event.data.object;
 
-  try {
-    const allowedEvents = ["checkout.session.completed", "refund.created"];
+  const sessionId =
+    obj?.id && obj?.object === "checkout.session"
+      ? obj.id
+      : (obj?.checkout_session ?? null);
 
-    if (!allowedEvents.includes(event.type)) {
-      await supabase
-        .from("stripe_webhook_logs")
-        .update({
-          status: "success",
-          processed_at: new Date().toISOString(),
-        })
-        .eq("stripe_event_id", event.id);
+  const paymentIntent = obj?.payment_intent ?? obj?.id ?? null;
 
-      return new Response("OK");
-    }
+  const tenantId = obj?.metadata?.tenant_id ?? null;
 
-    // Idempotence globale
-    const { error: eventInsertError } = await supabase
+  const amount = obj?.amount_total
+    ? obj.amount_total / 100
+    : obj?.amount_received
+      ? obj.amount_received / 100
+      : null;
+
+  // --------------------------
+  // STATUS
+  // --------------------------
+
+  let status = "received";
+
+  if (event.type === "checkout.session.completed") {
+    status = "session_completed";
+  }
+
+  if (event.type === "payment_intent.succeeded") {
+    status = "paid";
+  }
+
+  if (event.type === "payment_intent.payment_failed") {
+    status = "failed";
+  }
+
+  // --------------------------
+  // UPSERT stripe_events
+  // --------------------------
+
+  const { data: existing } = await supabase
+    .from("stripe_events")
+    .select("id")
+    .eq("stripe_event_id", event.id)
+    .maybeSingle();
+
+  if (!existing) {
+    await supabase.from("stripe_events").insert({
+      stripe_event_id: event.id,
+      session_id: sessionId,
+      payment_intent_id: paymentIntent,
+      event_type: event.type,
+      status,
+      tenant_id: tenantId,
+      amount,
+      metadata: event,
+    });
+  } else {
+    await supabase
       .from("stripe_events")
-      .insert({
-        stripe_event_id: event.id,
-        event_type: event.type,
-      });
+      .update({
+        status,
+        metadata: event,
+      })
+      .eq("stripe_event_id", event.id);
+  }
 
-    if (eventInsertError) {
-      await supabase
-        .from("stripe_webhook_logs")
-        .update({
-          status: "success",
-          processed_at: new Date().toISOString(),
-        })
-        .eq("stripe_event_id", event.id);
+  // --------------------------
+  // CREATE BOOKING V1
+  // --------------------------
 
-      return new Response("OK");
-    }
+  if (event.type === "checkout.session.completed") {
+    const session = obj as any;
 
-    // =============================
-    // PAYMENT
-    // =============================
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const bookingId = session.metadata?.booking_id;
-      if (!bookingId) return new Response("OK");
+    if (session?.metadata) {
+      const m = session.metadata;
 
-      const { data: booking } = await supabase
+      const subtotal = Number(m.subtotal_amount ?? 0);
+      const vat = Number(m.vat_amount ?? 0);
+      const total = Number(m.total_amount ?? amount ?? 0);
+
+      const { data: booking, error } = await supabase
         .from("bookings")
-        .select("*")
-        .eq("id", bookingId)
-        .maybeSingle();
+        .insert({
+          original_tenant_id: tenantId,
+          current_tenant_id: tenantId,
 
-      if (!booking) return new Response("OK");
-      if (booking.status !== "accepted_pending_payment")
-        return new Response("OK");
+          pickup_address: m.pickup_address,
+          dropoff_address: m.dropoff_address,
 
-      const { data: policy } = await supabase
-        .from("cancellation_policies")
-        .select("id")
-        .eq("tenant_id", booking.current_tenant_id)
-        .eq("active", true)
-        .order("version", { ascending: false })
-        .limit(1)
+          pickup_time: m.pickup_time,
+
+          total_amount: total,
+          subtotal_amount: subtotal,
+          vat_amount: vat,
+
+          status: "paid",
+          payment_mode: "stripe",
+
+          customer_id: m.customer_id,
+
+          stripe_payment_intent_id: session.payment_intent,
+
+          passenger_count: Number(m.passenger_count ?? 1),
+          luggage_count: Number(m.luggage_count ?? 0),
+
+          booking_type: m.booking_type,
+
+          vehicle_id: m.vehicle_id ?? null,
+        })
+        .select()
         .single();
 
-      if (!policy) throw new Error("No active cancellation policy found");
-
-      await supabase
-        .from("bookings")
-        .update({
-          status: "paid",
-          stripe_payment_intent_id: session.payment_intent,
-          cancellation_policy_id: policy.id,
-        })
-        .eq("id", bookingId);
-
-      const subtotal = booking.subtotal_amount ?? 0;
-      const vat = booking.vat_amount ?? 0;
-      const total = booking.total_amount ?? 0;
-
-      await supabase.from("financial_movements").insert({
-        booking_id: booking.id,
-        tenant_id: booking.current_tenant_id,
-        stripe_payment_intent_id: session.payment_intent,
-        movement_type: "payment",
-        direction: "credit",
-        gross_amount: total,
-        net_amount: subtotal,
-        vat_amount: vat,
-        created_by_event: event.id,
-      });
-
-      const { data: tenant } = await supabase
-        .from("tenants")
-        .select("platform_fee_rate")
-        .eq("id", booking.current_tenant_id)
-        .maybeSingle();
-
-      const rate = tenant?.platform_fee_rate ?? 0;
-
-      if (rate > 0) {
-        const commissionAmount = total * (rate / 100);
-
-        await supabase.from("financial_movements").insert({
-          booking_id: booking.id,
-          tenant_id: booking.current_tenant_id,
-          stripe_payment_intent_id: session.payment_intent,
-          movement_type: "commission",
-          direction: "debit",
-          gross_amount: commissionAmount,
-          net_amount: commissionAmount,
-          vat_amount: 0,
-          platform_commission_rate_snapshot: rate,
-          platform_commission_amount: commissionAmount,
-          created_by_event: event.id,
-        });
+      if (!error && booking) {
+        await supabase
+          .from("stripe_events")
+          .update({
+            status: "booking_created",
+            booking_id: booking.id,
+          })
+          .eq("stripe_event_id", event.id);
+      } else {
+        console.log("BOOKING ERROR", error);
       }
     }
-
-    // =============================
-    // REFUND
-    // =============================
-    if (event.type === "refund.created") {
-      const refund = event.data.object as Stripe.Refund;
-      const paymentIntentId = refund.payment_intent as string;
-
-      if (!paymentIntentId) return new Response("OK");
-
-      const { data: existing } = await supabase
-        .from("financial_movements")
-        .select("id")
-        .eq("stripe_refund_id", refund.id)
-        .maybeSingle();
-
-      if (existing) return new Response("OK");
-
-      const { data: booking } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("stripe_payment_intent_id", paymentIntentId)
-        .maybeSingle();
-
-      if (!booking) return new Response("OK");
-
-      const total = booking.total_amount ?? 0;
-      if (total === 0) return new Response("OK");
-
-      const refundAmount = refund.amount / 100;
-      const refundRatio = refundAmount / total;
-
-      const subtotal = booking.subtotal_amount ?? 0;
-      const vat = booking.vat_amount ?? 0;
-
-      await supabase.from("financial_movements").insert({
-        booking_id: booking.id,
-        tenant_id: booking.current_tenant_id,
-        stripe_payment_intent_id: paymentIntentId,
-        stripe_refund_id: refund.id,
-        movement_type: "refund",
-        direction: "debit",
-        gross_amount: refundAmount,
-        net_amount: subtotal * refundRatio,
-        vat_amount: vat * refundRatio,
-        refund_ratio: refundRatio,
-        created_by_event: event.id,
-      });
-
-      const { data: originalCommission } = await supabase
-        .from("financial_movements")
-        .select("*")
-        .eq("booking_id", booking.id)
-        .eq("movement_type", "commission")
-        .maybeSingle();
-
-      if (originalCommission) {
-        const commissionReversal =
-          (originalCommission.gross_amount ?? 0) * refundRatio;
-
-        await supabase.from("financial_movements").insert({
-          booking_id: booking.id,
-          tenant_id: originalCommission.tenant_id,
-          stripe_payment_intent_id: paymentIntentId,
-          stripe_refund_id: refund.id,
-          movement_type: "commission_reversal",
-          direction: "credit",
-          gross_amount: commissionReversal,
-          net_amount: commissionReversal,
-          vat_amount: 0,
-          refund_ratio: refundRatio,
-          platform_commission_rate_snapshot:
-            originalCommission.platform_commission_rate_snapshot,
-          platform_commission_amount: commissionReversal,
-          created_by_event: event.id,
-        });
-      }
-
-      await supabase
-        .from("bookings")
-        .update({ status: "cancelled_refunded" })
-        .eq("id", booking.id);
-    }
-
-    // ✅ Success mark
-    await supabase
-      .from("stripe_webhook_logs")
-      .update({
-        status: "success",
-        processed_at: new Date().toISOString(),
-      })
-      .eq("stripe_event_id", event.id);
-
-    return new Response("OK");
-  } catch (err) {
-    // 🚩 ALERT PROD: Envoi email alerte via Resend
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (resendKey) {
-      try {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "alerts@vtc-hub.com",
-            to: "mike@vtc-hub.com", // Email par défaut, à ajuster si besoin
-            subject: `🚨 Stripe Webhook Error: ${event.type}`,
-            html: `
-              <div style="font-family: sans-serif; padding: 20px; color: #333;">
-                <h2 style="color: #dc2626;">Erreur de traitement Webhook</h2>
-                <p><strong>Event ID:</strong> ${event.id}</p>
-                <p><strong>Type:</strong> ${event.type}</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="font-weight: bold;">Erreur :</p>
-                <pre style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; overflow-x: auto;">${String(err)}</pre>
-                <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
-                  Ceci est une alerte automatique généré par le système VTC HUB.
-                </p>
-              </div>
-            `,
-          }),
-        });
-      } catch (emailErr) {
-        console.error("Failed to send alert email:", emailErr);
-      }
-    }
-
-    await supabase
-      .from("stripe_webhook_logs")
-      .update({
-        status: "error",
-        error_message: String(err),
-        processed_at: new Date().toISOString(),
-      })
-      .eq("stripe_event_id", event.id);
-
-    console.error("Webhook processing error:", err);
-
-    return new Response("Webhook error", { status: 500 });
   }
+
+  return new Response("OK");
 });

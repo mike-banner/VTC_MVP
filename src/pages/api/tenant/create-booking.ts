@@ -57,9 +57,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
           type: "individual",
         })
         .select("id")
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (customerError) throw customerError;
+      if (!newCustomer) throw new Error("Erreur lors de la création du client");
       customerId = newCustomer.id;
     }
 
@@ -71,7 +73,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq("active", true)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (pricingError || !pricing) {
       return new Response(
@@ -105,13 +107,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
         payment_mode: payment_mode || "cash",
       })
       .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (insertError) {
       console.error("Insert booking error:", insertError);
       return new Response(JSON.stringify({ error: insertError.message }), {
         status: 500,
       });
+    }
+
+    if (!booking) {
+      return new Response(
+        JSON.stringify({
+          error: "Erreur lors de la création de la réservation",
+        }),
+        {
+          status: 500,
+        },
+      );
     }
 
     return new Response(

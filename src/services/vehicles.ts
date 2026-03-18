@@ -16,15 +16,16 @@ export const createVehicle = async (vehicle: {
   brand: string;
   model: string;
   plate_number: string;
-  category: string;
+  category: any;
   capacity: number;
   status: string;
 }) => {
   const { data, error } = await supabase
     .from("vehicles")
-    .insert([vehicle])
+    .insert(vehicle as any)
     .select()
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -36,9 +37,19 @@ export const updateVehicle = async (id: string, updates: any) => {
     .update(updates)
     .eq("id", id)
     .select()
-    .single();
+    .limit(1)
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Update vehicle error:", error);
+    throw error;
+  }
+  if (!data) {
+    console.warn(`No vehicle found with id ${id} to update.`);
+    // Depending on desired behavior, you might throw an error or return null/undefined
+    // For now, let's return null if no data was updated.
+    return null;
+  }
   return data;
 };
 

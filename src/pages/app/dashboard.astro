@@ -4,7 +4,7 @@ import { StripeConnectionCard } from "@/components/dashboard/StripeConnectionCar
 import { supabase } from "@/lib/supabase/client";
 import AppLayout from "../../layouts/AppLayout.astro";
 
-const { profile } = Astro.locals;
+const { profile, supabase: supabaseAdmin } = Astro.locals;
 
 if (!profile) return Astro.redirect("/login");
 
@@ -22,23 +22,24 @@ const startOfMonth = new Date(
 ).toISOString();
 
 // 1️⃣ Courses du mois (Métier)
-const { count: monthlyCount } = await supabase
+const { count: monthlyCount } = await supabaseAdmin
     .from("bookings")
     .select("*", { count: "exact", head: true })
     .eq("current_tenant_id", profile.tenant_id!)
     .gte("pickup_time", startOfMonth);
 
 // 2️⃣ Données Financières (Source: Vue Ledger)
-const { data: kpi } = await supabase
+const { data: kpi } = await supabaseAdmin
     .from("tenant_dashboard_kpi")
     .select("*")
     .eq("tenant_id", profile.tenant_id!)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
 const monthlyRevenue = kpi?.monthly_net_revenue || 0;
 
 // 3️⃣ Prochaines courses (Mise en avant)
-const { data: upcomingBookings } = await supabase
+const { data: upcomingBookings } = await supabaseAdmin
     .from("bookings")
     .select("*, customers!inner(*)")
     .eq("current_tenant_id", profile.tenant_id!)
@@ -47,15 +48,15 @@ const { data: upcomingBookings } = await supabase
     .limit(3);
 
 // 4️⃣ Courses en attente de validation (Mise à dispo)
-const { data: validatingBookings } = await supabase
+const { data: validatingBookings } = await supabaseAdmin
     .from("bookings")
     .select("*, customers!inner(*)")
     .eq("current_tenant_id", profile.tenant_id!)
-    .eq("status", "waiting_validation")
+    .eq("status", "pending")
     .order("created_at", { ascending: true });
 
 // 5️⃣ Dernières courses (Historique court)
-const { data: pastBookings } = await supabase
+const { data: pastBookings } = await supabaseAdmin
     .from("bookings")
     .select("*, customers!inner(*)")
     .eq("current_tenant_id", profile.tenant_id!)
@@ -63,26 +64,41 @@ const { data: pastBookings } = await supabase
     .neq("status", "cancelled")
     .order("pickup_time", { ascending: false })
     .limit(2);
+
+// 6️⃣ Récupérer l'ID driver du profil actuel
+const { data: driver } = await supabaseAdmin
+    .from("drivers")
+    .select("id")
+    .eq("user_id", profile.id)
+    .maybeSingle();
+
+const driverId = driver?.id;
+
+// 7️⃣ Récupérer les infos du tenant pour le titre si besoin
+const { data: tenant } = await supabaseAdmin
+    .from("tenants")
+    .select("name")
+    .eq("id", profile.tenant_id!)
+    .maybeSingle();
+
+const tenantName = tenant?.name || "VTC HUB";
 ---
 
 <AppLayout title="Dashboard">
     <div class="flex-1 flex flex-col p-12 overflow-y-auto">
         <!-- FIXED TOP SECTION -->
         <div class="flex-shrink-0 border-b border-white/5 pb-10 mb-10">
-            <div class="mb-10">
-                <span
-                    class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
-                >
-                    {profile?.tenant_role || "Chauffeur"}
-                </span>
-                <h1
-                    class="text-4xl font-black mt-2 tracking-tighter uppercase text-white"
-                >
-                    Tableau de bord
-                </h1>
-            </div>
+            <span
+                class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
+                >{profile?.tenant_role || "Chauffeur"} — {profile?.first_name}</span
+            >
+            <h1
+                class="text-5xl font-black italic mt-4 tracking-tighter uppercase text-white leading-none"
+            >
+                Tableau de bord
+            </h1>
 
-            <div class="mb-10">
+            <div class="mt-10">
                 <StripeConnectionCard
                     client:only="react"
                     tenantId={profile.tenant_id!}
@@ -90,8 +106,6 @@ const { data: pastBookings } = await supabase
                     monthlyRevenue={monthlyRevenue}
                 />
             </div>
-
-
         </div>
 
         <!-- DYNAMIC CONTENT SECTION -->
@@ -124,7 +138,7 @@ const { data: pastBookings } = await supabase
                                     <span class="text-[10px] font-black uppercase text-slate-400">Montant Est.</span>
                                     <span class="text-xl font-black text-white italic">{Number(booking.total_amount).toFixed(0)}€</span>
                                 </div>
-                                <a href={`/app/bookings?status=waiting_validation`} class="mt-6 block w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest text-center rounded-xl transition-all active:scale-95 shadow-lg shadow-amber-500/20">
+                                <a href={`/app/bookings?status=pending`} class="mt-6 block w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-widest text-center rounded-xl transition-all active:scale-95 shadow-lg shadow-amber-500/20">
                                     Valider le tarif
                                 </a>
                             </div>
@@ -142,61 +156,58 @@ const { data: pastBookings } = await supabase
 
                 {upcomingBookings && upcomingBookings.length > 0 ? (
                     <div class="glass rounded-[2rem] overflow-hidden border border-white/5 bg-white/[0.01]">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-white/5 sticky top-0 z-10">
-                                <tr class="border-b border-white/5">
-                                    <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Heure / Client</th>
-                                    <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Trajet</th>
-                                    <th class="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">Montant</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-white/5">
-                                {upcomingBookings.map((booking) => (
-                                    <tr
-                                        class="hover:bg-indigo-500/[0.05] transition-all cursor-pointer group booking-row"
-                                        data-booking={JSON.stringify(booking)}
-                                    >
-                                        <td class="px-8 py-6">
-                                            <div class="flex items-center gap-4">
-                                                <div class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase">
-                                                    {new Date(booking.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                                </div>
-                                                <div>
-                                                    <p class="text-sm font-black text-white uppercase tracking-tighter">
-                                                        {booking.customers.first_name} {booking.customers.last_name}
-                                                    </p>
-                                                    <div class="flex items-center gap-2 mt-1">
-                                                        <span class={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-                                                            booking.booking_type === 'hourly'
-                                                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                            : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                                                        }`}>
-                                                            {booking.booking_type === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
-                                                        </span>
-                                                        <span class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Client</span>
+                        <div class="table-container no-scrollbar">
+                            <table class="w-full text-left border-collapse">
+                                <tbody class="divide-y divide-white/5">
+                                    {upcomingBookings.map((booking) => (
+                                        <tr
+                                            class="hover:bg-indigo-500/[0.05] transition-all cursor-pointer group booking-row"
+                                            data-booking={JSON.stringify(booking)}
+                                        >
+                                            <td class="px-6 py-6 overflow-hidden">
+                                                <div class="flex flex-col gap-6">
+                                                    {/* TOP: TIME & ADDRESSES */}
+                                                    <div>
+                                                        <div class="inline-flex px-2 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[10px] font-black tracking-widest text-indigo-400 uppercase mb-3">
+                                                            {new Date(booking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} — {new Date(booking.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                        <div class="flex flex-col gap-2">
+                                                            <div class="flex items-center gap-2 min-w-0">
+                                                                <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                                                                <span class="text-[11px] font-bold text-slate-300 truncate">{booking.pickup_address}</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-2 min-w-0">
+                                                                <div class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                                                                <span class="text-[11px] font-bold text-slate-500 truncate">{booking.dropoff_address || '---'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* BOTTOM: TYPE, NAME & PRICE */}
+                                                    <div class="flex items-end justify-between gap-4">
+                                                        <div class="min-w-0">
+                                                            <p class={`text-[7px] font-black uppercase tracking-[0.2em] mb-1 px-1.5 py-0.5 rounded w-fit border ${
+                                                                (booking.booking_type as any) === 'hourly'
+                                                                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                                : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                                            }`}>
+                                                                {(booking.booking_type as any) === 'hourly' ? 'Mise à Disposition' : 'Transfert'}
+                                                            </p>
+                                                            <p class="text-sm font-black text-white uppercase tracking-tighter truncate">
+                                                                {booking.customers.first_name} {booking.customers.last_name}
+                                                            </p>
+                                                        </div>
+                                                        <div class="text-2xl font-black text-white italic tabular-nums shrink-0">
+                                                            {Number(booking.total_amount).toFixed(0)}€
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-6">
-                                            <div class="flex flex-col gap-1">
-                                                <div class="flex items-center gap-2">
-                                                    <div class="w-1 h-1 rounded-full bg-indigo-500 shrink-0" />
-                                                    <p class="text-[11px] text-slate-300 font-medium truncate max-w-[200px]">{booking.pickup_address}</p>
-                                                </div>
-                                                <div class="flex items-center gap-2">
-                                                    <div class="w-1 h-1 rounded-full bg-red-500 shrink-0" />
-                                                    <p class="text-[11px] text-slate-500 font-medium truncate max-w-[200px]">{booking.dropoff_address || 'Non spécifiée'}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-6 text-right">
-                                            <div class="text-xl font-black text-white italic tabular-nums">{Number(booking.total_amount).toFixed(0)}€</div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 ) : (
                     <div class="glass p-8 rounded-[2rem] border border-white/5 bg-white/[0.01] text-center text-slate-500 text-sm">
@@ -213,43 +224,48 @@ const { data: pastBookings } = await supabase
 
                 {pastBookings && pastBookings.length > 0 ? (
                     <div class="glass rounded-[2rem] overflow-hidden border border-white/5 bg-white/[0.01]">
-                        <table class="w-full text-left border-collapse">
-                            <tbody class="divide-y divide-white/5">
-                                {pastBookings.map((booking) => (
-                                    <tr class="hover:bg-white/[0.02] transition-colors group">
-                                        <td class="px-8 py-6">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-white transition-colors">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <div class="font-bold text-white uppercase tracking-tighter">
-                                                        {booking.customers.first_name} {booking.customers.last_name}
+                        <div class="table-container">
+                            <table class="w-full text-left border-collapse">
+                                <tbody class="divide-y divide-white/5">
+                                    {pastBookings.map((booking) => (
+                                        <tr
+                                            class="hover:bg-white/[0.04] transition-all cursor-pointer group booking-row"
+                                            data-booking={JSON.stringify(booking)}
+                                        >
+                                            <td class="px-8 py-6">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-white transition-colors">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                        </svg>
                                                     </div>
-                                                    <div class="flex items-center gap-2 mt-0.5">
-                                                        <span class={`text-[8px] font-black uppercase tracking-widest ${
-                                                            booking.booking_type === 'hourly' ? 'text-amber-500/70' : 'text-indigo-400/70'
-                                                        }`}>
-                                                            {booking.booking_type === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
-                                                        </span>
-                                                        <span class="text-[10px] text-slate-600 font-bold uppercase">
-                                                            {new Date(booking.pickup_time).toLocaleDateString('fr-FR')} — Terminé
-                                                        </span>
+                                                    <div>
+                                                        <div class="font-bold text-white uppercase tracking-tighter">
+                                                            {booking.customers.first_name} {booking.customers.last_name}
+                                                        </div>
+                                                        <div class="flex items-center gap-2 mt-0.5">
+                                                            <span class={`text-[8px] font-black uppercase tracking-widest ${
+                                                                (booking.booking_type as any) === 'hourly' ? 'text-amber-500/70' : 'text-indigo-400/70'
+                                                            }`}>
+                                                                {(booking.booking_type as any) === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
+                                                            </span>
+                                                            <span class="text-[10px] text-slate-600 font-bold uppercase">
+                                                                {new Date(booking.pickup_time).toLocaleDateString('fr-FR')} — Terminé
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-6 text-right">
-                                            <div class="font-black text-white tabular-nums">
-                                                {Number(booking.total_amount).toFixed(2)} €
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                            <td class="px-8 py-6 text-right">
+                                                <div class="font-black text-white tabular-nums">
+                                                    {Number(booking.total_amount).toFixed(2)} €
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 ) : (
                     <p class="text-slate-600 text-sm">Aucun historique disponible.</p>
@@ -260,7 +276,7 @@ const { data: pastBookings } = await supabase
 </AppLayout>
 
 <!-- MODAL DÉTAILS BOOKING -->
-<div id="booking-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
+<div id="booking-modal" data-driver-id={driverId} class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
     <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay"></div>
     <div class="relative glass max-w-4xl w-full max-h-[90vh] rounded-[3rem] border border-white/10 shadow-2xl overflow-y-auto custom-scrollbar transform scale-95 transition-all duration-300">
         <div class="p-8 sm:p-10">
@@ -309,17 +325,23 @@ const { data: pastBookings } = await supabase
                 <!-- TRAJET & INFOS -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div class="space-y-6">
-                        <div class="bg-white/5 p-6 rounded-2xl border border-white/5 space-y-4">
+                        <div class="bg-white/5 p-6 rounded-2xl border border-white/5 space-y-4 relative group/map">
+                            <a id="modal-map-link" href="#" target="_blank" class="absolute top-4 right-4 p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 transition-all flex items-center gap-2 group/btn">
+                                <span class="text-[9px] font-black uppercase tracking-widest">Carte</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.106-1.789L9 1.118l6 3 5.447-2.724A2 2 0 0121 3.236v9.764a2 2 0 01-1.106 1.789L15 17.382l-6 2.618z" />
+                                </svg>
+                            </a>
                             <div class="flex gap-3">
                                 <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                                <div>
+                                <div class="pr-12">
                                     <p class="text-[9px] font-black uppercase text-slate-500 mb-1">Départ</p>
                                     <p id="modal-pickup" class="text-xs text-slate-200 font-bold leading-tight">---</p>
                                 </div>
                             </div>
                             <div class="flex gap-3">
-                                <div class="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                                <div>
+                                <div class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                                <div class="pr-12">
                                     <p class="text-[9px] font-black uppercase text-slate-500 mb-1">Arrivée</p>
                                     <p id="modal-dropoff" class="text-xs text-slate-200 font-bold leading-tight">---</p>
                                 </div>
@@ -336,26 +358,26 @@ const { data: pastBookings } = await supabase
                     <div class="space-y-6">
                         <!-- PASSAGERS & BAGAGES -->
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col items-center justify-center text-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest">Passagers</p>
-                                    <p id="modal-passengers" class="text-lg font-black text-white">---</p>
+                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Passagers</p>
+                                    <p id="modal-passengers" class="text-xl font-black text-white">---</p>
                                 </div>
                             </div>
-                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+                            <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col items-center justify-center text-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest">Bagages</p>
-                                    <p id="modal-luggage" class="text-lg font-black text-white">---</p>
+                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Bagages</p>
+                                    <p id="modal-luggage" class="text-xl font-black text-white">---</p>
                                 </div>
                             </div>
                         </div>
@@ -382,7 +404,11 @@ const { data: pastBookings } = await supabase
                 </div>
             </div>
 
-            <button class="close-modal mt-10 w-full py-4 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-white/5 shadow-xl">
+            <button id="modal-accept-btn" class="hidden mt-10 w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                Accepter la course
+            </button>
+
+            <button class="close-modal mt-4 w-full py-4 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-white/5 shadow-xl">
                 Fermer
             </button>
         </div>
@@ -390,7 +416,10 @@ const { data: pastBookings } = await supabase
 </div>
 
 <script>
+    import { supabase } from "@/lib/supabase/client";
+
     const modal = document.getElementById('booking-modal');
+    const driverId = modal?.getAttribute('data-driver-id');
     const closeBtns = document.querySelectorAll('.close-modal');
     const overlay = document.querySelector('.modal-overlay');
 
@@ -417,11 +446,28 @@ const { data: pastBookings } = await supabase
             const luggageEl = document.getElementById('modal-luggage');
             const notesEl = document.getElementById('modal-notes');
             const timeEl = document.getElementById('modal-time');
+            const mapLinkEl = document.getElementById('modal-map-link') as HTMLAnchorElement;
             const dateEl = document.getElementById('modal-date');
             const amountEl = document.getElementById('modal-amount');
             const refEl = document.getElementById('modal-booking-ref');
             const typeEl = document.getElementById('modal-booking-type');
             const statusEl = document.getElementById('modal-status-badge');
+
+            const STATUS_LABELS_FR: Record<string, string> = {
+                pending: "En attente",
+                accepted: "Confirmée",
+                accepted_pending_payment: "En attente de paiement",
+                paid: "Payée",
+                completed: "Terminée",
+                cancelled: "Annulée",
+                cancelled_pending_refund: "Remboursement en cours",
+                cancelled_refunded: "Remboursée",
+                cancelled_no_refund: "Annulée",
+                deprecated_refunded: "Remboursée",
+                no_show: "Non présentation",
+                expired_payment: "Paiement expiré",
+                refund_failed: "Échec remboursement"
+            };
 
             if (nameEl) nameEl.innerText = `${booking.customers.first_name} ${booking.customers.last_name}`;
 
@@ -444,11 +490,65 @@ const { data: pastBookings } = await supabase
             if (luggageEl) luggageEl.innerText = booking.luggage_count?.toString() || '0';
             if (notesEl) notesEl.innerText = booking.notes || 'Aucune note particulière.';
             if (refEl) refEl.innerText = `REF: #${booking.id.split('-')[0].toUpperCase()}`;
-            if (statusEl) statusEl.innerText = booking.status;
+            if (statusEl) {
+                const status = booking.status;
+                statusEl.innerText = STATUS_LABELS_FR[status] || status;
+
+                // Optionnel: Couleur dynamique du badge status
+                const statusColors: Record<string, string> = {
+                    pending: 'bg-amber-500/20 text-amber-500 border-amber-500/20',
+                    accepted: 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20',
+                    paid: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/20',
+                    completed: 'bg-slate-500/20 text-slate-400 border-slate-500/20',
+                    cancelled: 'bg-rose-500/20 text-rose-500 border-rose-500/20'
+                };
+                statusEl.className = `px-3 py-1.5 backdrop-blur-md rounded-lg border text-[9px] font-black uppercase tracking-widest ${statusColors[status] || 'bg-white/10 text-white border-white/10'}`;
+
+                // --- LOGIQUE BOUTON ACCEPTER ---
+                const acceptBtn = document.getElementById('modal-accept-btn');
+                if (acceptBtn) {
+                    if (status === 'paid') {
+                        acceptBtn.classList.remove('hidden');
+
+                        if (!driverId) {
+                            acceptBtn.classList.add('opacity-50');
+                            acceptBtn.onclick = () => {
+                                alert("Attention : Vous devez être enregistré comme chauffeur pour accepter cette course. Veuillez créer votre profil chauffeur dans la section 'Chauffeurs'.");
+                            };
+                        } else {
+                            acceptBtn.classList.remove('opacity-50');
+                            acceptBtn.onclick = async () => {
+                                try {
+                                    acceptBtn.innerText = "Traitement...";
+                                    acceptBtn.setAttribute('disabled', 'true');
+
+                                    // Appel de la fonction Edge Supabase accept-booking
+                                    const { error } = await supabase.functions.invoke('accept-booking', {
+                                        body: { booking_id: booking.id, driver_id: driverId }
+                                    });
+
+                                    if (error) throw error;
+
+                                    // Si OK, on reload
+                                    window.location.reload();
+                                } catch (err) {
+                                    console.error("Erreur Accept Booking:", err);
+                                    alert("Une erreur est survenue lors de l'acceptation de la course.");
+                                    acceptBtn.innerText = "Accepter la course";
+                                    acceptBtn.removeAttribute('disabled');
+                                }
+                            };
+                        }
+                    } else {
+                        acceptBtn.classList.add('hidden');
+                    }
+                }
+            }
             if (amountEl) amountEl.innerText = `${Number(booking.total_amount).toFixed(2)}€`;
+            if (mapLinkEl) mapLinkEl.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(booking.pickup_address)}&destination=${encodeURIComponent(booking.dropoff_address || '')}`;
 
             if (typeEl) {
-                const isHourly = booking.booking_type === 'hourly';
+                const isHourly = (booking.booking_type as any) === 'hourly';
                 typeEl.innerText = isHourly ? 'MISE À DISPOSITION' : 'TRANSFERT';
                 typeEl.className = `px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
                     isHourly

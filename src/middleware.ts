@@ -26,6 +26,7 @@ export const onRequest = defineMiddleware(
       },
     );
 
+    locals.supabase = supabase;
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -80,6 +81,8 @@ export const onRequest = defineMiddleware(
           .select("status")
           .eq("profile_id", user.id)
           .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         // S'il a un dossier pending, il va sur waiting-approval, SAUF s'il demande explicitement /onboarding?edit=true

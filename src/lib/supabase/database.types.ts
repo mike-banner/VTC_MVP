@@ -47,20 +47,6 @@ export type Database = {
             foreignKeyName: "booking_shares_accepted_by_tenant_id_fkey"
             columns: ["accepted_by_tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "booking_shares_accepted_by_tenant_id_fkey"
-            columns: ["accepted_by_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
-          {
-            foreignKeyName: "booking_shares_accepted_by_tenant_id_fkey"
-            columns: ["accepted_by_tenant_id"]
-            isOneToOne: false
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
@@ -76,7 +62,7 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["booking_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "booking_shares_booking_id_fkey"
@@ -91,20 +77,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "bookings_stuck_pending_refund"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "booking_shares_shared_by_tenant_id_fkey"
-            columns: ["shared_by_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "booking_shares_shared_by_tenant_id_fkey"
-            columns: ["shared_by_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
           },
           {
             foreignKeyName: "booking_shares_shared_by_tenant_id_fkey"
@@ -139,6 +111,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          booking_type: Database["public"]["Enums"]["booking_type_enum"]
           cancellation_initiator: string | null
           cancellation_policy_id: string | null
           cancellation_reason:
@@ -152,6 +125,7 @@ export type Database = {
           driver_id: string | null
           dropoff_address: string
           id: string
+          luggage_count: number
           original_tenant_id: string
           passenger_count: number
           payment_mode: Database["public"]["Enums"]["payment_mode"]
@@ -162,8 +136,10 @@ export type Database = {
           subtotal_amount: number
           total_amount: number
           vat_amount: number
+          vehicle_id: string | null
         }
         Insert: {
+          booking_type: Database["public"]["Enums"]["booking_type_enum"]
           cancellation_initiator?: string | null
           cancellation_policy_id?: string | null
           cancellation_reason?:
@@ -177,6 +153,7 @@ export type Database = {
           driver_id?: string | null
           dropoff_address: string
           id?: string
+          luggage_count?: number
           original_tenant_id: string
           passenger_count?: number
           payment_mode: Database["public"]["Enums"]["payment_mode"]
@@ -187,8 +164,10 @@ export type Database = {
           subtotal_amount: number
           total_amount: number
           vat_amount?: number
+          vehicle_id?: string | null
         }
         Update: {
+          booking_type?: Database["public"]["Enums"]["booking_type_enum"]
           cancellation_initiator?: string | null
           cancellation_policy_id?: string | null
           cancellation_reason?:
@@ -202,6 +181,7 @@ export type Database = {
           driver_id?: string | null
           dropoff_address?: string
           id?: string
+          luggage_count?: number
           original_tenant_id?: string
           passenger_count?: number
           payment_mode?: Database["public"]["Enums"]["payment_mode"]
@@ -212,6 +192,7 @@ export type Database = {
           subtotal_amount?: number
           total_amount?: number
           vat_amount?: number
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -225,20 +206,6 @@ export type Database = {
             foreignKeyName: "bookings_current_tenant_id_fkey"
             columns: ["current_tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "bookings_current_tenant_id_fkey"
-            columns: ["current_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
-          {
-            foreignKeyName: "bookings_current_tenant_id_fkey"
-            columns: ["current_tenant_id"]
-            isOneToOne: false
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
@@ -248,13 +215,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "bookings_customer_id_fkey"
@@ -267,29 +227,8 @@ export type Database = {
             foreignKeyName: "bookings_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["driver_id"]
-          },
-          {
-            foreignKeyName: "bookings_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_original_tenant_id_fkey"
-            columns: ["original_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "bookings_original_tenant_id_fkey"
-            columns: ["original_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
           },
           {
             foreignKeyName: "bookings_original_tenant_id_fkey"
@@ -303,6 +242,13 @@ export type Database = {
             columns: ["original_tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_vehicle_fk"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -348,20 +294,6 @@ export type Database = {
           version?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "cancellation_policies_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "cancellation_policies_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
           {
             foreignKeyName: "cancellation_policies_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -415,20 +347,6 @@ export type Database = {
             foreignKeyName: "circle_memberships_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "circle_memberships_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
-          {
-            foreignKeyName: "circle_memberships_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
@@ -461,20 +379,6 @@ export type Database = {
           name?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "circles_created_by_tenant_id_fkey"
-            columns: ["created_by_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "circles_created_by_tenant_id_fkey"
-            columns: ["created_by_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
           {
             foreignKeyName: "circles_created_by_tenant_id_fkey"
             columns: ["created_by_tenant_id"]
@@ -545,20 +449,6 @@ export type Database = {
             foreignKeyName: "customers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "customers_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
-          {
-            foreignKeyName: "customers_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
@@ -603,20 +493,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "drivers_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "drivers_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
           {
             foreignKeyName: "drivers_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -704,7 +580,7 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["booking_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "financial_movements_booking_id_fkey"
@@ -724,25 +600,76 @@ export type Database = {
             foreignKeyName: "financial_movements_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
+            referencedRelation: "admin_tenants_overview"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "financial_movements_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_routes: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          dropoff_zone_id: string | null
+          id: string
+          is_bidirectional: boolean | null
+          pickup_zone_id: string | null
+          price: number
+          tenant_id: string | null
+          vehicle_category: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          dropoff_zone_id?: string | null
+          id?: string
+          is_bidirectional?: boolean | null
+          pickup_zone_id?: string | null
+          price: number
+          tenant_id?: string | null
+          vehicle_category: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          dropoff_zone_id?: string | null
+          id?: string
+          is_bidirectional?: boolean | null
+          pickup_zone_id?: string | null
+          price?: number
+          tenant_id?: string | null
+          vehicle_category?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_routes_dropoff_zone_id_fkey"
+            columns: ["dropoff_zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "financial_movements_tenant_id_fkey"
+            foreignKeyName: "fixed_routes_pickup_zone_id_fkey"
+            columns: ["pickup_zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_routes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
           {
-            foreignKeyName: "financial_movements_tenant_id_fkey"
+            foreignKeyName: "fixed_routes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -855,7 +782,7 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["booking_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "passengers_booking_id_fkey"
@@ -872,6 +799,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_settings: {
+        Row: {
+          created_at: string | null
+          default_platform_commission_rate: number
+          default_tenant_commission_rate: number
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_platform_commission_rate?: number
+          default_tenant_commission_rate?: number
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_platform_commission_rate?: number
+          default_tenant_commission_rate?: number
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       pricing_rules: {
         Row: {
@@ -909,20 +860,6 @@ export type Database = {
             foreignKeyName: "pricing_rules_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "pricing_rules_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
-          {
-            foreignKeyName: "pricing_rules_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
@@ -938,8 +875,10 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           first_name: string | null
           id: string
+          is_verified: boolean | null
           last_name: string | null
           platform_role: Database["public"]["Enums"]["platform_role"] | null
           tenant_id: string | null
@@ -947,8 +886,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           first_name?: string | null
           id: string
+          is_verified?: boolean | null
           last_name?: string | null
           platform_role?: Database["public"]["Enums"]["platform_role"] | null
           tenant_id?: string | null
@@ -956,28 +897,16 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           first_name?: string | null
           id?: string
+          is_verified?: boolean | null
           last_name?: string | null
           platform_role?: Database["public"]["Enums"]["platform_role"] | null
           tenant_id?: string | null
           tenant_role?: Database["public"]["Enums"]["tenant_role"] | null
         }
         Relationships: [
-          {
-            foreignKeyName: "profiles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "profiles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
           {
             foreignKeyName: "profiles_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -1051,8 +980,11 @@ export type Database = {
       tenants: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
+          email: string | null
           id: string
           name: string
+          phone: string | null
           platform_fee_rate: number | null
           primary_domain: string
           share_fee_rate: number | null
@@ -1061,8 +993,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
           id?: string
           name: string
+          phone?: string | null
           platform_fee_rate?: number | null
           primary_domain: string
           share_fee_rate?: number | null
@@ -1071,8 +1006,11 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
           id?: string
           name?: string
+          phone?: string | null
           platform_fee_rate?: number | null
           primary_domain?: string
           share_fee_rate?: number | null
@@ -1085,34 +1023,40 @@ export type Database = {
         Row: {
           brand: string
           capacity: number | null
-          category: string | null
+          category: Database["public"]["Enums"]["vehicle_category_enum"] | null
           created_at: string | null
           driver_id: string | null
           id: string
+          luggage_capacity: number
           model: string
           plate_number: string
+          status: Database["public"]["Enums"]["vehicle_status_enum"]
           tenant_id: string
         }
         Insert: {
           brand: string
           capacity?: number | null
-          category?: string | null
+          category?: Database["public"]["Enums"]["vehicle_category_enum"] | null
           created_at?: string | null
           driver_id?: string | null
           id?: string
+          luggage_capacity?: number
           model: string
           plate_number: string
+          status?: Database["public"]["Enums"]["vehicle_status_enum"]
           tenant_id: string
         }
         Update: {
           brand?: string
           capacity?: number | null
-          category?: string | null
+          category?: Database["public"]["Enums"]["vehicle_category_enum"] | null
           created_at?: string | null
           driver_id?: string | null
           id?: string
+          luggage_capacity?: number
           model?: string
           plate_number?: string
+          status?: Database["public"]["Enums"]["vehicle_status_enum"]
           tenant_id?: string
         }
         Relationships: [
@@ -1120,29 +1064,8 @@ export type Database = {
             foreignKeyName: "vehicles_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["driver_id"]
-          },
-          {
-            foreignKeyName: "vehicles_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vehicles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "vehicles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
           },
           {
             foreignKeyName: "vehicles_tenant_id_fkey"
@@ -1160,35 +1083,62 @@ export type Database = {
           },
         ]
       }
+      zones: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "admin_tenants_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       admin_bookings_full_view: {
         Row: {
-          booking_id: string | null
           created_at: string | null
-          current_tenant_domain: string | null
-          current_tenant_id: string | null
           current_tenant_name: string | null
-          customer_email: string | null
-          customer_first_name: string | null
-          customer_full_name: string | null
-          customer_id: string | null
-          customer_last_name: string | null
-          customer_phone: string | null
-          driver_first_name: string | null
-          driver_id: string | null
-          driver_last_name: string | null
-          driver_phone: string | null
+          display_customer_city: string | null
+          display_customer_email: string | null
+          display_customer_first_name: string | null
+          display_customer_last_name: string | null
+          display_customer_phone: string | null
+          display_customer_postal_code: string | null
           dropoff_address: string | null
+          id: string | null
           original_tenant_domain: string | null
-          original_tenant_id: string | null
           original_tenant_name: string | null
-          payment_mode: Database["public"]["Enums"]["payment_mode"] | null
           pickup_address: string | null
           pickup_time: string | null
           status: Database["public"]["Enums"]["booking_status"] | null
           total_amount: number | null
-          total_collected: number | null
         }
         Relationships: []
       }
@@ -1300,20 +1250,6 @@ export type Database = {
             foreignKeyName: "bookings_current_tenant_id_fkey"
             columns: ["current_tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "bookings_current_tenant_id_fkey"
-            columns: ["current_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
-          {
-            foreignKeyName: "bookings_current_tenant_id_fkey"
-            columns: ["current_tenant_id"]
-            isOneToOne: false
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
@@ -1323,13 +1259,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "bookings_customer_id_fkey"
@@ -1342,29 +1271,8 @@ export type Database = {
             foreignKeyName: "bookings_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["driver_id"]
-          },
-          {
-            foreignKeyName: "bookings_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_original_tenant_id_fkey"
-            columns: ["original_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "bookings_original_tenant_id_fkey"
-            columns: ["original_tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
           },
           {
             foreignKeyName: "bookings_original_tenant_id_fkey"
@@ -1378,6 +1286,39 @@ export type Database = {
             columns: ["original_tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_admin_view: {
+        Row: {
+          auth_email: string | null
+          capacity: number | null
+          company_name: string | null
+          created_at: string | null
+          default_base_price: number | null
+          default_minimum_fare: number | null
+          default_price_per_km: number | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          phone: string | null
+          plate_number: string | null
+          primary_domain: string | null
+          profile_id: string | null
+          service_categories: string[] | null
+          status: Database["public"]["Enums"]["onboarding_status"] | null
+          validated_at: string | null
+          vehicle_brand: string | null
+          vehicle_model: string | null
+          vtc_license_number: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1462,20 +1403,6 @@ export type Database = {
             foreignKeyName: "financial_movements_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["current_tenant_id"]
-          },
-          {
-            foreignKeyName: "financial_movements_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "admin_bookings_full_view"
-            referencedColumns: ["original_tenant_id"]
-          },
-          {
-            foreignKeyName: "financial_movements_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
             referencedRelation: "admin_tenants_overview"
             referencedColumns: ["tenant_id"]
           },
@@ -1499,7 +1426,18 @@ export type Database = {
         Returns: number
       }
       current_tenant_id: { Args: never; Returns: string }
+      delete_tenant_account: { Args: never; Returns: undefined }
       expire_unpaid_bookings: { Args: never; Returns: undefined }
+      get_available_vehicles: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          brand: string
+          capacity: number
+          category: Database["public"]["Enums"]["vehicle_category_enum"]
+          id: string
+          model: string
+        }[]
+      }
       initiate_refund: {
         Args: { p_booking_id: string; p_reason: string }
         Returns: {
@@ -1523,6 +1461,7 @@ export type Database = {
         | "no_show"
         | "expired_payment"
         | "refund_failed"
+      booking_type_enum: "transfer"
       cancellation_reason_enum:
         | "client"
         | "no_show"
@@ -1539,7 +1478,9 @@ export type Database = {
       payment_mode: "card" | "cash"
       platform_role: "super_admin" | "platform_staff"
       share_status: "pending" | "accepted" | "rejected"
-      tenant_role: "owner" | "manager" | "driver"
+      tenant_role: "owner" | "manager" | "driver" | "pending"
+      vehicle_category_enum: "berline" | "van" | "suv" | "minibus" | "luxury"
+      vehicle_status_enum: "active" | "inactive" | "maintenance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1682,6 +1623,7 @@ export const Constants = {
         "expired_payment",
         "refund_failed",
       ],
+      booking_type_enum: ["transfer"],
       cancellation_reason_enum: [
         "client",
         "no_show",
@@ -1700,7 +1642,9 @@ export const Constants = {
       payment_mode: ["card", "cash"],
       platform_role: ["super_admin", "platform_staff"],
       share_status: ["pending", "accepted", "rejected"],
-      tenant_role: ["owner", "manager", "driver"],
+      tenant_role: ["owner", "manager", "driver", "pending"],
+      vehicle_category_enum: ["berline", "van", "suv", "minibus", "luxury"],
+      vehicle_status_enum: ["active", "inactive", "maintenance"],
     },
   },
 } as const

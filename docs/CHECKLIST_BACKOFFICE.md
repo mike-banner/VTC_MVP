@@ -83,3 +83,12 @@ Ce dépôt contient le cœur financier et administratif du SaaS.
 - [ ] **Script de Réconciliation** : Comparaison périodique Stripe API vs DB (Ledger).
 - [ ] **Alerting Actif** : Notifications Slack/Email sur erreurs Webhook ou incohérences.
 - [ ] **Dashboard Anomalies** : Vue dédiée aux écarts de réconciliation et erreurs critiques.
+
+## 🔮 11️⃣ Future Booking Architecture (Planning)
+
+- [ ] **Data Model** : Ajouter la colonne `booking_flow` à la table `bookings`.
+- [ ] **Flow pay_first** (V1 actuel) : Paiement Stripe obligatoire à la création.
+- [ ] **Flow accept_then_pay** : Lien de paiement envoyé après validation chauffeur.
+- [ ] **Flow accept_only** : Validation sans paiement (Cash/Pro).
+- [ ] **Flow dispatch** : Système d'assignation interne à une flotte.
+- [ ] **Flow share** : Partage inter-tenants avec gestion des commissions partenaires.

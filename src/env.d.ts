@@ -7,7 +7,10 @@ declare namespace App {
       id: string;
       tenant_id: string | null;
       platform_role: string | null;
-      tenant_role: "owner" | "manager" | "driver" | null;
+      tenant_role: "owner" | "manager" | "driver" | "pending" | null;
+      first_name: string | null;
+      last_name: string | null;
     } | null;
+    supabase: import("@supabase/supabase-js").SupabaseClient;
   }
 }

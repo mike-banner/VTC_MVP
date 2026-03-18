@@ -23,7 +23,8 @@ export const createDriver = async (driver: {
     .from("drivers")
     .insert([driver])
     .select()
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -35,7 +36,8 @@ export const updateDriver = async (id: string, updates: any) => {
     .update(updates)
     .eq("id", id)
     .select()
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -52,6 +54,7 @@ export const initializePrimaryDriver = async (
 ) => {
   try {
     // 1. Vérifier si un chauffeur existe déjà pour ce tenant
+
     const { count, error: countError } = await supabase
       .from("drivers")
       .select("*", { count: "exact", head: true })
@@ -66,9 +69,15 @@ export const initializePrimaryDriver = async (
       .from("onboarding")
       .select("*")
       .eq("profile_id", userId)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (onboardingError) throw onboardingError;
+    if (!onboarding)
+      throw new Error(
+        "Données d'onboarding introuvables. Veuillez compléter votre profil.",
+      );
 
     // 3. Créer le chauffeur principal
     const primaryDriver = {
@@ -84,7 +93,8 @@ export const initializePrimaryDriver = async (
       .from("drivers")
       .insert([primaryDriver])
       .select()
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (insertError) throw insertError;
 

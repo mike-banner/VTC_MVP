@@ -79,7 +79,7 @@ const { user } = Astro.locals;
             <slot />
         </main>
 
-        <footer class="mt-20 border-t border-white/5 py-12 px-6 glass">
+        <footer class="mt-10 sm:mt-20 border-t border-white/5 py-8 sm:py-12 px-6 glass">
             <div
                 class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-sm"
             >
@@ -87,11 +87,7 @@ const { user } = Astro.locals;
                     &copy; {new Date().getFullYear()} VTC HUB. Précision. Luxe. Excellence.
                 </div>
                 <div class="flex items-center gap-4">
-                    <a
-                        href="/admin"
-                        class="hover:text-indigo-400 transition-colors text-[10px] font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5"
-                        >Admin</a
-                    >
+                    <!-- Bouton Admin retiré -->
                 </div>
             </div>
         </footer>
