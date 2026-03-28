@@ -1,11 +1,3 @@
-Voici la **version corrigée et réellement alignée Production-Ready** de ton `README.md`.
-
-Elle intègre le hardening SQL appliqué aujourd’hui sans alourdir le document.
-
-Tu peux remplacer intégralement ton README par ceci.
-
----
-
 # 🚖 VTC HUB — ERP SaaS pour Chauffeurs VTC
 
 VTC HUB est un **ERP SaaS multi-tenant** conçu pour les chauffeurs VTC souhaitant structurer, piloter et développer leur activité.

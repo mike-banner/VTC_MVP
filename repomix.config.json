@@ -1,0 +1,14 @@
+{
+  "output": {
+    "filePath": "repomix-output.md",
+    "style": "markdown",
+    "headerText": "Repomix Output - VTC MVP",
+    "removeComments": true,
+    "removeEmptyLines": true,
+    "showLineNumbers": true
+  },
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultIgnore": true
+  }
+}
