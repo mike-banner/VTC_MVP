@@ -4,100 +4,131 @@ import MainLayout from "../layouts/MainLayout.astro";
 ---
 
 <MainLayout title="Inscription">
-	<div
-		class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4"
-	>
-		<div
-			class="glass p-10 rounded-3xl w-full max-w-md shadow-2xl border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700"
-		>
-			<div class="flex justify-center mb-6">
-				<span
-					class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-[0.2em] text-indigo-400 uppercase"
-				>
-					Inscription
-				</span>
+	<div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4">
+		<div class="glass p-10 rounded-3xl w-full max-w-xl shadow-2xl border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+			<!-- Step Indicators -->
+			<div class="flex justify-between mb-8 relative px-2">
+				<div class="absolute top-1/2 left-0 w-full h-0.5 bg-white/5 -translate-y-1/2"></div>
+				<div id="progress-bar" class="absolute top-1/2 left-0 h-0.5 bg-indigo-500 -translate-y-1/2 transition-all duration-500 ease-in-out" style="width: 0%"></div>
+				{
+					[1, 2, 3].map((step) => (
+						<div
+							class="step-dot w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-xs font-black z-10 transition-all duration-500"
+							data-step={step}
+						>
+							{step}
+						</div>
+					))
+				}
 			</div>
-			<div class="text-center mb-8">
-				<h1
-					class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white"
-				>
-					Rejoins l'aventure
-				</h1>
-				<p class="text-slate-400">
-					Crée ton compte pour commencer ton onboarding
-				</p>
+
+			<div class="text-center mb-8 h-[80px]">
+				<div class="step-header" data-step="1">
+					<h1 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white uppercase tracking-tighter italic">Compte</h1>
+					<p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Tes identifiants de connexion</p>
+				</div>
+				<div class="step-header hidden" data-step="2">
+					<h1 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white uppercase tracking-tighter italic">Profil</h1>
+					<p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Identité du titulaire</p>
+				</div>
+				<div class="step-header hidden" data-step="3">
+					<h1 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white uppercase tracking-tighter italic">Entreprise</h1>
+					<p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Détails juridiques & PRO</p>
+				</div>
 			</div>
 
 			<form id="signup-form" class="space-y-6">
-				<div class="space-y-2">
-					<label
-						for="email"
-						class="text-sm font-medium text-slate-300"
-						>Email professionnel</label
-					>
-					<input
-						type="email"
-						id="email"
-						name="email"
-						required
-						placeholder="nom@entreprise.fr"
-						class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-inter"
-					/>
-				</div>
-
-				<div class="space-y-2">
-					<label
-						for="password"
-						class="text-sm font-medium text-slate-300"
-						>Mot de passe</label
-					>
-					<input
-						type="password"
-						id="password"
-						name="password"
-						required
-						placeholder="••••••••"
-						class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-inter"
-					/>
-				</div>
-
-				<button
-					type="submit"
-					id="submit-btn"
-					class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden group"
-				>
-					<span
-						class="btn-text group-hover:tracking-wider transition-all duration-300"
-						>S'inscrire</span
-					>
-					<div
-						class="loader-container hidden absolute inset-0 flex items-center justify-center bg-indigo-600"
-					>
-						<svg
-							class="animate-spin h-5 w-5 text-white"
-							viewBox="0 0 24 24"
-						>
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"></circle>
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							></path>
-						</svg>
+				<!-- Step 1: Account -->
+				<div class="step-content space-y-4" data-step="1">
+					<div class="space-y-2">
+						<label for="email" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email professionnel</label>
+						<input type="email" id="email" name="email" required placeholder="nom@entreprise.fr" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all" />
 					</div>
-				</button>
+					<div class="space-y-2">
+						<label for="password" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mot de passe</label>
+						<input type="password" id="password" name="password" required placeholder="••••••••" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all" />
+					</div>
+				</div>
+
+				<!-- Step 2: Profile -->
+				<div class="step-content space-y-6 hidden" data-step="2">
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Prénom</label>
+							<input type="text" name="first_name" required placeholder="Jean" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner" />
+						</div>
+						<div class="space-y-2">
+							<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Nom</label>
+							<input type="text" name="last_name" required placeholder="Dupont" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner" />
+						</div>
+					</div>
+					<div class="space-y-2">
+						<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Téléphone</label>
+						<div class="flex items-center bg-white/5 border border-white/10 rounded-2xl px-5 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all shadow-inner group">
+							<div class="flex items-center gap-2 pr-4 border-r border-white/10 shrink-0 py-4">
+								<span class="text-lg leading-none">🇫🇷</span>
+								<span class="font-black text-sm tracking-tighter opacity-80">+33</span>
+							</div>
+							<input type="tel" name="phone_number" id="phone_number_input" required placeholder="6 12 34 56 78" inputmode="numeric" maxlength="14" class="flex-1 bg-transparent border-none outline-none py-4 pl-4 text-white placeholder:text-slate-600" />
+							<input type="hidden" name="phone_prefix" value="+33" />
+						</div>
+					</div>
+				</div>
+
+				<!-- Step 3: Business -->
+				<div class="step-content space-y-4 hidden" data-step="3">
+					<div class="space-y-2">
+						<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Type d'entreprise</label>
+						<div class="grid grid-cols-2 gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+							<button type="button" class="company-type-btn py-3 text-[9px] font-black uppercase rounded-xl transition-all active bg-indigo-600 shadow-lg shadow-indigo-600/30 text-white" data-value="societe">
+								🏛️ Société
+							</button>
+							<button type="button" class="company-type-btn py-3 text-[9px] font-black uppercase rounded-xl transition-all text-slate-500 hover:text-white hover:bg-white/5" data-value="auto_entrepreneur">
+								👨‍💼 Auto-entrepreneur
+							</button>
+						</div>
+						<input type="hidden" name="company_type" id="company_type" value="societe" />
+					</div>
+					<div class="space-y-2">
+						<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nom de l'entreprise</label>
+						<input type="text" id="company_name_input" name="company_name" required placeholder="Ex: Prestige VTC" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+					</div>
+					<div class="space-y-2">
+						<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Domaine web (prestige-vtc)</label>
+						<input type="text" name="primary_domain" required placeholder="prestige-vtc" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">SIRET (14 chiffres)</label>
+							<input type="text" name="siret" id="siret_input" required placeholder="123 456 789 00012" inputmode="numeric" maxlength="18" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+						</div>
+						<div class="space-y-2">
+							<label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Carte VTC</label>
+							<input type="text" name="vtc_license_number" id="vtc_input" required placeholder="123 456 789" inputmode="numeric" maxlength="15" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+						</div>
+					</div>
+				</div>
+
+				<div class="flex gap-4 pt-4">
+					<button type="button" id="prev-btn" class="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl transition-all opacity-0 pointer-events-none">
+						Retour
+					</button>
+					<button type="button" id="next-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all">
+						Suivant
+					</button>
+					<button type="submit" id="final-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-all hidden relative overflow-hidden group">
+						<span class="btn-text">Finaliser</span>
+						<div class="loader-container hidden absolute inset-0 flex items-center justify-center bg-emerald-600">
+							<svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+						</div>
+					</button>
+				</div>
 			</form>
 
-			<div
-				id="message"
-				class="mt-6 text-center text-sm font-medium min-h-[20px]"
-			>
+			<div id="message" class="mt-6 text-center text-[10px] font-bold uppercase tracking-widest min-h-[20px]">
 			</div>
 		</div>
 	</div>
@@ -106,15 +137,194 @@ import MainLayout from "../layouts/MainLayout.astro";
 <script>
 	import { supabase } from "@/lib/supabase/client";
 
+	let currentStep = 1;
+	const totalSteps = 3;
+
 	const form = document.querySelector("#signup-form") as HTMLFormElement;
+	const contents = document.querySelectorAll(".step-content");
+	const headers = document.querySelectorAll(".step-header");
+	const dots = document.querySelectorAll(".step-dot");
+	const progressBar = document.getElementById("progress-bar") as HTMLDivElement;
+
+	const nextBtn = document.querySelector("#next-btn") as HTMLButtonElement;
+	const prevBtn = document.querySelector("#prev-btn") as HTMLButtonElement;
+	const finalBtn = document.querySelector("#final-btn") as HTMLButtonElement;
+
 	const messageEl = document.querySelector("#message") as HTMLDivElement;
-	const submitBtn = document.querySelector(
-		"#submit-btn",
-	) as HTMLButtonElement;
-	const loader = document.querySelector(
-		".loader-container",
-	) as HTMLDivElement;
+	const loader = document.querySelector(".loader-container") as HTMLDivElement;
 	const btnText = document.querySelector(".btn-text") as HTMLSpanElement;
+
+	const companyTypeBtns = document.querySelectorAll(".company-type-btn");
+	const companyTypeInput = document.getElementById("company_type") as HTMLInputElement;
+
+	const siretInput = document.getElementById("siret_input") as HTMLInputElement;
+	const phoneInput = document.getElementById("phone_number_input") as HTMLInputElement;
+	const vtcInput = document.getElementById("vtc_input") as HTMLInputElement;
+
+	// Visual Formatter Logic
+	const formatInput = (input: HTMLInputElement, spacing: number) => {
+		input?.addEventListener("input", (e: any) => {
+			let cursorPosition = e.target.selectionStart;
+			let value = e.target.value.replace(/[^0-9]/g, "");
+			let formatted = "";
+
+			for (let i = 0; i < value.length; i++) {
+				if (i > 0 && i % spacing === 0) formatted += " ";
+				formatted += value[i];
+			}
+
+			const oldLength = e.target.value.length;
+			e.target.value = formatted;
+			const newLength = formatted.length;
+
+			// Adjust cursor position
+			if (cursorPosition) {
+				cursorPosition += (newLength - oldLength);
+				e.target.setSelectionRange(cursorPosition, cursorPosition);
+			}
+		});
+	};
+
+	// Apply formatters
+	formatInput(phoneInput, 2); // 6 12 34 56 78
+	formatInput(siretInput, 3); // 123 456 789 00012
+	formatInput(vtcInput, 3);   // 123 456 789
+
+	// Handle company type selection
+	companyTypeBtns.forEach(btn => {
+		btn.addEventListener("click", () => {
+			const val = btn.getAttribute("data-value") || "societe";
+			companyTypeInput.value = val;
+
+			companyTypeBtns.forEach(b => {
+				b.classList.remove("active", "bg-indigo-600", "shadow-lg", "shadow-indigo-600/30", "text-white");
+				b.classList.add("text-slate-500", "hover:text-white", "hover:bg-white/5");
+			});
+
+			btn.classList.add("active", "bg-indigo-600", "shadow-lg", "shadow-indigo-600/30", "text-white");
+			btn.classList.remove("text-slate-500", "hover:text-white", "hover:bg-white/5");
+		});
+	});
+
+	let sessionUser: any = null;
+	let existingOnboarding: any = null;
+
+	async function init() {
+		const { data: { user } } = await supabase.auth.getUser();
+		if (user) {
+			sessionUser = user;
+			const emailInput = document.getElementById("email") as HTMLInputElement;
+			const passwordInput = document.getElementById("password") as HTMLInputElement;
+			if (emailInput) {
+				emailInput.value = user.email || "";
+				emailInput.disabled = true;
+			}
+			if (passwordInput) {
+				passwordInput.required = false;
+				(passwordInput.parentElement as HTMLElement).classList.add("hidden");
+			}
+
+			// Check for existing pending onboarding
+			const { data: onboarding } = await supabase
+				.from("onboarding")
+				.select("*")
+				.eq("profile_id", user.id)
+				.maybeSingle();
+
+			if (onboarding) {
+				existingOnboarding = onboarding;
+				// Pre-fill form
+				(document.getElementsByName("first_name")[0] as HTMLInputElement).value = onboarding.first_name || "";
+				(document.getElementsByName("last_name")[0] as HTMLInputElement).value = onboarding.last_name || "";
+				(document.getElementsByName("company_name")[0] as HTMLInputElement).value = onboarding.company_name || "";
+				(document.getElementsByName("primary_domain")[0] as HTMLInputElement).value = onboarding.primary_domain || "";
+				(document.getElementsByName("siret")[0] as HTMLInputElement).value = onboarding.siret || "";
+				(document.getElementsByName("vtc_license_number")[0] as HTMLInputElement).value = onboarding.vtc_license_number || "";
+
+				if (onboarding.company_type) {
+					const btn = document.querySelector(`.company-type-btn[data-value="${onboarding.company_type}"]`) as HTMLButtonElement;
+					if (btn) btn.click();
+				}
+
+				if (onboarding.phone) {
+					// Split phone if it starts with prefix
+					const phone = onboarding.phone;
+					if (phone.startsWith("+33")) {
+						(document.getElementsByName("phone_prefix")[0] as HTMLSelectElement).value = "+33";
+						(document.getElementsByName("phone_number")[0] as HTMLInputElement).value = phone.replace("+33", "");
+					} else if (phone.startsWith("+32")) {
+						(document.getElementsByName("phone_prefix")[0] as HTMLSelectElement).value = "+32";
+						(document.getElementsByName("phone_number")[0] as HTMLInputElement).value = phone.replace("+32", "");
+					} else if (phone.startsWith("+41")) {
+						(document.getElementsByName("phone_prefix")[0] as HTMLSelectElement).value = "+41";
+						(document.getElementsByName("phone_number")[0] as HTMLInputElement).value = phone.replace("+41", "");
+					} else {
+						(document.getElementsByName("phone_number")[0] as HTMLInputElement).value = phone;
+					}
+				}
+			}
+
+			currentStep = 2;
+		}
+		updateUI();
+	}
+
+	function updateUI() {
+		contents.forEach((el) => {
+			const step = parseInt(el.getAttribute("data-step")!);
+			el.classList.toggle("hidden", step !== currentStep);
+		});
+		headers.forEach((el) => {
+			const step = parseInt(el.getAttribute("data-step")!);
+			el.classList.toggle("hidden", step !== currentStep);
+		});
+		dots.forEach((dot) => {
+			const step = parseInt(dot.getAttribute("data-step")!);
+			if (step <= currentStep) {
+				dot.classList.add("border-indigo-500", "bg-indigo-500/10", "text-indigo-400");
+			} else {
+				dot.classList.remove("border-indigo-500", "bg-indigo-500/10", "text-indigo-400");
+			}
+		});
+
+		const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+		progressBar.style.width = `${progress}%`;
+
+		prevBtn.style.opacity = currentStep === 1 ? "0" : "1";
+		prevBtn.style.pointerEvents = currentStep === 1 ? "none" : "auto";
+
+		if (currentStep === totalSteps) {
+			nextBtn.classList.add("hidden");
+			finalBtn.classList.remove("hidden");
+		} else {
+			nextBtn.classList.remove("hidden");
+			finalBtn.classList.add("hidden");
+		}
+	}
+
+	nextBtn.addEventListener("click", () => {
+		// Basic validation for current step
+		const inputs = contents[currentStep - 1].querySelectorAll("input");
+		let valid = true;
+		inputs.forEach(input => {
+			if (!input.checkValidity()) {
+				input.reportValidity();
+				valid = false;
+			}
+		});
+
+		if (valid && currentStep < totalSteps) {
+			currentStep++;
+			updateUI();
+		}
+	});
+
+	prevBtn.addEventListener("click", () => {
+		if (currentStep > 1) {
+			currentStep--;
+			updateUI();
+		}
+	});
 
 	form?.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -124,73 +334,89 @@ import MainLayout from "../layouts/MainLayout.astro";
 		const password = formData.get("password") as string;
 
 		// UI State: Loading
-		submitBtn.disabled = true;
+		finalBtn.disabled = true;
 		loader.classList.remove("hidden");
 		btnText.style.opacity = "0";
-		messageEl.textContent = "";
+		messageEl.textContent = "CRÉATION DU COMPTE...";
+		messageEl.className = "mt-6 text-center text-[10px] font-bold uppercase tracking-widest text-indigo-400";
 
 		try {
-			const { data, error } = await supabase.auth.signUp({
-				email,
-				password,
-			});
+			let userId = sessionUser?.id;
 
-			if (error) {
-				if (
-					error.status === 400 ||
-					error.message.toLowerCase().includes("already registered")
-				) {
-					messageEl.innerHTML = `Utilisateur déjà inscrit. <a href="/login" class="text-indigo-400 font-bold underline">Connecte-toi ici</a>`;
-					messageEl.className =
-						"mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center text-sm font-medium text-amber-400";
-				} else {
-					messageEl.textContent = "Erreur : " + error.message;
-					messageEl.className =
-						"mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-center text-sm font-medium text-red-400";
-				}
-				submitBtn.disabled = false;
-				loader.classList.add("hidden");
-				btnText.style.opacity = "1";
-			} else {
-				// 📧 Envoi email de bienvenue (Non bloquant pour l'UX utilisateur)
-				try {
-					await supabase.functions.invoke("send-email", {
-						body: {
-							to: email,
-							subject: "Bienvenue sur VTC MVP ! 🚀",
-							html: `
-								<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
-									<h1 style="color: #4f46e5;">Bienvenue sur VTC MVP !</h1>
-									<p>Salut,</p>
-									<p>Ton compte vient d'être créé avec succès. Tu peux maintenant commencer ton processus d'onboarding.</p>
-									<a href="${window.location.origin}/onboarding"
-									   style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
-										Commencer mon onboarding
-									</a>
-									<hr style="margin-top: 40px; border: none; border-top: 1px solid #eee;" />
-									<p style="font-size: 12px; color: #666;">Ce mail est envoyé automatiquement par notre plateforme Elite de VTC.</p>
-								</div>
-							`
-						}
-					});
-				} catch (emailErr) {
-					console.error("Email error (silent):", emailErr);
-				}
+			if (!userId) {
+				// 1. Auth SignUp
+				const { data: authData, error: authError } = await supabase.auth.signUp({
+					email,
+					password,
+				});
 
-				messageEl.textContent = "Compte créé ! Redirection...";
-				messageEl.className =
-					"mt-6 text-center text-sm font-medium text-emerald-400";
-
-				window.location.href = "/onboarding";
+				if (authError) throw authError;
+				if (!authData.user) throw new Error("Erreur lors de la création de l'utilisateur");
+				userId = authData.user.id;
 			}
-		} catch (err) {
+
+			messageEl.textContent = existingOnboarding ? "MISE À JOUR DOSSIER..." : "ENREGISTREMENT DOSSIER...";
+
+			// 2. Prepare Onboarding Data
+			const phonePrefix = formData.get("phone_prefix") as string;
+			const phoneNumber = (formData.get("phone_number") as string).replace(/\s/g, "").replace(/[^0-9]/g, "");
+			const fullPhone = `${phonePrefix}${phoneNumber}`;
+
+			const onboardingData: any = {
+				profile_id: userId,
+				first_name: formData.get("first_name") as string,
+				last_name: formData.get("last_name") as string,
+				company_name: formData.get("company_name") as string,
+				primary_domain: formData.get("primary_domain") as string,
+				phone: fullPhone,
+				vtc_license_number: (formData.get("vtc_license_number") as string).replace(/[^0-9]/g, ""),
+				siret: (formData.get("siret") as string).replace(/[^0-9]/g, ""),
+				company_type: formData.get("company_type") as string,
+				status: "pending",
+			};
+
+			// 3. Insert or Update Onboarding Record
+			let res;
+			if (existingOnboarding) {
+				res = await supabase
+					.from("onboarding")
+					.update(onboardingData)
+					.eq("id", existingOnboarding.id);
+			} else {
+				res = await supabase
+					.from("onboarding")
+					.insert(onboardingData);
+			}
+
+			if (res.error) throw res.error;
+
+			// 4. Welcome Email (silent)
+			try {
+				await supabase.functions.invoke("send-email", {
+					body: {
+						to: email,
+						subject: "Inscription VTC MVP Réussie ! 🚀",
+						html: `<h1>Bienvenue !</h1><p>Ton dossier est en cours de validation par nos administrateurs.</p>`
+					}
+				});
+			} catch (e) { console.error("Email fail", e); }
+
+			messageEl.textContent = "SUCCÈS ! REDIRECTION...";
+			messageEl.className = "mt-6 text-center text-[10px] font-bold uppercase tracking-widest text-emerald-400";
+
+			setTimeout(() => {
+				window.location.href = "/waiting-approval";
+			}, 1500);
+
+		} catch (err: any) {
 			console.error(err);
-			messageEl.textContent = "Une erreur technique est survenue.";
-			messageEl.className =
-				"mt-6 text-center text-sm font-medium text-red-400";
-			submitBtn.disabled = false;
+			messageEl.textContent = "ERREUR : " + (err.message || "Technique");
+			messageEl.className = "mt-6 text-center text-[10px] font-bold uppercase tracking-widest text-red-500";
+			finalBtn.disabled = false;
 			loader.classList.add("hidden");
 			btnText.style.opacity = "1";
 		}
 	});
+
+	init();
 </script>
