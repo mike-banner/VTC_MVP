@@ -1,0 +1,8 @@
+{
+  "name": "ux-ui-lead",
+  "version": "1.0.0",
+  "description": "Premium UX/UI Lead for 2026 Tech Stacks",
+  "technologies": ["React", "TypeScript", "Tailwind CSS", "Framer Motion"],
+  "priority": 1,
+  "triggers": ["ui", "component", "design", "css", "frontend", "dashboard"]
+}
