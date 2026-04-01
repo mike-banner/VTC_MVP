@@ -1,7 +1,7 @@
-import Stripe from "npm:stripe";
+import Stripe from 'npm:stripe';
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-  apiVersion: "2024-06-20",
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
+  apiVersion: '2024-06-20',
 });
 
 Deno.serve(async (req) => {
@@ -10,19 +10,16 @@ Deno.serve(async (req) => {
 
     const link = await stripe.accountLinks.create({
       account: account_id,
-      refresh_url: "http://localhost:3000/stripe/refresh",
-      return_url: "http://localhost:3000/stripe/return",
-      type: "account_onboarding",
+      refresh_url: 'http://localhost:3000/stripe/refresh',
+      return_url: 'http://localhost:3000/stripe/return',
+      type: 'account_onboarding',
     });
 
-    return new Response(
-      JSON.stringify({ url: link.url }),
-      { headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ url: link.url }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 },
-    );
+    const error = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error }), { status: 500 });
   }
 });

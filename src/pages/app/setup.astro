@@ -1,6 +1,7 @@
 ---
 // src/pages/app/setup.astro
 import AppLayout from "../../layouts/AppLayout.astro";
+import { createAdminClient } from "../../lib/supabase/server";
 
 const { profile, supabase: supabaseAdmin } = Astro.locals;
 
@@ -20,7 +21,8 @@ if (tenant.setup_completed) return Astro.redirect("/app/dashboard");
 if (Astro.request.method === "POST") {
     try {
         const body = await Astro.request.json();
-        const { error } = await supabaseAdmin
+        const adminClient = createAdminClient();
+        const { error } = await adminClient
             .from("tenants")
             .update({
                 ...body,
@@ -41,93 +43,143 @@ const initialVatExempt = tenant.company_type === 'auto_entrepreneur';
 ---
 
 <AppLayout title="Configuration Légale | VTC HUB">
-    <div class="min-h-screen bg-[#050505] text-white flex items-center justify-center p-4">
-        <div class="w-full max-w-xl">
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <div class="inline-flex p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 mb-4">
-                    <svg class="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="min-h-screen bg-[#050505] text-white py-12 px-6 lg:px-20 overflow-y-auto">
+        <div class="w-full max-w-[1600px]">
+            <!-- Header (Left Aligned, No Centering) -->
+            <div class="flex items-center gap-8 mb-16">
+                <div class="p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20 shadow-2xl shadow-indigo-500/20">
+                    <svg class="w-10 h-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                 </div>
-                <h1 class="text-3xl font-black uppercase tracking-tighter mb-2">Configuration Légale</h1>
-                <p class="text-slate-400 text-sm">Complétez votre profil pour activer la facturation et le dashboard.</p>
+                <div>
+                    <h1 class="text-fluid-4xl font-black uppercase tracking-tighter italic leading-none mb-3">Configuration Légale</h1>
+                    <div class="flex items-center gap-3">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="text-slate-500 text-fluid-xs font-bold uppercase tracking-widest opacity-80">Elite Command Center | Setup v2026</p>
+                    </div>
+                </div>
             </div>
 
-            <!-- Form -->
-            <form id="setup-form" class="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl space-y-6">
+            <!-- Setup Form -->
+            <form id="setup-form" class="space-y-10">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Forme Juridique -->
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Forme Juridique</label>
-                        <div class="relative group">
-                            <select name="legal_form" id="legal_form" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 outline-none appearance-none transition-all cursor-pointer">
-                                <option value="AUTO_ENTREPRENEUR" selected={initialLegalForm === 'AUTO_ENTREPRENEUR'}>Auto-entrepreneur</option>
-                                <option value="SASU" selected={initialLegalForm === 'SASU'}>SASU</option>
-                                <option value="EURL">EURL</option>
-                                <option value="SARL">SARL</option>
-                                <option value="SAS">SAS</option>
-                                <option value="EI">Entreprise Individuelle</option>
-                            </select>
-                            <div class="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
+                    <!-- Section 1 -->
+                    <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <div class="flex items-center gap-4">
+                             <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                             <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Identité Entreprise</h2>
+                        </div>
+
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Forme Juridique</label>
+                            <div class="relative group">
+                                <select name="legal_form" id="legal_form" required class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 outline-none appearance-none transition-all cursor-pointer text-fluid-sm">
+                                    <option value="AUTO_ENTREPRENEUR" selected={initialLegalForm === 'AUTO_ENTREPRENEUR'}>Auto-entrepreneur</option>
+                                    <option value="SASU" selected={initialLegalForm === 'SASU'}>SASU</option>
+                                    <option value="EURL">EURL</option>
+                                    <option value="SARL">SARL</option>
+                                    <option value="SAS">SAS</option>
+                                    <option value="EI">Entreprise Individuelle</option>
+                                </select>
+                                <div class="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">SIRET (14 chiffres)</label>
+                            <input type="text" name="siret" id="siret_input" required value={tenant.siret} placeholder="123 456 789 00012" inputmode="numeric" maxlength="18" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
                         </div>
                     </div>
 
-                    <!-- SIRET -->
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">SIRET (14 chiffres)</label>
-                        <input type="text" name="siret" id="siret_input" required value={tenant.siret} placeholder="123 456 789 00012" inputmode="numeric" maxlength="18" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <!-- Section 2 -->
+                    <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <div class="flex items-center gap-4">
+                             <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                             <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Immatriculation</h2>
+                        </div>
+
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">N° RCS</label>
+                            <input type="text" name="rcs_number" required placeholder="ex: RCS PARIS 123 456 789" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
+                            <p class="text-[8px] font-bold text-slate-600 uppercase tracking-widest px-2 leading-relaxed">Format : Ville + SIREN (ex: RCS PARIS 123456789)</p>
+                        </div>
+
+                        <div id="capital-container" class={initialLegalForm === 'AUTO_ENTREPRENEUR' ? "hidden space-y-3" : "space-y-3"}>
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Capital Social (€)</label>
+                            <input type="number" name="capital_social" id="capital_input" required={initialLegalForm !== 'AUTO_ENTREPRENEUR'} placeholder="ex: 1000" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
+                        </div>
                     </div>
 
-                    <!-- RCS -->
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">RCS (Ville + N°)</label>
-                        <input type="text" name="rcs_number" required placeholder="ex: Paris B 123 456 789" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <!-- Section 3 -->
+                    <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <div class="flex items-center gap-4">
+                             <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                             <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Fiscalité</h2>
+                        </div>
+
+                        <!-- Franchise TVA Toggle -->
+                        <div id="vat-exempt-container" class={initialLegalForm === 'AUTO_ENTREPRENEUR' ? "p-8 bg-white/5 rounded-[1.5rem] border border-white/10 flex items-center justify-between" : "hidden p-8 bg-white/5 rounded-[1.5rem] border border-white/10 flex items-center justify-between"}>
+                            <div>
+                                <p class="text-fluid-xs font-black text-white uppercase tracking-widest mb-1">Franchise TVA</p>
+                                <p class="text-[9px] text-slate-500 uppercase tracking-widest font-black opacity-60">Art. 293 B du CGI</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="is_vat_exempt" id="is_vat_exempt" class="sr-only peer" checked={initialVatExempt} disabled={initialLegalForm === 'AUTO_ENTREPRENEUR'}>
+                                <div class="w-14 h-8 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600 shadow-lg"></div>
+                            </label>
+                        </div>
+
+                        <!-- TVA Number (Format Warning & Constraints) -->
+                        <div id="vat-container" class="space-y-4">
+                            <div class="flex items-center justify-between px-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">N° de TVA Intracommunautaire</label>
+                                <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded">Obligatoire</span>
+                            </div>
+                            <div class="relative group">
+                                <input type="text" name="vat_number" id="vat_input" required={!initialVatExempt} placeholder="FR 00 000 000 000" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
+                                <div class="absolute right-6 top-1/2 -translate-y-1/2 opacity-20">
+                                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4 flex items-start gap-3">
+                                <svg class="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase leading-normal tracking-wider">
+                                    Attention : Format FR + 11 chiffres (ex: FR 12 345 678 901).
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Franchise TVA Toggle -->
-                <div class="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-bold text-white">Franchise en base de TVA</p>
-                        <p class="text-[10px] text-slate-500">Activé pour les Auto-entrepreneurs (Art. 293 B du CGI)</p>
+                <!-- Footer Action (Wide Left) -->
+                <div class="flex items-center justify-between gap-8 p-8 glass rounded-[3rem] border border-indigo-500/20 bg-indigo-500/[0.02]">
+                    <div class="hidden xl:block">
+                        <div class="flex items-center gap-4 text-white/50 mb-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <p class="text-[10px] font-black uppercase tracking-[0.2em]">Sécurisé par VTC HUB</p>
+                        </div>
+                        <p class="text-[11px] font-bold uppercase text-slate-500 tracking-widest opacity-60">Signature numérique & activation immédiate du tableau de bord</p>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="is_vat_exempt" id="is_vat_exempt" class="sr-only peer" checked={initialVatExempt}>
-                        <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
+                    <button type="submit" id="submit-btn" class="w-full md:w-auto px-10 py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-indigo-600 hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-4 group">
+                        <span class="text-xs">Lancer le cockpit</span>
+                        <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
                 </div>
-
-                <!-- TVA Number (Conditional) -->
-                <div id="vat-container" class={initialVatExempt ? "hidden space-y-2" : "space-y-2"}>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Numéro de TVA Intracommunautaire</label>
-                    <input type="text" name="vat_number" placeholder="ex: FR12345678901" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                </div>
-
-                <!-- Capital Social (Conditional) -->
-                <div id="capital-container" class={initialLegalForm === 'AUTO_ENTREPRENEUR' ? "hidden space-y-2" : "space-y-2"}>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Capital Social (€)</label>
-                    <input type="number" name="capital_social" placeholder="ex: 1000" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest py-4 rounded-2xl shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-3 group">
-                    <span>Finaliser mon profil</span>
-                    <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                </button>
             </form>
-
-            <!-- Footer info -->
-            <p class="mt-6 text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-                Données sécurisées & conformité VTC HUB 2026
-            </p>
         </div>
     </div>
 
@@ -138,43 +190,58 @@ const initialVatExempt = tenant.company_type === 'auto_entrepreneur';
         const legalFormSelect = document.getElementById('legal_form') as HTMLSelectElement;
         const capitalContainer = document.getElementById('capital-container');
         const siretInput = document.getElementById('siret_input') as HTMLInputElement;
-        const vatInput = document.getElementsByName('vat_number')[0] as HTMLInputElement;
 
-        // Visual Formatter Logic
         const formatInput = (input: HTMLInputElement, spacing: number) => {
             if (!input) return;
             const handler = (e: any) => {
                 let cursorPosition = e.target.selectionStart;
                 let value = e.target.value.replace(/[^0-9]/g, "");
                 let formatted = "";
-
-                // Special case for VAT (starts with FR)
-                const isVat = input.name === 'vat_number';
-                if (isVat) {
-                    formatted = "FR ";
-                }
-
                 for (let i = 0; i < value.length; i++) {
                     if (i > 0 && i % spacing === 0) formatted += " ";
+                    formatted += value[i];
+                }
+                const oldLength = e.target.value.length;
+                e.target.value = formatted;
+                if (cursorPosition) {
+                    cursorPosition += (formatted.length - oldLength);
+                    e.target.setSelectionRange(cursorPosition, cursorPosition);
+                }
+            };
+            input.addEventListener("input", handler);
+            input.dispatchEvent(new Event('input'));
+        };
+
+        formatInput(siretInput, 3);
+
+        // Specialized VAT Formatter: FR 12 345 678 901
+        const vatInput = document.getElementById('vat_input') as HTMLInputElement;
+        const formatVat = (input: HTMLInputElement) => {
+            if (!input) return;
+            const handler = (e: any) => {
+                let cursorPosition = e.target.selectionStart;
+                let value = e.target.value.replace(/[^0-9]/g, "").substring(0, 11);
+                let formatted = "FR ";
+
+                for (let i = 0; i < value.length; i++) {
+                    if (i === 2 || i === 5 || i === 8) formatted += " ";
                     formatted += value[i];
                 }
 
                 const oldLength = e.target.value.length;
                 e.target.value = formatted;
-                const newLength = formatted.length;
 
                 if (cursorPosition) {
-                    cursorPosition += (newLength - oldLength);
+                    // Offset cursor to account for "FR "
+                    if (cursorPosition <= 3 && value.length > 0) cursorPosition = formatted.length;
+                    else cursorPosition += (formatted.length - oldLength);
                     e.target.setSelectionRange(cursorPosition, cursorPosition);
                 }
             };
             input.addEventListener("input", handler);
-            // Trigger once for initial values
             input.dispatchEvent(new Event('input'));
         };
-
-        formatInput(siretInput, 3);
-        formatInput(vatInput, 3);
+        formatVat(vatInput);
 
         // Logic for VAT Toggle
         vatToggle?.addEventListener('change', () => {
@@ -187,15 +254,27 @@ const initialVatExempt = tenant.company_type === 'auto_entrepreneur';
 
         // Logic for Capital Social based on Legal Form
         legalFormSelect?.addEventListener('change', () => {
-            if (legalFormSelect.value === 'AUTO_ENTREPRENEUR') {
+            const isAuto = legalFormSelect.value === 'AUTO_ENTREPRENEUR';
+            const vatExemptContainer = document.getElementById('vat-exempt-container');
+            const capitalInput = document.getElementById('capital_input') as HTMLInputElement;
+
+            if (isAuto) {
                 capitalContainer?.classList.add('hidden');
+                if (capitalInput) capitalInput.required = false;
+                vatExemptContainer?.classList.remove('hidden');
                 vatToggle.checked = true;
+                vatToggle.disabled = true;
                 vatContainer?.classList.add('hidden');
+                if (vatInput) vatInput.required = false;
             } else {
                 capitalContainer?.classList.remove('hidden');
+                if (capitalInput) capitalInput.required = true;
+                vatExemptContainer?.classList.add('hidden');
                 // Societies usually have VAT
                 vatToggle.checked = false;
+                vatToggle.disabled = false;
                 vatContainer?.classList.remove('hidden');
+                if (vatInput) vatInput.required = true;
             }
         });
 

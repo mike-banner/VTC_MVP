@@ -1,13 +1,13 @@
-import Stripe from "npm:stripe";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Stripe from 'npm:stripe';
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-  apiVersion: "2024-06-20",
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
+  apiVersion: '2024-06-20',
 });
 
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
 Deno.serve(async (req) => {
@@ -15,14 +15,14 @@ Deno.serve(async (req) => {
     const { tenant_id, email } = await req.json();
 
     if (!tenant_id) {
-      throw new Error("tenant_id required");
+      throw new Error('tenant_id required');
     }
 
     // ✅ create connect account
 
     const account = await stripe.accounts.create({
-      type: "express",
-      country: "FR",
+      type: 'express',
+      country: 'FR',
       email,
       capabilities: {
         transfers: { requested: true },
@@ -33,26 +33,24 @@ Deno.serve(async (req) => {
     // ✅ save in tenants
 
     const { error } = await supabase
-      .from("tenants")
+      .from('tenants')
       .update({
         stripe_account_id: account.id,
       })
-      .eq("id", tenant_id);
+      .eq('id', tenant_id);
 
     if (error) {
-      throw new Error("DB update failed");
+      throw new Error('DB update failed');
     }
 
     return new Response(
       JSON.stringify({
         account_id: account.id,
       }),
-      { headers: { "Content-Type": "application/json" } },
+      { headers: { 'Content-Type': 'application/json' } },
     );
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 },
-    );
+    const error = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error }), { status: 500 });
   }
 });
