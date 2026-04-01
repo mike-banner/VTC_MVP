@@ -1,24 +1,26 @@
 // src/components/dashboard/StripeConnectionCard.tsx
 
-import { supabase } from "@/lib/supabase/client";
-import { AlertTriangle, ExternalLink } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { supabase } from '@/lib/supabase/client';
+import { AlertTriangle, ExternalLink } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface StripeConnectionCardProps {
   tenantId: string;
-  monthlyCount: number;
   monthlyRevenue: number;
+  totalCount: number;
+  rating: number;
 }
 
 type StripeStatus = {
-  type: "onboarding" | "dashboard";
+  type: 'onboarding' | 'dashboard';
   url: string;
 };
 
 export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
   tenantId,
-  monthlyCount,
   monthlyRevenue,
+  totalCount,
+  rating,
 }) => {
   const [loading, setLoading] = useState(true);
   const [initialAccountIdMissing, setInitialAccountIdMissing] = useState(false);
@@ -34,21 +36,21 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
         // 1. Charger les infos du tenant
         const { data: tenant, error: tenantError } = await supabase
-          .from("tenants")
-          .select("id, stripe_account_id")
-          .eq("id", tenantId)
+          .from('tenants')
+          .select('id, stripe_account_id')
+          .eq('id', tenantId)
           .limit(1)
           .maybeSingle();
 
         if (tenantError) throw tenantError;
-        if (!tenant) throw new Error("Tenant non trouvé.");
+        if (!tenant) throw new Error('Tenant non trouvé.');
         setStripeAccountId(tenant.stripe_account_id);
         setInitialAccountIdMissing(!tenant.stripe_account_id);
 
         // 2. Appeler la function Stripe
         // Le user précise que Stripe est la source de vérité, on appelle systématiquement
         const { data, error: functionError } = await supabase.functions.invoke(
-          "create-stripe-onboarding",
+          'create-stripe-onboarding',
           {
             body: { tenant_id: tenantId },
           },
@@ -59,10 +61,8 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
         const status = data as StripeStatus;
         setStripeStatus(status);
       } catch (err: any) {
-        console.error("Error loading Stripe status:", err);
-        setError(
-          err.message || "Une erreur est survenue lors du chargement de Stripe",
-        );
+        console.error('Error loading Stripe status:', err);
+        setError(err.message || 'Une erreur est survenue lors du chargement de Stripe');
       } finally {
         setLoading(false);
       }
@@ -75,7 +75,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
   const handleAction = () => {
     if (stripeStatus?.url) {
-      window.open(stripeStatus.url, "_blank");
+      window.open(stripeStatus.url, '_blank');
     }
   };
 
@@ -108,70 +108,81 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
     );
   }
 
-  const isDashboard = stripeStatus?.type === "dashboard";
+  const isDashboard = stripeStatus?.type === 'dashboard';
 
   // Configuration dynamique
-  let title = "";
-  let buttonLabel = "";
+  let title = '';
+  let buttonLabel = '';
 
   if (initialAccountIdMissing) {
-    title = "Connexion Stripe requise";
-    buttonLabel = "Connecter Stripe";
-  } else if (stripeStatus?.type === "onboarding") {
-    title = "Configuration incomplète";
-    buttonLabel = "Finaliser Stripe";
+    title = 'Connexion Stripe requise';
+    buttonLabel = 'Connecter Stripe';
+  } else if (stripeStatus?.type === 'onboarding') {
+    title = 'Configuration incomplète';
+    buttonLabel = 'Finaliser Stripe';
   } else {
-    title = "Compte Stripe actif";
-    buttonLabel = "Dashboard Stripe";
+    title = 'Compte Stripe actif';
+    buttonLabel = 'Dashboard Stripe';
   }
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#0A0A0B]/80 backdrop-blur-xl border rounded-[2rem] px-10 py-8 shadow-2xl transition-all duration-500 group ${
-        isDashboard ? "border-emerald-500/20" : "border-indigo-500/20"
+      className={`relative overflow-hidden bg-[#0A0A0B]/80 backdrop-blur-xl border rounded-[2rem] px-7 py-5 shadow-2xl transition-all duration-500 group ${
+        isDashboard ? 'border-emerald-500/20' : 'border-indigo-500/20'
       }`}>
       {/* Background Glow */}
       <div
         className={`absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-10 rounded-full transition-all duration-700 ${
-          isDashboard ? "bg-emerald-500" : "bg-indigo-500"
+          isDashboard ? 'bg-emerald-500' : 'bg-indigo-500'
         }`}
       />
 
-      <div className='relative flex flex-col md:flex-row md:items-center justify-between gap-10'>
+      <div className='relative flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
         {/* KPIs Section */}
-        <div className='grid grid-cols-2 gap-8 md:gap-12 flex-1'>
-          {/* Col 1: Monthly Count */}
-          <a
-            href='/app/bookings'
-            className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-4 rounded-2xl transition-all'>
+        <div className='grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 flex-1'>
+          {/* Col 1: Total Revenue */}
+          <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all'>
             <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
-              Missions / Mois
-            </p>
-            <div className='flex items-baseline leading-none'>
-              <span className='text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
-                {monthlyCount}
-              </span>
-            </div>
-          </a>
-
-          {/* Col 2: Total Revenue */}
-          <a
-            href='/app/bookings'
-            className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-4 rounded-2xl transition-all'>
-            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
-              Total / Mois
+              Balance
             </p>
             <div className='flex items-baseline gap-1 leading-none'>
-              <span className='text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
-                {monthlyRevenue.toLocaleString("fr-FR", {
+              <span className='text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
+                {monthlyRevenue.toLocaleString('fr-FR', {
                   minimumFractionDigits: 0,
                 })}
               </span>
-              <span className='text-indigo-500 font-black text-base transition-colors leading-none'>
+              <span className='text-indigo-500 font-black text-sm lg:text-base transition-colors leading-none'>
                 €
               </span>
             </div>
-          </a>
+          </div>
+
+          {/* Col 2: Total Mission (All-time) */}
+          <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all border-l border-white/5'>
+            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
+              Total Mission
+            </p>
+            <div className='flex items-baseline leading-none'>
+              <span className='text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
+                {totalCount}
+              </span>
+            </div>
+          </div>
+
+          {/* Col 3: Note */}
+          <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all border-l border-white/5'>
+            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-amber-400 transition-colors'>
+              Note
+            </p>
+            <div className='flex items-baseline gap-1 leading-none'>
+              <span className='text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
+                {rating.toFixed(1)}
+              </span>
+              <span className='text-amber-500 font-black text-xs lg:text-sm transition-colors leading-none'>
+                ★
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Action Section */}
@@ -180,25 +191,25 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
             <div
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors duration-500 ${
                 initialAccountIdMissing
-                  ? "bg-slate-500/10 text-slate-500 border-slate-500/10"
-                  : stripeStatus?.type === "onboarding"
-                    ? "bg-amber-500/10 text-amber-500 border-amber-500/10"
-                    : "bg-emerald-500/10 text-emerald-500 border-emerald-500/10"
+                  ? 'bg-slate-500/10 text-slate-500 border-slate-500/10'
+                  : stripeStatus?.type === 'onboarding'
+                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/10'
+                    : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/10'
               }`}>
               <span
                 className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${
                   initialAccountIdMissing
-                    ? "bg-slate-500"
-                    : stripeStatus?.type === "onboarding"
-                      ? "bg-amber-500"
-                      : "bg-emerald-500"
+                    ? 'bg-slate-500'
+                    : stripeStatus?.type === 'onboarding'
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
                 }`}
               />
               {initialAccountIdMissing
-                ? "Non configuré"
-                : stripeStatus?.type === "onboarding"
-                  ? "En cours"
-                  : "Actif"}
+                ? 'Non configuré'
+                : stripeStatus?.type === 'onboarding'
+                  ? 'En cours'
+                  : 'Actif'}
             </div>
             <h3 className='text-xs font-black uppercase text-white/40 tracking-widest leading-none'>
               Stripe Connect
@@ -210,8 +221,8 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
             disabled={!stripeStatus?.url}
             className={`group relative flex items-center justify-center gap-3 px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 overflow-hidden shrink-0 ${
               isDashboard
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-600/20 border border-emerald-400/20"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/20 border border-indigo-400/20"
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-600/20 border border-emerald-400/20'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-600/20 border border-indigo-400/20'
             }`}>
             {/* Shine effect */}
             <div className='absolute inset-0 w-1/2 h-full bg-white/10 skew-x-[45deg] -translate-x-full group-hover:translate-x-[250%] transition-transform duration-1000' />
