@@ -17,8 +17,10 @@ Ces règles sont sacrées pour le projet VTC HUB.
 ## 🛠️ Qualité & Code
 
 1. **Stricte Isolation** : Toujours vérifier le `tenant_id` dans les requêtes Supabase.
-2. **RLS First** : Toute nouvelle table doit avoir ses politiques RLS définies immédiatement.
-3. **Aesthetics** : Les UI doivent être "Premium" (Vibrant, Dark mode, Glassmorphism).
+2. **Base de Données** : Ne jamais créer ou modifier de migration SQL (`supabase/migrations/`) sans présenter le plan exact et obtenir une validation explicite de Mike.
+3. **Zero Doubt** : Si une instruction est ambiguë, demander clarification plutôt que d'improviser.
+4. **RLS First** : Toute nouvelle table doit avoir ses politiques RLS définies immédiatement.
+5. **Aesthetics** : Les UI doivent être "Premium" (Vibrant, Dark mode, Glassmorphism).
 
 ## 🚀 Git & CI/CD
 

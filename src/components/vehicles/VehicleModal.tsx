@@ -1,7 +1,7 @@
 // src/components/vehicles/VehicleModal.tsx
-import { createVehicle } from "@/services/vehicles";
-import { Car, Plus, X } from "lucide-react";
-import React, { useState } from "react";
+import { createVehicle } from '@/services/vehicles';
+import { Car, Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface VehicleModalProps {
   tenantId: string;
@@ -27,12 +27,12 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
     const formData = new FormData(e.currentTarget);
     const vehicleData = {
       tenant_id: tenantId,
-      brand: formData.get("brand") as string,
-      model: formData.get("model") as string,
-      plate_number: formData.get("plate_number") as string,
-      category: formData.get("category") as string,
-      capacity: parseInt(formData.get("capacity") as string) || 4,
-      status: "active",
+      brand: formData.get('brand') as string,
+      model: formData.get('model') as string,
+      plate_number: formData.get('plate_number') as string,
+      category: formData.get('category') as string,
+      capacity: parseInt(formData.get('capacity') as string) || 4,
+      status: 'active',
     };
 
     try {
@@ -40,7 +40,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Une erreur est survenue");
+      setError(err.message || 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -81,8 +81,8 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
           <div className='grid grid-cols-2 gap-6'>
             <div className='space-y-2'>
               <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
-                {" "}
-                Marque{" "}
+                {' '}
+                Marque{' '}
               </label>
               <input
                 name='brand'
@@ -93,8 +93,8 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
             </div>
             <div className='space-y-2'>
               <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
-                {" "}
-                Modèle{" "}
+                {' '}
+                Modèle{' '}
               </label>
               <input
                 name='model'
@@ -107,8 +107,8 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
 
           <div className='space-y-2'>
             <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
-              {" "}
-              Plaque d'immatriculation{" "}
+              {' '}
+              Plaque d'immatriculation{' '}
             </label>
             <input
               name='plate_number'
@@ -121,34 +121,39 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
           <div className='grid grid-cols-2 gap-6'>
             <div className='space-y-2'>
               <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
-                {" "}
-                Catégorie{" "}
+                {' '}
+                Catégorie{' '}
               </label>
-              <select
-                name='category'
-                required
-                className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-indigo-500 transition-all appearance-none'>
-                <option value='berline' className='bg-black text-white'>
-                  Berline
-                </option>
-                <option value='van' className='bg-black text-white'>
-                  Van
-                </option>
-                <option value='suv' className='bg-black text-white'>
-                  SUV
-                </option>
-                <option value='minibus' className='bg-black text-white'>
-                  Minibus
-                </option>
-                <option value='luxury' className='bg-black text-white'>
-                  Luxe
-                </option>
-              </select>
+              <div className='relative group'>
+                <select
+                  name='category'
+                  required
+                  className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer'>
+                  <option value='berline' className='bg-[#050505] text-white'>
+                    Berline
+                  </option>
+                  <option value='van' className='bg-[#050505] text-white'>
+                    Van
+                  </option>
+                  <option value='suv' className='bg-[#050505] text-white'>
+                    SUV
+                  </option>
+                  <option value='minibus' className='bg-[#050505] text-white'>
+                    Minibus
+                  </option>
+                  <option value='luxury' className='bg-[#050505] text-white'>
+                    Luxe
+                  </option>
+                </select>
+                <div className='absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors'>
+                  <Plus className='w-4 h-4 rotate-45 transform' />
+                </div>
+              </div>
             </div>
             <div className='space-y-2'>
               <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
-                {" "}
-                Passagers{" "}
+                {' '}
+                Passagers{' '}
               </label>
               <input
                 name='capacity'

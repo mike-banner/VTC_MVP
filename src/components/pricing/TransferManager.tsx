@@ -6,39 +6,26 @@ import {
   getFixedRoutes,
   getZones,
   updateFixedRoute,
-} from "@/services/pricing";
-import {
-  ArrowRightLeft,
-  Edit,
-  Loader2,
-  MapPin,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
-import React, { useEffect, useState } from "react";
+} from '@/services/pricing';
+import { ArrowRightLeft, Edit, Loader2, MapPin, Plus, Trash2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
-const VEHICLE_CATEGORIES = ["berline", "van", "suv", "minibus", "luxury"];
+const VEHICLE_CATEGORIES = ['berline', 'van', 'suv', 'minibus', 'luxury'];
 
-export const TransferManager: React.FC<{ tenantId: string }> = ({
-  tenantId,
-}) => {
+export const TransferManager: React.FC<{ tenantId: string }> = ({ tenantId }) => {
   const [zones, setZones] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [showRouteModal, setShowRouteModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState<any>(null);
-  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneName, setNewZoneName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [z, r] = await Promise.all([
-        getZones(tenantId),
-        getFixedRoutes(tenantId),
-      ]);
+      const [z, r] = await Promise.all([getZones(tenantId), getFixedRoutes(tenantId)]);
       setZones(z);
       setRoutes(r);
     } catch (err) {
@@ -58,11 +45,11 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
     try {
       setSubmitting(true);
       await createZone(tenantId, newZoneName);
-      setNewZoneName("");
+      setNewZoneName('');
       setShowZoneModal(false);
       fetchData();
     } catch (err) {
-      alert("Erreur lors de la création de la zone");
+      alert('Erreur lors de la création de la zone');
     } finally {
       setSubmitting(false);
     }
@@ -77,11 +64,11 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
 
       const payload = {
         tenant_id: tenantId,
-        pickup_zone_id: formData.get("pickup") as string,
-        dropoff_zone_id: formData.get("dropoff") as string,
-        vehicle_category: formData.get("category") as string,
-        price: parseFloat(formData.get("price") as string),
-        is_bidirectional: formData.get("bidirectional") === "on",
+        pickup_zone_id: formData.get('pickup') as string,
+        dropoff_zone_id: formData.get('dropoff') as string,
+        vehicle_category: formData.get('category') as string,
+        price: parseFloat(formData.get('price') as string),
+        is_bidirectional: formData.get('bidirectional') === 'on',
       };
 
       if (editingRoute) {
@@ -95,14 +82,14 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
       fetchData();
     } catch (err: any) {
       console.error(err);
-      alert("Erreur lors de la sauvegarde du forfait.");
+      alert('Erreur lors de la sauvegarde du forfait.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteRoute = async (id: string) => {
-    if (window.confirm("Supprimer ce forfait ?")) {
+    if (window.confirm('Supprimer ce forfait ?')) {
       await deleteFixedRoute(id);
       fetchData();
     }
@@ -115,15 +102,12 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
     };
     const openZoneModal = () => setShowZoneModal(true);
 
-    window.addEventListener("pricing:open-transfer-modal", openTransferModal);
-    window.addEventListener("pricing:open-zone-modal", openZoneModal);
+    window.addEventListener('pricing:open-transfer-modal', openTransferModal);
+    window.addEventListener('pricing:open-zone-modal', openZoneModal);
 
     return () => {
-      window.removeEventListener(
-        "pricing:open-transfer-modal",
-        openTransferModal,
-      );
-      window.removeEventListener("pricing:open-zone-modal", openZoneModal);
+      window.removeEventListener('pricing:open-transfer-modal', openTransferModal);
+      window.removeEventListener('pricing:open-zone-modal', openZoneModal);
     };
   }, []);
 
@@ -220,9 +204,7 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
               className='absolute top-8 right-8 text-slate-500 hover:text-white'>
               <X className='w-6 h-6' />
             </button>
-            <h3 className='text-2xl font-black uppercase text-white mb-2'>
-              Zones
-            </h3>
+            <h3 className='text-2xl font-black uppercase text-white mb-2'>Zones</h3>
             <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-8'>
               Définissez vos points de départ/arrivée (ex: Paris, CDG)
             </p>
@@ -270,7 +252,7 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
               <X className='w-6 h-6' />
             </button>
             <h3 className='text-3xl font-black uppercase text-white mb-1'>
-              {editingRoute ? "Modifier" : "Nouveau"} Forfait
+              {editingRoute ? 'Modifier' : 'Nouveau'} Forfait
             </h3>
             <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-10'>
               Configuration d'un prix point à point
@@ -282,39 +264,49 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
                   <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
                     Départ
                   </label>
-                  <select
-                    name='pickup'
-                    defaultValue={editingRoute?.pickup_zone_id}
-                    required
-                    className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-5 text-white font-bold text-sm appearance-none outline-none focus:border-indigo-500 uppercase'>
-                    <option value='' className='bg-black text-slate-500'>
-                      SÉLECTIONNER
-                    </option>
-                    {zones.map((z) => (
-                      <option key={z.id} value={z.id} className='bg-black'>
-                        {z.name}
+                  <div className='relative group'>
+                    <select
+                      name='pickup'
+                      defaultValue={editingRoute?.pickup_zone_id}
+                      required
+                      className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-5 text-white font-bold text-sm appearance-none outline-none focus:border-indigo-500 uppercase cursor-pointer'>
+                      <option value='' className='bg-[#050505] text-slate-500'>
+                        SÉLECTIONNER
                       </option>
-                    ))}
-                  </select>
+                      {zones.map((z) => (
+                        <option key={z.id} value={z.id} className='bg-[#050505]'>
+                          {z.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className='absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors'>
+                      <Plus className='w-4 h-4 rotate-45 transform' />
+                    </div>
+                  </div>
                 </div>
                 <div className='space-y-2'>
                   <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
                     Arrivée
                   </label>
-                  <select
-                    name='dropoff'
-                    defaultValue={editingRoute?.dropoff_zone_id}
-                    required
-                    className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-5 text-white font-bold text-sm appearance-none outline-none focus:border-indigo-500 uppercase'>
-                    <option value='' className='bg-black text-slate-500'>
-                      SÉLECTIONNER
-                    </option>
-                    {zones.map((z) => (
-                      <option key={z.id} value={z.id} className='bg-black'>
-                        {z.name}
+                  <div className='relative group'>
+                    <select
+                      name='dropoff'
+                      defaultValue={editingRoute?.dropoff_zone_id}
+                      required
+                      className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-5 text-white font-bold text-sm appearance-none outline-none focus:border-indigo-500 uppercase cursor-pointer'>
+                      <option value='' className='bg-[#050505] text-slate-500'>
+                        SÉLECTIONNER
                       </option>
-                    ))}
-                  </select>
+                      {zones.map((z) => (
+                        <option key={z.id} value={z.id} className='bg-[#050505]'>
+                          {z.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className='absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors'>
+                      <Plus className='w-4 h-4 rotate-45 transform' />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -323,17 +315,22 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
                   <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
                     Véhicule
                   </label>
-                  <select
-                    name='category'
-                    defaultValue={editingRoute?.vehicle_category}
-                    required
-                    className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-5 text-white font-bold text-sm appearance-none outline-none focus:border-indigo-500 uppercase'>
-                    {VEHICLE_CATEGORIES.map((c) => (
-                      <option key={c} value={c} className='bg-black'>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  <div className='relative group'>
+                    <select
+                      name='category'
+                      defaultValue={editingRoute?.vehicle_category}
+                      required
+                      className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-5 text-white font-bold text-sm appearance-none outline-none focus:border-indigo-500 uppercase cursor-pointer'>
+                      {VEHICLE_CATEGORIES.map((c) => (
+                        <option key={c} value={c} className='bg-[#050505]'>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <div className='absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors'>
+                      <Plus className='w-4 h-4 rotate-45 transform' />
+                    </div>
+                  </div>
                 </div>
                 <div className='space-y-2'>
                   <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
@@ -358,9 +355,7 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
                     name='bidirectional'
                     id='bidirectional'
                     className='sr-only peer'
-                    defaultChecked={
-                      editingRoute ? editingRoute.is_bidirectional : true
-                    }
+                    defaultChecked={editingRoute ? editingRoute.is_bidirectional : true}
                   />
                   <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
@@ -376,8 +371,8 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({
                   <Loader2 className='w-6 h-6 animate-spin' />
                 ) : (
                   <>
-                    <Plus className='w-5 h-5' />{" "}
-                    {editingRoute ? "Mettre à jour" : "Enregistrer"} le Forfait
+                    <Plus className='w-5 h-5' /> {editingRoute ? 'Mettre à jour' : 'Enregistrer'} le
+                    Forfait
                   </>
                 )}
               </button>
