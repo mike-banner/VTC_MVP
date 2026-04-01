@@ -22,178 +22,359 @@ if (Astro.request.method === "POST") {
     try {
         const body = await Astro.request.json();
         const adminClient = createAdminClient();
-        const { error } = await adminClient
+
+        const { legal, vehicle, pricing } = body;
+
+        let driverId = null;
+        if (vehicle.is_primary_driver) {
+            // Upsert Driver
+            const { data: driver, error: driverError } = await adminClient
+                .from("drivers")
+                .upsert({
+                    user_id: profile.id,
+                    tenant_id: profile.tenant_id!,
+                    first_name: profile.first_name || '',
+                    last_name: profile.last_name || '',
+                    phone: tenant.phone || '',
+                    license_number: legal.vtc_license_number
+                }, { onConflict: 'user_id' })
+                .select("id")
+                .single();
+
+            if (driverError) throw driverError;
+            driverId = driver.id;
+        }
+
+        // 1. Update Tenant (Exclure vtc_license_number qui va dans la table drivers)
+        const { vtc_license_number, ...tenantData } = legal;
+        const { error: tenantError } = await adminClient
             .from("tenants")
             .update({
-                ...body,
+                ...tenantData,
                 setup_completed: true
             })
             .eq("id", profile.tenant_id!);
+        if (tenantError) throw tenantError;
 
-        if (error) throw error;
+        // 2. Insert First Vehicle
+        const { error: vehicleError } = await adminClient
+            .from("vehicles")
+            .insert({
+                tenant_id: profile.tenant_id!,
+                driver_id: driverId,
+                brand: vehicle.brand,
+                model: vehicle.model,
+                plate_number: vehicle.plate_number,
+                category: vehicle.category,
+                capacity: parseInt(vehicle.capacity),
+                luggage_capacity: parseInt(vehicle.luggage_capacity),
+                status: 'active'
+            });
+        if (vehicleError) throw vehicleError;
+
+        // 3. Insert Default Pricing Rule
+        const { error: pricingError } = await adminClient
+            .from("pricing_rules")
+            .insert({
+                tenant_id: profile.tenant_id!,
+                service_category: vehicle.category,
+                base_price: parseFloat(pricing.base_price),
+                price_per_km: parseFloat(pricing.price_per_km),
+                minimum_fare: parseFloat(pricing.minimum_fare),
+                active: true
+            });
+        if (pricingError) throw pricingError;
+
         return new Response(JSON.stringify({ success: true }), { status: 200 });
     } catch (err: any) {
+        console.error("Setup Error:", err);
         return new Response(JSON.stringify({ error: err.message }), { status: 500 });
     }
 }
 
-// Initial values based on company_type from onboarding
-const initialLegalForm = tenant.company_type === 'auto_entrepreneur' ? 'AUTO_ENTREPRENEUR' : 'SASU';
-const initialVatExempt = tenant.company_type === 'auto_entrepreneur';
+// Initial values based on legal_form
+const initialLegalForm = tenant.legal_form || (tenant.company_type === 'auto_entrepreneur' ? 'auto_entrepreneur' : 'sasu');
+const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
 ---
 
-<AppLayout title="Configuration Légale | VTC HUB">
+<AppLayout title="Configuration Cockpit | VTC HUB">
     <div class="min-h-screen bg-[#050505] text-white py-12 px-6 lg:px-20 overflow-y-auto">
-        <div class="w-full max-w-[1600px]">
-            <!-- Header (Left Aligned, No Centering) -->
-            <div class="flex items-center gap-8 mb-16">
-                <div class="p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20 shadow-2xl shadow-indigo-500/20">
-                    <svg class="w-10 h-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
+        <div class="w-full max-w-[1400px] mx-auto">
+            <!-- Step Indicators -->
+            <div class="flex justify-between mb-16 relative px-4 max-w-2xl">
+                <div class="absolute top-1/2 left-0 w-full h-0.5 bg-white/5 -translate-y-1/2"></div>
+                <div id="progress-bar" class="absolute top-1/2 left-0 h-0.5 bg-indigo-500 -translate-y-1/2 transition-all duration-500 ease-in-out" style="width: 0%"></div>
+                {
+                    [1, 2, 3].map((step) => (
+                        <div
+                            class="step-dot w-12 h-12 rounded-2xl glass border border-white/10 flex items-center justify-center text-xs font-black z-10 transition-all duration-500"
+                            data-step={step}
+                        >
+                            {step}
+                        </div>
+                    ))
+                }
+            </div>
+
+            <div class="mb-12">
+                <div class="step-header" data-step="1">
+                    <h1 class="text-fluid-4xl font-black uppercase tracking-tighter italic leading-none mb-3">Identité Légale</h1>
+                    <p class="text-slate-500 text-fluid-xs font-bold uppercase tracking-widest opacity-80">Validation des informations juridiques</p>
                 </div>
-                <div>
-                    <h1 class="text-fluid-4xl font-black uppercase tracking-tighter italic leading-none mb-3">Configuration Légale</h1>
-                    <div class="flex items-center gap-3">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p class="text-slate-500 text-fluid-xs font-bold uppercase tracking-widest opacity-80">Elite Command Center | Setup v2026</p>
-                    </div>
+                <div class="step-header hidden" data-step="2">
+                    <h1 class="text-fluid-4xl font-black uppercase tracking-tighter italic leading-none mb-3">Ton Véhicule</h1>
+                    <p class="text-slate-500 text-fluid-xs font-bold uppercase tracking-widest opacity-80">Configuration de ta monture principale</p>
+                </div>
+                <div class="step-header hidden" data-step="3">
+                    <h1 class="text-fluid-4xl font-black uppercase tracking-tighter italic leading-none mb-3">Tarification</h1>
+                    <p class="text-slate-500 text-fluid-xs font-bold uppercase tracking-widest opacity-80">Configuration de ta rentabilité</p>
                 </div>
             </div>
 
             <!-- Setup Form -->
             <form id="setup-form" class="space-y-10">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-
-                    <!-- Section 1 -->
-                    <div class="glass p-10 rounded-[3rem] space-y-8">
-                        <div class="flex items-center gap-4">
-                             <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                             <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Identité Entreprise</h2>
-                        </div>
-
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Forme Juridique</label>
-                            <div class="relative group">
-                                <select name="legal_form" id="legal_form" required class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 outline-none appearance-none transition-all cursor-pointer text-fluid-sm">
-                                    <option value="AUTO_ENTREPRENEUR" selected={initialLegalForm === 'AUTO_ENTREPRENEUR'}>Auto-entrepreneur</option>
-                                    <option value="SASU" selected={initialLegalForm === 'SASU'}>SASU</option>
-                                    <option value="EURL">EURL</option>
-                                    <option value="SARL">SARL</option>
-                                    <option value="SAS">SAS</option>
-                                    <option value="EI">Entreprise Individuelle</option>
+                <!-- Step 1: Legal -->
+                <div class="step-content space-y-10" data-step="1">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Identité Entreprise</h2>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Forme Juridique</label>
+                                <select name="legal_form" id="legal_form" required class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none appearance-none cursor-pointer">
+                                    <option value="auto_entrepreneur" selected={initialLegalForm === 'auto_entrepreneur'}>Auto-entrepreneur</option>
+                                    <option value="sasu" selected={initialLegalForm === 'sasu'}>SASU</option>
+                                    <option value="eurl">EURL</option>
+                                    <option value="sarl">SARL</option>
+                                    <option value="sas">SAS</option>
+                                    <option value="ei">Entreprise Individuelle</option>
                                 </select>
-                                <div class="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">SIRET</label>
+                                <input type="text" name="siret" id="siret_input" required value={tenant.siret} placeholder="123 456 789 00012" pattern="[0-9 ]{14,18}" maxlength="18" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:ring-2 focus:ring-indigo-500/50" />
                             </div>
                         </div>
 
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">SIRET (14 chiffres)</label>
-                            <input type="text" name="siret" id="siret_input" required value={tenant.siret} placeholder="123 456 789 00012" inputmode="numeric" maxlength="18" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
-                        </div>
-                    </div>
-
-                    <!-- Section 2 -->
-                    <div class="glass p-10 rounded-[3rem] space-y-8">
-                        <div class="flex items-center gap-4">
-                             <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                             <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Immatriculation</h2>
-                        </div>
-
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">N° RCS</label>
-                            <input type="text" name="rcs_number" required placeholder="ex: RCS PARIS 123 456 789" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
-                            <p class="text-[8px] font-bold text-slate-600 uppercase tracking-widest px-2 leading-relaxed">Format : Ville + SIREN (ex: RCS PARIS 123456789)</p>
-                        </div>
-
-                        <div id="capital-container" class={initialLegalForm === 'AUTO_ENTREPRENEUR' ? "hidden space-y-3" : "space-y-3"}>
-                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Capital Social (€)</label>
-                            <input type="number" name="capital_social" id="capital_input" required={initialLegalForm !== 'AUTO_ENTREPRENEUR'} placeholder="ex: 1000" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
-                        </div>
-                    </div>
-
-                    <!-- Section 3 -->
-                    <div class="glass p-10 rounded-[3rem] space-y-8">
-                        <div class="flex items-center gap-4">
-                             <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                             <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Fiscalité</h2>
-                        </div>
-
-                        <!-- Franchise TVA Toggle -->
-                        <div id="vat-exempt-container" class={initialLegalForm === 'AUTO_ENTREPRENEUR' ? "p-8 bg-white/5 rounded-[1.5rem] border border-white/10 flex items-center justify-between" : "hidden p-8 bg-white/5 rounded-[1.5rem] border border-white/10 flex items-center justify-between"}>
-                            <div>
-                                <p class="text-fluid-xs font-black text-white uppercase tracking-widest mb-1">Franchise TVA</p>
-                                <p class="text-[9px] text-slate-500 uppercase tracking-widest font-black opacity-60">Art. 293 B du CGI</p>
+                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Immatriculation</h2>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="is_vat_exempt" id="is_vat_exempt" class="sr-only peer" checked={initialVatExempt} disabled={initialLegalForm === 'AUTO_ENTREPRENEUR'}>
-                                <div class="w-14 h-8 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600 shadow-lg"></div>
-                            </label>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">N° RCS</label>
+                                <input type="text" name="rcs_number" id="rcs_input" required placeholder="RCS PARIS 123 456 789" pattern="RCS [A-ZÀ-ÿ\-\s]+ [0-9 ]{9,14}" maxlength="30" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:ring-2 focus:ring-indigo-500/50" />
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">N° Carte Pro VTC (12 chiffres)</label>
+                                <input type="text" name="vtc_license_number" id="vtc_input" required placeholder="123 456 789 012" pattern="[0-9 ]{14,15}" maxlength="15" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:ring-2 focus:ring-indigo-500/50" />
+                            </div>
+                            <div id="capital-container" class={initialLegalForm === 'auto_entrepreneur' ? "hidden space-y-3" : "space-y-3"}>
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Capital Social (€)</label>
+                                <input type="number" name="capital_social" id="capital_input" min="0" required={initialLegalForm !== 'auto_entrepreneur'} placeholder="1000" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white" />
+                            </div>
                         </div>
 
-                        <!-- TVA Number (Format Warning & Constraints) -->
-                        <div id="vat-container" class="space-y-4">
-                            <div class="flex items-center justify-between px-2">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">N° de TVA Intracommunautaire</label>
-                                <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded">Obligatoire</span>
+                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Fiscalité</h2>
                             </div>
-                            <div class="relative group">
-                                <input type="text" name="vat_number" id="vat_input" required={!initialVatExempt} placeholder="FR 00 000 000 000" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-fluid-sm" />
-                                <div class="absolute right-6 top-1/2 -translate-y-1/2 opacity-20">
-                                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                </div>
+                            <div id="vat-exempt-container" class={initialLegalForm === 'auto_entrepreneur' ? "p-8 bg-white/5 rounded-[1.5rem] border border-white/10 flex items-center justify-between" : "hidden p-8 bg-white/5 rounded-[1.5rem] border border-white/10 flex items-center justify-between"}>
+                                <p class="text-[10px] font-black text-white uppercase tracking-widest">Franchise TVA</p>
+                                <input type="checkbox" name="is_vat_exempt" id="is_vat_exempt" class="w-6 h-6 rounded bg-indigo-500" checked={initialVatExempt} />
                             </div>
-                            <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4 flex items-start gap-3">
-                                <svg class="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                <p class="text-[9px] font-bold text-slate-400 uppercase leading-normal tracking-wider">
-                                    Attention : Format FR + 11 chiffres (ex: FR 12 345 678 901).
-                                </p>
+                            <div id="vat-container" class={initialVatExempt ? "hidden space-y-3" : "space-y-3"}>
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">N° TVA Intracommunautaire</label>
+                                <input type="text" name="vat_number" id="vat_input" required={!initialVatExempt} pattern="FR [0-9 ]{11,14}" placeholder="FR 12 345 678 901" class="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Footer Action (Wide Left) -->
-                <div class="flex items-center justify-between gap-8 p-8 glass rounded-[3rem] border border-indigo-500/20 bg-indigo-500/[0.02]">
-                    <div class="hidden xl:block">
-                        <div class="flex items-center gap-4 text-white/50 mb-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                            <p class="text-[10px] font-black uppercase tracking-[0.2em]">Sécurisé par VTC HUB</p>
+                <!-- Step 2: Vehicle -->
+                <div class="step-content hidden space-y-10" data-step="2">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Détails Véhicule</h2>
+                            </div>
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="space-y-3">
+                                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Marque</label>
+                                    <input type="text" name="brand" required placeholder="Mercedes-Benz" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4" />
+                                </div>
+                                <div class="space-y-3">
+                                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Modèle</label>
+                                    <input type="text" name="model" required placeholder="Classe E" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4" />
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Immatriculation</label>
+                                <input type="text" name="plate_number" id="plate_input" required placeholder="AA-123-BB" pattern="[A-Z0-9-]{7,10}" maxlength="10" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4" />
+                            </div>
                         </div>
-                        <p class="text-[11px] font-bold uppercase text-slate-500 tracking-widest opacity-60">Signature numérique & activation immédiate du tableau de bord</p>
+
+                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Configuration Service</h2>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Catégorie de Service</label>
+                                <select name="category" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none appearance-none">
+                                    <option value="berline">Berline Standard</option>
+                                    <option value="business">Business Class</option>
+                                    <option value="van">Van / 7 Places</option>
+                                    <option value="first">First Class</option>
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Capacité Passagers</label>
+                                <input type="number" name="capacity" required value="4" min="1" max="8" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4" />
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Capacité Bagages (Sacs standard)</label>
+                                <input type="number" name="luggage_capacity" required value="3" min="1" max="10" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4" />
+                            </div>
+                            <label class="flex items-center gap-4 p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 cursor-pointer hover:bg-indigo-500/10 transition-all group">
+                                <div class="relative w-6 h-6">
+                                    <input type="checkbox" name="is_primary_driver" checked class="peer sr-only" />
+                                    <div class="w-6 h-6 rounded-lg bg-white/5 border border-white/10 peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-all flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                                            <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest group-hover:text-indigo-300 transition-all">Je suis le premier chauffeur de mon entreprise</span>
+                            </label>
+                        </div>
                     </div>
-                    <button type="submit" id="submit-btn" class="w-full md:w-auto px-10 py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-indigo-600 hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-4 group">
-                        <span class="text-xs">Lancer le cockpit</span>
-                        <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </button>
+                </div>
+
+                <!-- Step 3: Pricing -->
+                <div class="step-content hidden space-y-10" data-step="3">
+                    <div class="glass p-10 rounded-[3rem] space-y-10 max-w-3xl">
+                        <div class="flex items-center gap-4">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                            <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Grille Tarifaire (TTC)</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 text-center block">Prise en charge (€)</label>
+                                <input type="number" name="base_price" required value="15" min="0" step="0.5" class="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-center text-4xl font-black text-indigo-400" />
+                            </div>
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 text-center block">Prix au KM (€)</label>
+                                <input type="number" name="price_per_km" required value="2.5" min="0" step="0.1" class="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-center text-4xl font-black text-indigo-400" />
+                            </div>
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 text-center block">Minimum (€)</label>
+                                <input type="number" name="minimum_fare" required value="45" min="0" step="1" class="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-center text-4xl font-black text-indigo-400" />
+                            </div>
+                        </div>
+                        <div class="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+                            <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest leading-relaxed">
+                                Les tarifs sont exprimés en TTC. Tu pourras les affiner par zone et par heure dans ton cockpit après la configuration.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-between gap-8 p-8 glass rounded-[3rem] border border-white/5">
+                    <button type="button" id="prev-btn" class="px-10 py-5 bg-white/5 text-white font-black uppercase tracking-widest rounded-2xl opacity-0 pointer-events-none transition-all">Retour</button>
+                    <div class="flex items-center gap-6">
+                        <button type="button" id="next-btn" class="px-10 py-5 bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-500 transition-all">Suivant</button>
+                        <button type="submit" id="final-btn" class="hidden px-10 py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-emerald-500 hover:text-white transition-all transform hover:scale-[1.05]">Activer mon cockpit</button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        let currentStep = 1;
+        const totalSteps = 3;
+
         const form = document.getElementById('setup-form') as HTMLFormElement;
-        const vatToggle = document.getElementById('is_vat_exempt') as HTMLInputElement;
-        const vatContainer = document.getElementById('vat-container');
-        const legalFormSelect = document.getElementById('legal_form') as HTMLSelectElement;
-        const capitalContainer = document.getElementById('capital-container');
+        const contents = document.querySelectorAll('.step-content');
+        const headers = document.querySelectorAll('.step-header');
+        const dots = document.querySelectorAll('.step-dot');
+        const progressBar = document.getElementById('progress-bar') as HTMLDivElement;
+        const prevBtn = document.getElementById('prev-btn') as HTMLButtonElement;
+        const nextBtn = document.getElementById('next-btn') as HTMLButtonElement;
+        const finalBtn = document.getElementById('final-btn') as HTMLButtonElement;
+
+        function updateUI() {
+            contents.forEach((el, index) => {
+                el.classList.toggle('hidden', index + 1 !== currentStep);
+            });
+            headers.forEach((el, index) => {
+                el.classList.toggle('hidden', index + 1 !== currentStep);
+            });
+            dots.forEach((dot, index) => {
+                if (index + 1 <= currentStep) {
+                    dot.classList.add('border-indigo-500', 'text-indigo-400');
+                    dot.classList.remove('opacity-50');
+                } else {
+                    dot.classList.remove('border-indigo-500', 'text-indigo-400');
+                    dot.classList.add('opacity-50');
+                }
+            });
+
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            prevBtn.style.opacity = currentStep === 1 ? '0' : '1';
+            prevBtn.style.pointerEvents = currentStep === 1 ? 'none' : 'auto';
+
+            if (currentStep === totalSteps) {
+                nextBtn.classList.add('hidden');
+                finalBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                finalBtn.classList.add('hidden');
+            }
+        }
+
+        nextBtn.addEventListener('click', () => {
+            const inputs = contents[currentStep - 1].querySelectorAll('input, select');
+            let valid = true;
+            inputs.forEach((input: any) => {
+                if (!input.checkValidity()) {
+                    input.reportValidity();
+                    valid = false;
+                }
+            });
+            if (valid && currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        });
+
+        // Form Formatters
         const siretInput = document.getElementById('siret_input') as HTMLInputElement;
+        const vatInput = document.getElementById('vat_input') as HTMLInputElement;
+        const rcsInput = document.getElementById('rcs_input') as HTMLInputElement;
+        const vtcInput = document.getElementById('vtc_input') as HTMLInputElement;
+        const plateInput = document.getElementById('plate_input') as HTMLInputElement;
+        const vatToggle = document.getElementById('is_vat_exempt') as HTMLInputElement;
+        const legalFormSelect = document.getElementById('legal_form') as HTMLSelectElement;
 
         const formatInput = (input: HTMLInputElement, spacing: number) => {
             if (!input) return;
-            const handler = (e: any) => {
+            input.addEventListener("input", (e: any) => {
                 let cursorPosition = e.target.selectionStart;
                 let value = e.target.value.replace(/[^0-9]/g, "");
                 let formatted = "";
@@ -203,105 +384,107 @@ const initialVatExempt = tenant.company_type === 'auto_entrepreneur';
                 }
                 const oldLength = e.target.value.length;
                 e.target.value = formatted;
+                const newLength = formatted.length;
                 if (cursorPosition) {
-                    cursorPosition += (formatted.length - oldLength);
+                    cursorPosition += (newLength - oldLength);
                     e.target.setSelectionRange(cursorPosition, cursorPosition);
                 }
-            };
-            input.addEventListener("input", handler);
-            input.dispatchEvent(new Event('input'));
+            });
         };
-
         formatInput(siretInput, 3);
+        formatInput(vtcInput, 3);
 
-        // Specialized VAT Formatter: FR 12 345 678 901
-        const vatInput = document.getElementById('vat_input') as HTMLInputElement;
-        const formatVat = (input: HTMLInputElement) => {
-            if (!input) return;
-            const handler = (e: any) => {
-                let cursorPosition = e.target.selectionStart;
-                let value = e.target.value.replace(/[^0-9]/g, "").substring(0, 11);
-                let formatted = "FR ";
-
-                for (let i = 0; i < value.length; i++) {
-                    if (i === 2 || i === 5 || i === 8) formatted += " ";
-                    formatted += value[i];
-                }
-
-                const oldLength = e.target.value.length;
-                e.target.value = formatted;
-
-                if (cursorPosition) {
-                    // Offset cursor to account for "FR "
-                    if (cursorPosition <= 3 && value.length > 0) cursorPosition = formatted.length;
-                    else cursorPosition += (formatted.length - oldLength);
-                    e.target.setSelectionRange(cursorPosition, cursorPosition);
-                }
-            };
-            input.addEventListener("input", handler);
-            input.dispatchEvent(new Event('input'));
-        };
-        formatVat(vatInput);
-
-        // Logic for VAT Toggle
-        vatToggle?.addEventListener('change', () => {
-            if (vatToggle.checked) {
-                vatContainer?.classList.add('hidden');
-            } else {
-                vatContainer?.classList.remove('hidden');
+        // RCS Formatter: RCS PARIS 123 456 789
+        rcsInput?.addEventListener('input', (e: any) => {
+            let val = e.target.value.toUpperCase();
+            if (val.length > 0 && !val.startsWith("RCS ")) {
+                val = "RCS " + val.replace(/^RCS\s*/, "");
             }
+
+            // Format numbers at the end if present
+            let sirenMatch = val.match(/\d+$/);
+            if (sirenMatch) {
+                let siren = sirenMatch[0].replace(/\s/g, "");
+                let formattedSiren = "";
+                for (let i = 0; i < siren.length && i < 9; i++) {
+                    if (i > 0 && i % 3 === 0) formattedSiren += " ";
+                    formattedSiren += siren[i];
+                }
+                val = val.substring(0, sirenMatch.index) + formattedSiren;
+            }
+            e.target.value = val;
         });
 
-        // Logic for Capital Social based on Legal Form
-        legalFormSelect?.addEventListener('change', () => {
-            const isAuto = legalFormSelect.value === 'AUTO_ENTREPRENEUR';
-            const vatExemptContainer = document.getElementById('vat-exempt-container');
-            const capitalInput = document.getElementById('capital_input') as HTMLInputElement;
+        // VAT Formatter: FR 12 345 678 901
+        vatInput?.addEventListener('input', (e: any) => {
+            let value = e.target.value.replace(/[^0-9]/g, "").substring(0, 11);
+            let formatted = "FR ";
+            for (let i = 0; i < value.length; i++) {
+                if (i === 2 || i === 5 || i === 8) formatted += " ";
+                formatted += value[i];
+            }
+            e.target.value = formatted;
+        });
 
+        // Plate Formatter: AA-123-BB
+        plateInput?.addEventListener('input', (e: any) => {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+            let formatted = "";
+            for (let i = 0; i < value.length; i++) {
+                if ((i === 2 || i === 5) && value.length > i) formatted += "-";
+                formatted += value[i];
+            }
+            e.target.value = formatted.substring(0, 9);
+        });
+
+        vatToggle?.addEventListener('change', () => {
+            document.getElementById('vat-container')?.classList.toggle('hidden', vatToggle.checked);
+            if (vatInput) vatInput.required = !vatToggle.checked;
+        });
+
+        legalFormSelect?.addEventListener('change', () => {
+            const isAuto = legalFormSelect.value === 'auto_entrepreneur';
+            document.getElementById('capital-container')?.classList.toggle('hidden', isAuto);
+            document.getElementById('vat-exempt-container')?.classList.toggle('hidden', !isAuto);
             if (isAuto) {
-                capitalContainer?.classList.add('hidden');
-                if (capitalInput) capitalInput.required = false;
-                vatExemptContainer?.classList.remove('hidden');
                 vatToggle.checked = true;
-                vatToggle.disabled = true;
-                vatContainer?.classList.add('hidden');
-                if (vatInput) vatInput.required = false;
-            } else {
-                capitalContainer?.classList.remove('hidden');
-                if (capitalInput) capitalInput.required = true;
-                vatExemptContainer?.classList.add('hidden');
-                // Societies usually have VAT
-                vatToggle.checked = false;
-                vatToggle.disabled = false;
-                vatContainer?.classList.remove('hidden');
-                if (vatInput) vatInput.required = true;
+                vatToggle.dispatchEvent(new Event('change'));
             }
         });
 
         form?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('submit-btn') as HTMLButtonElement;
-            btn.disabled = true;
-            btn.innerHTML = 'Traitement...';
+            finalBtn.disabled = true;
+            finalBtn.innerHTML = 'Initialisation...';
 
             const formData = new FormData(form);
-            const isVatExempt = vatToggle.checked;
-
             const payload = {
-                legal_form: formData.get('legal_form'),
-                is_vat_exempt: isVatExempt,
-                siret: (formData.get('siret') as string).replace(/[^0-9]/g, ""),
-                rcs_number: formData.get('rcs_number'),
-                vat_number: isVatExempt ? null : (formData.get('vat_number') as string).replace(/[^0-9]/g, ""),
-                capital_social: formData.get('capital_social') ? parseFloat(formData.get('capital_social') as string) : null,
-                setup_completed: true
+                legal: {
+                    legal_form: formData.get('legal_form'),
+                    is_vat_exempt: formData.get('is_vat_exempt') === 'on',
+                    siret: (formData.get('siret') as string).replace(/[^0-9]/g, ""),
+                    rcs_number: formData.get('rcs_number'),
+                    vat_number: (formData.get('vat_number') as string)?.replace(/[^0-9]/g, "") || null,
+                    vtc_license_number: formData.get('vtc_license_number'),
+                    capital_social: formData.get('capital_social') ? parseFloat(formData.get('capital_social') as string) : null,
+                },
+                vehicle: {
+                    brand: formData.get('brand'),
+                    model: formData.get('model'),
+                    plate_number: formData.get('plate_number'),
+                    category: formData.get('category'),
+                    capacity: formData.get('capacity'),
+                    luggage_capacity: formData.get('luggage_capacity'),
+                    is_primary_driver: formData.get('is_primary_driver') === 'on'
+                },
+                pricing: {
+                    base_price: formData.get('base_price'),
+                    price_per_km: formData.get('price_per_km'),
+                    minimum_fare: formData.get('minimum_fare')
+                }
             };
 
             try {
-                // We use update on tenants table via supabase client
-                // Note: Astro.locals.supabase is restricted to server side,
-                // so we use the client from window if available or
-                // we call an API route. Better to handle it with a fetch to current page
                 const response = await fetch(window.location.pathname, {
                     method: 'POST',
                     body: JSON.stringify(payload),
@@ -311,16 +494,19 @@ const initialVatExempt = tenant.company_type === 'auto_entrepreneur';
                 if (response.ok) {
                     window.location.href = '/app/dashboard';
                 } else {
-                    alert('Erreur lors de la sauvegarde. Veuillez vérifier les champs.');
-                    btn.disabled = false;
-                    btn.innerHTML = 'Finaliser mon profil';
+                    const data = await response.json();
+                    alert('Erreur : ' + (data.error || 'Inconnue'));
+                    finalBtn.disabled = false;
+                    finalBtn.innerHTML = 'Activer mon cockpit';
                 }
             } catch (err) {
                 console.error(err);
                 alert('Erreur réseau.');
-                btn.disabled = false;
-                btn.innerHTML = 'Finaliser mon profil';
+                finalBtn.disabled = false;
             }
         });
+
+        updateUI();
     </script>
 </AppLayout>
+

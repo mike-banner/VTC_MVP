@@ -17,9 +17,10 @@ interface Driver {
 interface DriverListProps {
   tenantId: string;
   userId: string;
+  hidePrimary?: boolean;
 }
 
-export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
+export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId, hidePrimary }) => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [initLoading, setInitLoading] = useState(false);
@@ -112,42 +113,44 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
       ) : (
         <div className='space-y-12 overflow-y-auto pr-2 custom-scrollbar pb-20'>
           {/* SECTION 1: TITULAIRE DU COMPTE */}
-          <div>
-            <div className='mb-6'>
-              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-3'>
-                <span className='w-8 h-[1px] bg-indigo-500/30'></span>
-                Titulaire du Compte
-              </p>
-            </div>
-
-            {primaryDriver ? (
-              <div className='max-w-2xl'>
-                <DriverCard
-                  driver={primaryDriver}
-                  onEdit={handleEdit}
-                  onDelete={setConfirmDelete}
-                  isPrimary
-                />
-              </div>
-            ) : (
-              <div className='max-w-2xl glass p-8 rounded-[2.5rem] border border-dashed border-white/10 bg-white/[0.01] flex flex-col items-center justify-center text-center group hover:border-indigo-500/30 transition-all'>
-                <div className='w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-slate-700 mb-4 group-hover:text-indigo-400 transition-colors'>
-                  <UserCheck className='w-8 h-8' />
-                </div>
-                <h4 className='text-sm font-black text-white uppercase tracking-widest mb-2'>
-                  Aucun titulaire assigné
-                </h4>
-                <p className='text-[10px] text-slate-500 uppercase tracking-widest mb-6 max-w-xs'>
-                  Enregistrez-vous comme premier chauffeur pour activer votre profil complet.
+          {!hidePrimary && (
+            <div>
+              <div className='mb-6'>
+                <p className='text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-3'>
+                  <span className='w-8 h-[1px] bg-indigo-500/30'></span>
+                  Titulaire du Compte
                 </p>
-                <button
-                  onClick={() => setConfirmInit(true)}
-                  className='px-6 py-3 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-50 transition-all active:scale-95'>
-                  {initLoading ? 'Initialisation...' : "M'ajouter comme chauffeur"}
-                </button>
               </div>
-            )}
-          </div>
+
+              {primaryDriver ? (
+                <div className='max-w-2xl'>
+                  <DriverCard
+                    driver={primaryDriver}
+                    onEdit={handleEdit}
+                    onDelete={setConfirmDelete}
+                    isPrimary
+                  />
+                </div>
+              ) : (
+                <div className='max-w-2xl glass p-8 rounded-[2.5rem] border border-dashed border-white/10 bg-white/[0.01] flex flex-col items-center justify-center text-center group hover:border-indigo-500/30 transition-all'>
+                  <div className='w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-slate-700 mb-4 group-hover:text-indigo-400 transition-colors'>
+                    <UserCheck className='w-8 h-8' />
+                  </div>
+                  <h4 className='text-sm font-black text-white uppercase tracking-widest mb-2'>
+                    Aucun titulaire assigné
+                  </h4>
+                  <p className='text-[10px] text-slate-500 uppercase tracking-widest mb-6 max-w-xs'>
+                    Enregistrez-vous comme premier chauffeur pour activer votre profil complet.
+                  </p>
+                  <button
+                    onClick={() => setConfirmInit(true)}
+                    className='px-6 py-3 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-50 transition-all active:scale-95'>
+                    {initLoading ? 'Initialisation...' : "M'ajouter comme chauffeur"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* SECTION 2: COLLABORATEURS */}
           <div>
