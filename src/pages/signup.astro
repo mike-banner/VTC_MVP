@@ -131,14 +131,14 @@ import MainLayout from "../layouts/MainLayout.astro";
 					</div>
 				</div>
 
-				<div class="flex gap-4 pt-4">
-					<button type="button" id="prev-btn" class="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl transition-all opacity-0 pointer-events-none">
+				<div class="flex flex-col sm:flex-row gap-4 pt-4">
+					<button type="button" id="prev-btn" class="w-full sm:flex-1 bg-white/10 hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-widest py-4 rounded-xl transition-all opacity-0 pointer-events-none border border-white/5">
 						Retour
 					</button>
-					<button type="button" id="next-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all">
+					<button type="button" id="next-btn" class="w-full sm:flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black uppercase tracking-widest py-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all">
 						Suivant
 					</button>
-					<button type="submit" id="final-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-all hidden relative overflow-hidden group">
+					<button type="submit" id="final-btn" class="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black uppercase tracking-widest py-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-all hidden relative overflow-hidden group">
 						<span class="btn-text">Finaliser</span>
 						<div class="loader-container hidden absolute inset-0 flex items-center justify-center bg-emerald-600">
 							<svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
