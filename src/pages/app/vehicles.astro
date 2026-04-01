@@ -20,9 +20,9 @@ if (!profile) return Astro.redirect("/login");
         </div>
 
         <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-20">
-            <div class="mb-8 flex justify-end">
-                <button id="btn-new-vehicle-content" class="px-6 py-3 bg-white hover:bg-slate-100 text-slate-950 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-xl shadow-white/5">
-                    + Nouveau Véhicule
+            <div class="mb-6 flex justify-end">
+                <button id="btn-new-vehicle-content" class="px-4 py-2.5 md:px-6 md:py-3 bg-white hover:bg-slate-100 text-slate-950 text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg md:rounded-xl transition-all active:scale-95 shadow-xl shadow-white/5">
+                    + Nouveau
                 </button>
             </div>
             <VehicleList client:only="react" tenantId={profile.tenant_id!} />

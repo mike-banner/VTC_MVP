@@ -29,49 +29,49 @@ export const ImmediateActions: React.FC<ImmediateActionsProps> = ({
 
   return (
     <>
-      <div className='flex flex-wrap lg:flex-row gap-2'>
+      <div className='flex flex-wrap lg:flex-row gap-1.5 md:gap-2'>
         <a
           href={`tel:${customerPhone}`}
-          className='flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white transition-all active:scale-95'>
-          <Phone className='w-3.5 h-3.5 text-emerald-500' />
-          Appeler
+          className='flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white transition-all active:scale-95'>
+          <Phone className='w-3 h-3 text-emerald-500' />
+          <span>Appeler</span>
         </a>
         <a
           href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
             pickupAddress,
           )}`}
           target='_blank'
-          className='flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-[9px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95'>
-          <Navigation className='w-3.5 h-3.5' />
-          Navigation
+          className='flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95'>
+          <Navigation className='w-3 h-3' />
+          <span>Nav</span>
         </a>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className={`flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 ${
+          className={`flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 ${
             isTimeForRating
               ? 'bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/30 text-rose-500'
               : 'bg-white/5 text-slate-700 border border-white/5 opacity-50 cursor-not-allowed'
           }`}
           disabled={!isTimeForRating}>
-          <Star className={`w-3.5 h-3.5 ${isTimeForRating ? 'fill-current' : ''}`} />
-          Évaluer
+          <Star className={`w-3 h-3 ${isTimeForRating ? 'fill-current' : ''}`} />
+          <span>Note</span>
         </button>
 
         {invoiceUrl ? (
           <a
             href={invoiceUrl}
             target='_blank'
-            className='flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-500 transition-all active:scale-95'>
-            <FileText className='w-3.5 h-3.5' />
-            Facture
+            className='flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest text-emerald-500 transition-all active:scale-95'>
+            <FileText className='w-3 h-3' />
+            <span>Doc</span>
           </a>
         ) : (
           <button
             onClick={() => alert('Génération de la facture en cours...')}
-            className='flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-500 transition-all active:scale-95'>
-            <FileText className='w-3.5 h-3.5' />
-            Facture
+            className='flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-500 transition-all active:scale-95'>
+            <FileText className='w-3 h-3' />
+            <span>Doc</span>
           </button>
         )}
       </div>

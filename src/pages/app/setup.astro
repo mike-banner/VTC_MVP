@@ -80,6 +80,7 @@ if (Astro.request.method === "POST") {
                 service_category: vehicle.category,
                 base_price: parseFloat(pricing.base_price),
                 price_per_km: parseFloat(pricing.price_per_km),
+                price_per_minute: parseFloat(pricing.price_per_minute || 0.5),
                 minimum_fare: parseFloat(pricing.minimum_fare),
                 active: true
             });
@@ -256,30 +257,96 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                 </div>
 
                 <!-- Step 3: Pricing -->
-                <div class="step-content hidden space-y-10" data-step="3">
-                    <div class="glass p-10 rounded-[3rem] space-y-10 max-w-3xl">
-                        <div class="flex items-center gap-4">
-                            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                            <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Grille Tarifaire (TTC)</h2>
+                <div class="step-content hidden animate-in fade-in slide-in-from-bottom-4 duration-500" data-step="3">
+                    <div class="glass p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] space-y-10 max-w-4xl border border-white/10 shadow-2xl relative overflow-hidden group">
+                        <div class="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full group-hover:bg-emerald-500/20 transition-all duration-1000"></div>
+
+                        <div class="flex items-center gap-4 relative z-10">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m.599-1c.538-.1 1.074-.339 1.599-.666M12 16c-1.11 0-2.08-.402-2.599-1M12 16v1m0-1v-8m0 0v1m-.599 1c-.538.1-1.074.339-1.599.666" />
+                                </svg>
+                            </div>
+                            <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white">Grille Tarifaire (TTC)</h2>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="space-y-4">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 text-center block">Prise en charge (€)</label>
-                                <input type="number" name="base_price" required value="15" min="0" step="0.5" class="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-center text-4xl font-black text-indigo-400" />
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 relative z-10">
+                            <!-- Prise en charge -->
+                            <div class="glass p-6 md:p-8 rounded-3xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all group/card">
+                                <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-4">Prise en charge</label>
+                                <div class="flex items-center justify-between">
+                                    <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-indigo-400 group-hover/card:scale-110 transition-transform">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex items-end gap-2">
+                                        <input type="number" name="base_price" required value="15" min="0" step="0.5" class="bg-transparent text-3xl md:text-5xl font-black text-white w-24 text-right outline-none focus:text-indigo-400 transition-colors" />
+                                        <span class="text-xl font-bold text-slate-600 mb-1">€</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="space-y-4">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 text-center block">Prix au KM (€)</label>
-                                <input type="number" name="price_per_km" required value="2.5" min="0" step="0.1" class="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-center text-4xl font-black text-indigo-400" />
+
+                            <!-- Prix au KM -->
+                            <div class="glass p-6 md:p-8 rounded-3xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all group/card">
+                                <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-4">Prix au Kilomètre</label>
+                                <div class="flex items-center justify-between">
+                                    <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-indigo-400 group-hover/card:scale-110 transition-transform">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex items-end gap-2">
+                                        <input type="number" name="price_per_km" required value="2.5" min="0" step="0.1" class="bg-transparent text-3xl md:text-5xl font-black text-white w-24 text-right outline-none focus:text-indigo-400 transition-colors" />
+                                        <span class="text-xl font-bold text-slate-600 mb-1">/km</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="space-y-4">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 text-center block">Minimum (€)</label>
-                                <input type="number" name="minimum_fare" required value="45" min="0" step="1" class="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-center text-4xl font-black text-indigo-400" />
+
+                            <!-- Prix à la minute -->
+                            <div class="glass p-6 md:p-8 rounded-3xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all group/card">
+                                <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-4">Prix à la Minute</label>
+                                <div class="flex items-center justify-between">
+                                    <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-indigo-400 group-hover/card:scale-110 transition-transform">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex items-end gap-2">
+                                        <input type="number" name="price_per_minute" required value="0.5" min="0" step="0.1" class="bg-transparent text-3xl md:text-5xl font-black text-white w-24 text-right outline-none focus:text-indigo-400 transition-colors" />
+                                        <span class="text-xl font-bold text-slate-600 mb-1">/min</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Minimum -->
+                            <div class="glass p-6 md:p-8 rounded-3xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all group/card">
+                                <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-4">Minimum de course</label>
+                                <div class="flex items-center justify-between">
+                                    <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-emerald-400 group-hover/card:scale-110 transition-transform">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex items-end gap-2">
+                                        <input type="number" name="minimum_fare" required value="45" min="0" step="1" class="bg-transparent text-3xl md:text-5xl font-black text-white w-24 text-right outline-none focus:text-emerald-400 transition-colors" />
+                                        <span class="text-xl font-bold text-slate-600 mb-1">€</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
-                            <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest leading-relaxed">
-                                Les tarifs sont exprimés en TTC. Tu pourras les affiner par zone et par heure dans ton cockpit après la configuration.
-                            </p>
+
+                        <div class="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 relative z-10">
+                            <div class="flex gap-4">
+                                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p class="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest leading-relaxed">
+                                    Le calcul par défaut est : **Prise en charge + (KM × Prix KM) + (Minute × Prix Minute)**.
+                                    Le montant final ne pourra être inférieur au **Minimum de course**.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -480,6 +547,7 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                 pricing: {
                     base_price: formData.get('base_price'),
                     price_per_km: formData.get('price_per_km'),
+                    price_per_minute: formData.get('price_per_minute'),
                     minimum_fare: formData.get('minimum_fare')
                 }
             };
