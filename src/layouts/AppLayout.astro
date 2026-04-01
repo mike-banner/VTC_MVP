@@ -31,8 +31,11 @@ const navItems = [
         href: "/app/bookings",
         roles: ["owner", "manager", "driver"],
     },
-    { label: "Chauffeurs", href: "/app/drivers", roles: ["owner", "manager"] },
-    { label: "Véhicules", href: "/app/vehicles", roles: ["owner", "manager"] },
+    {
+        label: "Suivi Global",
+        href: "/app/ledger",
+        roles: ["owner", "manager"],
+    },
     { label: "Pricing", href: "/app/pricing", roles: ["owner", "manager"] },
 ];
 
@@ -111,6 +114,11 @@ const tenantName = tenant?.name || "VTC HUB";
                                                 : "text-slate-400 hover:bg-white/5 hover:text-white"
                                         }`}
                                     >
+                                        {item.label === "Suivi Fiscal" && (
+                                            <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        )}
                                         {item.label}
                                     </a>
                                 ),
@@ -118,17 +126,52 @@ const tenantName = tenant?.name || "VTC HUB";
                     }
                 </nav>
 
-                <div class="pt-6 mt-6 border-t border-white/5 space-y-3">
+                <div class="pt-6 mt-6 border-t border-white/5 space-y-2">
+                    {
+                        (safeProfile.tenant_role === "owner" || safeProfile.tenant_role === "manager") && (
+                            <>
+                                <a
+                                    href="/app/drivers"
+                                    class={`flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        pathname === "/app/drivers"
+                                            ? "bg-white/10 text-white border border-white/10"
+                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                    }`}
+                                >
+                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0h4" />
+                                    </svg>
+                                    Identité Légale
+                                </a>
+                                <a
+                                    href="/app/vehicles"
+                                    class={`flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        pathname === "/app/vehicles"
+                                            ? "bg-white/10 text-white border border-white/10"
+                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                    }`}
+                                >
+                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                                    </svg>
+                                    Véhicules
+                                </a>
+                            </>
+                        )
+                    }
                     {
                         safeProfile.tenant_role === "owner" && (
                             <a
                                 href="/app/settings"
-                                class={`flex items-center px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                class={`flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     pathname === "/app/settings"
                                         ? "bg-white/10 text-white border border-white/10"
                                         : "text-slate-500 hover:bg-white/5 hover:text-white"
                                 }`}
                             >
+                                <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
                                 Paramètres
                             </a>
                         )
@@ -196,17 +239,52 @@ const tenantName = tenant?.name || "VTC HUB";
                     }
                 </nav>
 
-                <div class="pt-6 mt-6 border-t border-white/5 space-y-4">
+                <div class="pt-6 mt-6 border-t border-white/5 space-y-2">
+                    {
+                        (safeProfile.tenant_role === "owner" || safeProfile.tenant_role === "manager") && (
+                            <>
+                                <a
+                                    href="/app/drivers"
+                                    class={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        pathname === "/app/drivers"
+                                            ? "bg-white/10 text-white border border-white/10"
+                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                    }`}
+                                >
+                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0h4" />
+                                    </svg>
+                                    Identité Légale
+                                </a>
+                                <a
+                                    href="/app/vehicles"
+                                    class={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        pathname === "/app/vehicles"
+                                            ? "bg-white/10 text-white border border-white/10"
+                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                    }`}
+                                >
+                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                                    </svg>
+                                    Véhicules
+                                </a>
+                            </>
+                        )
+                    }
                     {
                         safeProfile.tenant_role === "owner" && (
                             <a
                                 href="/app/settings"
-                                class={`flex items-center px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                class={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     pathname === "/app/settings"
                                         ? "bg-white/10 text-white border border-white/10"
                                         : "text-slate-500 hover:bg-white/5 hover:text-white"
                                 }`}
                             >
+                                <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
                                 Paramètres
                             </a>
                         )

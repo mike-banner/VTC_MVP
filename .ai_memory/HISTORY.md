@@ -4,3 +4,6 @@
 - [2026-03-28] Configuration de `repomix` et génération du premier digest contextuel (`repomix-output.md`).
 - [2026-03-28] Création de `.agent/rules.md` incluant les standards V10.0 et les spécificités VTC HUB.
 - [2026-03-28] Migration du contenu de `PROJECT_STATE.md` vers `PLAN_ARCHITECTURE.md` pour centraliser la planification.
+- [2026-03-31] Unification du flux Inscription + Onboarding (Wizard 3 étapes : Compte, Profil, Entreprise).
+- [2026-03-31] Migration Schéma Onboarding V4 (Suppression colonnes obsolètes, ajout SIRET/Licence VTC).
+- [2026-03-31] Planification du "Elite Driver Dashboard v5.0" (Refonte UX/UI Premium).

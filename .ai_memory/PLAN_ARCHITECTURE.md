@@ -11,14 +11,15 @@ L'isolation multi-tenant est fonctionnelle via RLS et `tenant_id`.
 - [x] Scan contextuel Repomix
 - [x] Audit technique système (@reviewer)
 - [x] Nettoyage racine (`test/scripts/`)
-- [ ] Mise en place des `.agent/rules.md` (Complet)
+- [x] Mise en place des `.agent/rules.md` (Complet)
+- [x] Unification Inscription / Onboarding (Wizard)
 
-## 👷 Phase 2 : Workflow Chauffeur (PROCHAINEMENT)
+## 👷 Phase 2 : Workflow Chauffeur (EN COURS)
 
-- [ ] **Brique 2.1 : Dashboard Chauffeur v1**
-  - Vue dédiée `/app/driver/dashboard` (Courses faites / en attente).
-  - Statistiques : Total courses et montants (Semaine / Mois / Année).
-  - Édtion de bilans (PDF) et visualisation des documents.
+- [ ] **Brique 2.1 : Elite Driver Dashboard v5.0**
+  - Refonte UX/UI Premium (Command Center).
+  - Stat Grid (Aujourd'hui, Mois, Revenus).
+  - Focus Mission Immédiate (Active Mission).
 - [ ] **Brique 2.2 : Configuration Tarifs v1**
   - Heure, km, et prix fixes navettes/forfaits.
 - [ ] **Brique 2.3 : Edge Functions Opérationnelles**
@@ -33,6 +34,10 @@ L'isolation multi-tenant est fonctionnelle via RLS et `tenant_id`.
   - Log des coordonnées GPS et heure de début.
 - [ ] **Brique 3.2 : Notifications**
   - Alertes pour les nouvelles missions (+ rappels).
+
+## 🔗 Liens Utiles
+
+pour les nouvelles missions (+ rappels).
 
 ## 📄 Phase 4 : Communications & Documents
 

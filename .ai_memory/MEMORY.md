@@ -5,6 +5,15 @@
 - **Stack** : Astro, Supabase, Stripe Connect, Cloudflare.
 - **Tenant ID** : Présent sur toutes les tables métier pour l'isolation.
 - **RLS** : Activé sur toutes les tables de production.
+- **Onboarding V4** : Schéma propre (SIRET, Licence VTC), wizard unifié sur `/signup`.
+
+## 👷 Phase 2 : Workflow Chauffeur (EN COURS)
+
+- [ ] **Brique 2.1 : Elite Driver Dashboard v5.0**
+  - Refonte UX/UI Premium (Command Center).
+  - Stat Grid (Aujourd'hui, Mois, Revenus).
+  - Focus Mission Immédiate (Active Mission).
+- [ ] **Brique 2.2 : Configuration Tarifs v1**
 
 ## 🔗 Liens Utiles
 
