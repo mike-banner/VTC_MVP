@@ -127,7 +127,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#0A0A0B]/80 backdrop-blur-xl border rounded-[2rem] px-7 py-5 shadow-2xl transition-all duration-500 group ${
+      className={`relative overflow-hidden bg-[#0A0A0B]/80 backdrop-blur-xl border rounded-[2rem] px-4 sm:px-8 py-5 sm:py-6 shadow-2xl transition-all duration-500 group w-full ${
         isDashboard ? 'border-emerald-500/20' : 'border-indigo-500/20'
       }`}>
       {/* Background Glow */}
@@ -139,19 +139,19 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
       <div className='relative flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
         {/* KPIs Section */}
-        <div className='grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 flex-1'>
+        <div className='grid grid-cols-3 gap-2 md:gap-10 flex-1'>
           {/* Col 1: Total Revenue */}
           <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all'>
-            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
+            <p className='text-[7px] md:text-[8px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
               Balance
             </p>
-            <div className='flex items-baseline gap-1 leading-none'>
-              <span className='text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
+            <div className='flex items-baseline gap-0.5 md:gap-1 leading-none'>
+              <span className='text-base md:text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
                 {monthlyRevenue.toLocaleString('fr-FR', {
                   minimumFractionDigits: 0,
                 })}
               </span>
-              <span className='text-indigo-500 font-black text-sm lg:text-base transition-colors leading-none'>
+              <span className='text-indigo-500 font-black text-xs md:text-sm lg:text-base transition-colors leading-none'>
                 €
               </span>
             </div>
@@ -159,11 +159,11 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
           {/* Col 2: Total Mission (All-time) */}
           <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all border-l border-white/5'>
-            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
-              Total Mission
+            <p className='text-[7px] md:text-[8px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
+              Missions
             </p>
             <div className='flex items-baseline leading-none'>
-              <span className='text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
+              <span className='text-base md:text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
                 {totalCount}
               </span>
             </div>
@@ -171,14 +171,14 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
           {/* Col 3: Note */}
           <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all border-l border-white/5'>
-            <p className='text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-amber-400 transition-colors'>
+            <p className='text-[7px] md:text-[8px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-amber-400 transition-colors'>
               Note
             </p>
-            <div className='flex items-baseline gap-1 leading-none'>
-              <span className='text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
+            <div className='flex items-baseline gap-0.5 md:gap-1 leading-none'>
+              <span className='text-base md:text-xl lg:text-2xl font-black tabular-nums text-white tracking-tighter leading-none group-hover/kpi:scale-110 transition-transform'>
                 {rating.toFixed(1)}
               </span>
-              <span className='text-amber-500 font-black text-xs lg:text-sm transition-colors leading-none'>
+              <span className='text-amber-500 font-black text-[10px] md:text-xs lg:text-sm transition-colors leading-none'>
                 ★
               </span>
             </div>
