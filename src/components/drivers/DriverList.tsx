@@ -1,20 +1,8 @@
-import {
-  deleteDriver,
-  getDrivers,
-  initializePrimaryDriver,
-} from "@/services/drivers";
-import {
-  CreditCard,
-  Edit2,
-  Phone,
-  Plus,
-  Trash2,
-  UserCheck,
-  Users,
-} from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { ConfirmationModal } from "../common/ConfirmationModal";
-import { DriverModal } from "./DriverModal";
+import { deleteDriver, getDrivers, initializePrimaryDriver } from '@/services/drivers';
+import { CreditCard, Edit2, Phone, Trash2, UserCheck, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ConfirmationModal } from '../common/ConfirmationModal';
+import { DriverModal } from './DriverModal';
 
 interface Driver {
   id: string;
@@ -22,6 +10,7 @@ interface Driver {
   last_name: string;
   phone: string;
   license_number: string;
+  user_id: string | null;
   created_at: string;
 }
 
@@ -48,9 +37,9 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
     try {
       setLoading(true);
       const data = await getDrivers(tenantId);
-      setDrivers(data || []);
+      setDrivers((data as Driver[]) || []);
     } catch (err) {
-      console.error("Error fetching drivers:", err);
+      console.error('Error fetching drivers:', err);
     } finally {
       setLoading(false);
     }
@@ -64,7 +53,6 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
         fetchDrivers();
         setConfirmInit(false);
       } else {
-        // Optionnel : on pourrait aussi utiliser un modal d'erreur ici au lieu d'une alerte
         alert(res.error || res.message || "Erreur lors de l'initialisation");
       }
     } catch (err) {
@@ -77,12 +65,12 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
   const handleDelete = async () => {
     if (!confirmDelete) return;
     try {
-      setLoading(true); // Re-trigger loading state or use a local delete loading state
+      setLoading(true);
       await deleteDriver(confirmDelete.id);
       fetchDrivers();
       setConfirmDelete(null);
     } catch (err) {
-      alert("Erreur lors de la suppression");
+      alert('Erreur lors de la suppression');
       setLoading(false);
     }
   };
@@ -103,9 +91,12 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
 
   useEffect(() => {
     const openModal = () => handleCreate();
-    window.addEventListener("drivers:open-modal", openModal);
-    return () => window.removeEventListener("drivers:open-modal", openModal);
+    window.addEventListener('drivers:open-modal', openModal);
+    return () => window.removeEventListener('drivers:open-modal', openModal);
   }, []);
+
+  const primaryDriver = drivers.find((d) => d.user_id === userId);
+  const collaborators = drivers.filter((d) => d.user_id !== userId);
 
   return (
     <div className='flex flex-col h-full'>
@@ -118,94 +109,73 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
             />
           ))}
         </div>
-      ) : drivers.length > 0 ? (
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar pb-12'>
-          {drivers.map((d) => (
-            <div
-              key={d.id}
-              className='glass p-8 rounded-[2.5rem] border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-indigo-500/30 transition-all group relative overflow-hidden'>
-              <div className='absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full group-hover:bg-indigo-500/10 transition-all' />
-
-              <div className='flex justify-between items-start mb-6'>
-                <div className='w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-indigo-600 transition-all duration-500 group-hover:rotate-6 group-hover:scale-110'>
-                  <Users className='w-8 h-8' />
-                </div>
-                <div className='flex items-center gap-1'>
-                  <button
-                    onClick={() => handleEdit(d)}
-                    className='p-2 text-slate-600 hover:text-white transition-colors'>
-                    <Edit2 className='w-4 h-4' />
-                  </button>
-                  <button
-                    onClick={() =>
-                      setConfirmDelete({
-                        id: d.id,
-                        name: `${d.first_name} ${d.last_name}`,
-                      })
-                    }
-                    className='p-2 text-slate-600 hover:text-red-500 transition-colors'>
-                    <Trash2 className='w-4 h-4' />
-                  </button>
-                </div>
-              </div>
-
-              <div className='mb-6'>
-                <h3 className='text-2xl font-black text-white uppercase tracking-tighter leading-none mb-1'>
-                  {d.first_name}
-                </h3>
-                <h3 className='text-2xl font-black text-white/50 uppercase tracking-tighter leading-none'>
-                  {d.last_name}
-                </h3>
-              </div>
-
-              <div className='space-y-3 pt-6 border-t border-white/5'>
-                <div className='flex items-center gap-3'>
-                  <Phone className='w-3 h-3 text-indigo-500' />
-                  <p className='text-[11px] font-bold text-slate-300 uppercase tracking-widest'>
-                    {d.phone}
-                  </p>
-                </div>
-                <div className='flex items-center gap-3'>
-                  <CreditCard className='w-3 h-3 text-slate-500' />
-                  <p className='text-[10px] font-medium text-slate-500 uppercase tracking-widest'>
-                    Carte : {d.license_number}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       ) : (
-        <div className='flex-1 glass rounded-[2.5rem] border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center p-20 text-center'>
-          <div className='w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center text-slate-700 mb-6'>
-            <Users className='w-10 h-10' />
+        <div className='space-y-12 overflow-y-auto pr-2 custom-scrollbar pb-20'>
+          {/* SECTION 1: TITULAIRE DU COMPTE */}
+          <div>
+            <div className='mb-6'>
+              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-3'>
+                <span className='w-8 h-[1px] bg-indigo-500/30'></span>
+                Titulaire du Compte
+              </p>
+            </div>
+
+            {primaryDriver ? (
+              <div className='max-w-2xl'>
+                <DriverCard
+                  driver={primaryDriver}
+                  onEdit={handleEdit}
+                  onDelete={setConfirmDelete}
+                  isPrimary
+                />
+              </div>
+            ) : (
+              <div className='max-w-2xl glass p-8 rounded-[2.5rem] border border-dashed border-white/10 bg-white/[0.01] flex flex-col items-center justify-center text-center group hover:border-indigo-500/30 transition-all'>
+                <div className='w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-slate-700 mb-4 group-hover:text-indigo-400 transition-colors'>
+                  <UserCheck className='w-8 h-8' />
+                </div>
+                <h4 className='text-sm font-black text-white uppercase tracking-widest mb-2'>
+                  Aucun titulaire assigné
+                </h4>
+                <p className='text-[10px] text-slate-500 uppercase tracking-widest mb-6 max-w-xs'>
+                  Enregistrez-vous comme premier chauffeur pour activer votre profil complet.
+                </p>
+                <button
+                  onClick={() => setConfirmInit(true)}
+                  className='px-6 py-3 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-50 transition-all active:scale-95'>
+                  {initLoading ? 'Initialisation...' : "M'ajouter comme chauffeur"}
+                </button>
+              </div>
+            )}
           </div>
-          <h3 className='text-2xl font-black text-white uppercase tracking-tighter mb-2'>
-            Aucun chauffeur trouvé
-          </h3>
-          <p className='text-slate-500 text-sm mb-12 max-w-sm'>
-            Vous n'avez pas encore enregistré de chauffeur pour votre flotte.
-          </p>
 
-          <div className='flex flex-col sm:flex-row gap-4'>
-            <button
-              onClick={() => setConfirmInit(true)}
-              disabled={initLoading}
-              className='flex items-center gap-3 px-10 py-5 bg-white text-black hover:bg-indigo-50 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl shadow-white/10 active:scale-95 disabled:opacity-50'>
-              {initLoading ? (
-                <span className='w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin' />
-              ) : (
-                <UserCheck className='w-4 h-4' />
-              )}
-              <span>M'ajouter comme chauffeur</span>
-            </button>
+          {/* SECTION 2: COLLABORATEURS */}
+          <div>
+            <div className='mb-6'>
+              <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-3'>
+                <span className='w-8 h-[1px] bg-slate-800'></span>
+                Équipe & Collaborateurs
+              </p>
+            </div>
 
-            <button
-              onClick={handleCreate}
-              className='flex items-center gap-3 px-10 py-5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl shadow-indigo-600/20 active:scale-95'>
-              <Plus className='w-4 h-4' />
-              <span>Créer un autre chauffeur</span>
-            </button>
+            {collaborators.length > 0 ? (
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                {collaborators.map((d) => (
+                  <DriverCard
+                    key={d.id}
+                    driver={d}
+                    onEdit={handleEdit}
+                    onDelete={setConfirmDelete}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className='glass p-12 rounded-[2.5rem] border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center'>
+                <p className='text-[10px] text-slate-600 font-black uppercase tracking-widest'>
+                  Aucun collaborateur enregistré
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -241,6 +211,91 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId }) => {
         confirmLabel='Supprimer'
         confirmVariant='danger'
       />
+    </div>
+  );
+};
+
+// --- SUB-COMPONENT: DRIVER CARD ---
+interface DriverCardProps {
+  driver: Driver;
+  onEdit: (driver: Driver) => void;
+  onDelete: (del: { id: string; name: string }) => void;
+  isPrimary?: boolean;
+}
+
+const DriverCard: React.FC<DriverCardProps> = ({ driver, onEdit, onDelete, isPrimary }) => {
+  return (
+    <div
+      className={`glass p-8 rounded-[2.5rem] border transition-all group relative overflow-hidden ${
+        isPrimary
+          ? 'border-indigo-500/30 bg-indigo-500/[0.03] shadow-2xl shadow-indigo-500/10'
+          : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10'
+      }`}>
+      <div
+        className={`absolute -bottom-12 -right-12 w-32 h-32 blur-3xl rounded-full transition-all ${
+          isPrimary ? 'bg-indigo-500/10' : 'bg-white/5 group-hover:bg-indigo-500/5'
+        }`}
+      />
+
+      <div className='flex justify-between items-start mb-6 relative z-10'>
+        <div
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:rotate-6 group-hover:scale-110 ${
+            isPrimary
+              ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20'
+              : 'bg-white/5 text-slate-400 group-hover:text-white group-hover:bg-indigo-600'
+          }`}>
+          <Users className='w-8 h-8' />
+        </div>
+        <div className='flex items-center gap-1'>
+          {isPrimary && (
+            <span className='mr-2 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[8px] font-black text-indigo-400 uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/5'>
+              CHAUFFEUR N°1
+            </span>
+          )}
+          <button
+            onClick={() => onEdit(driver)}
+            className='p-2 text-slate-600 hover:text-white transition-colors'>
+            <Edit2 className='w-4 h-4' />
+          </button>
+          {!isPrimary && (
+            <button
+              onClick={() =>
+                onDelete({
+                  id: driver.id,
+                  name: `${driver.first_name} ${driver.last_name}`,
+                })
+              }
+              className='p-2 text-slate-600 hover:text-red-500 transition-colors'>
+              <Trash2 className='w-4 h-4' />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className='mb-6 relative z-10'>
+        <h3 className='text-2xl font-black text-white uppercase tracking-tighter leading-none mb-1'>
+          {driver.first_name}
+        </h3>
+        <h3
+          className={`text-2xl font-black uppercase tracking-tighter leading-none ${isPrimary ? 'text-indigo-400/80' : 'text-white/50'}`}>
+          {driver.last_name}
+        </h3>
+      </div>
+
+      <div className='space-y-3 pt-6 border-t border-white/5 relative z-10'>
+        <div className='flex items-center gap-3'>
+          <Phone className='w-3 h-3 text-indigo-500' />
+          <p className='text-[11px] font-bold text-slate-300 uppercase tracking-widest'>
+            {driver.phone}
+          </p>
+        </div>
+        <div className='flex items-center gap-3'>
+          <CreditCard className='w-3 h-3 text-slate-500' />
+          <p className='text-[10px] font-medium text-slate-500 uppercase tracking-widest'>
+            Carte : {driver.license_number}
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
