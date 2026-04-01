@@ -7,13 +7,17 @@
 - **RLS** : Activé sur toutes les tables de production.
 - **Onboarding V4** : Schéma propre (SIRET, Licence VTC), wizard unifié sur `/signup`.
 
-## 👷 Phase 2 : Workflow Chauffeur (EN COURS)
+## 👷 Phase 2 : Workflow Chauffeur (TERMINÉ - REFILTRAGE)
 
-- [ ] **Brique 2.1 : Elite Driver Dashboard v5.0**
+- [x] **Brique 2.1 : Elite Driver Dashboard v5.1**
   - Refonte UX/UI Premium (Command Center).
   - Stat Grid (Aujourd'hui, Mois, Revenus).
   - Focus Mission Immédiate (Active Mission).
-- [ ] **Brique 2.2 : Configuration Tarifs v1**
+- [x] **Brique 2.2 : Configuration Tarifs v1**
+- [x] **Brique 2.3 : Suivi Global & Finance**
+  - Dashboard fiscal dynamique (/app/ledger).
+  - Badge Elite "CHAUFFEUR N°1" pour le titulaire.
+  - Reordering des KPIs pour focus taxes (Missions, HT, TTC, TVA).
 
 ## 🔗 Liens Utiles
 
@@ -23,3 +27,4 @@
 ## ⚙️ Tips Techniques V2
 
 - **Triggers** : Pour réactiver les sécurités en V2 : `alter table bookings enable trigger all;`
+- **Typing** : Les vues comme `tenant_accounting_ledger` nécessitent un cast `as any` si les types ne sont pas synchronisés.
