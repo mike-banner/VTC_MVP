@@ -28,3 +28,16 @@
 
 - **Triggers** : Pour réactiver les sécurités en V2 : `alter table bookings enable trigger all;`
 - **Typing** : Les vues comme `tenant_accounting_ledger` nécessitent un cast `as any` si les types ne sont pas synchronisés.
+
+## 📱 Phase 6 : Optimisation Mobile & Flotte (TERMINÉ 2026-04-02)
+
+- [x] **Brique 6.1 : Mobile UX 2.0**
+  - Layout responsive Dashboard & Véhicules (Cards vs Lists).
+  - Suppression troncatures, accentuation plaques (Badge Rose).
+  - Navigation 100% tactile (zones cliquables élargies).
+- [x] **Brique 6.2 : Logique Exclusive**
+  - Un seul véhicule actif par chauffeur (auto-désactivation des autres).
+  - Ajout luggage_capacity dans tout le flux (Setup -> Fleet -> Dashboard).
+- [x] **Brique 6.3 : Sécurisation Interaction**
+  - UI de confirmation personnalisée (Double-confirmation sur boutons, Modale React).
+  - Retrait des icônes superflues pour focus sur l'identité véhicule.

@@ -2,6 +2,9 @@
 // src/pages/app/vehicles.astro
 import { VehicleList } from "@/components/vehicles/VehicleList";
 import AppLayout from "../../layouts/AppLayout.astro";
+import Badge from "../../components/ui/Badge.astro";
+import Button from "../../components/ui/Button.astro";
+import Card from "../../components/ui/Card.astro";
 
 const { profile } = Astro.locals;
 
@@ -9,22 +12,19 @@ if (!profile) return Astro.redirect("/login");
 ---
 
 <AppLayout title="Véhicules">
-    <div class="flex-1 flex flex-col p-8 md:p-12 overflow-hidden h-full relative">
+    <div class="flex-1 flex flex-col p-4 md:p-12 overflow-hidden h-full relative">
         <!-- HEADER -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 flex-shrink-0">
+        <div class="flex flex-row items-center justify-between gap-4 mb-8 flex-shrink-0">
             <div>
-                <span class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase">Gestion de Flotte</span>
-                <h1 class="text-4xl font-black mt-4 uppercase tracking-tighter text-white">Véhicules</h1>
-                <p class="text-slate-500 mt-2 font-medium">Gérez votre parc automobile et le statut des véhicules.</p>
+                <Badge variant="indigo">Gestion de Flotte</Badge>
+                <h1 class="text-3xl md:text-4xl font-black mt-2 uppercase tracking-tighter text-white">Véhicules</h1>
             </div>
+            <Button id="btn-new-vehicle-content">
+                + Nouveau
+            </Button>
         </div>
 
         <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-20">
-            <div class="mb-6 flex justify-end">
-                <button id="btn-new-vehicle-content" class="px-4 py-2.5 md:px-6 md:py-3 bg-white hover:bg-slate-100 text-slate-950 text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg md:rounded-xl transition-all active:scale-95 shadow-xl shadow-white/5">
-                    + Nouveau
-                </button>
-            </div>
             <VehicleList client:only="react" tenantId={profile.tenant_id!} />
         </div>
     </div>

@@ -9,4 +9,9 @@
 - [2026-03-31] Planification du "Elite Driver Dashboard v5.0" (Refonte UX/UI Premium).
 - [2026-04-01] Déploiement du module "Suivi Global" (Ledger Fiscal) avec KPIs dynamiques.
 - [2026-04-01] Restauration du Chauffeur Principal et personnalisation Elite badge "CHAUFFEUR N°1".
-- [2026-04-01] Structuration et commit des changements par couches techniques.
+- [2026-04-02] **Optimisation Mobile Fleet v2.0** : Refactoring responsive des cartes véhicules (Dashboard + Liste).
+- [2026-04-02] **Business Logic Exclusivity** : Implémentation de la règle "un seul véhicule actif" par tenant (services + UI).
+- [2026-04-02] **Data Enrichment** : Ajout du champ `luggage_capacity` (bagages) et affichage badges unitaires.
+- [2026-04-02] **UX Custom UI** : Remplacement des `window.confirm` par des modales floutées et confirmations intégrées tactiles.
+- [2026-04-02] **Refining Visual Identity** : Suppression des icônes génériques, mise en valeur des plaques d'immatriculation.
+- [2026-04-02] **Roadmap Evolution** : Documentation du futur flux de course dynamique (Mail, Start, Finish, Facture, QR).

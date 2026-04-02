@@ -17,3 +17,14 @@
 - [x] **Compta** : Statistiques avancées et export comptable automatisé. (Suivi Global Implémenté 2026-04-01)
 - [ ] **Note & Avis** : Système de QR Code dynamique pour permettre aux clients de noter chaque course depuis le téléphone du chauffeur. (UI préparée dans le Dashboard)
 - [ ] **Emailing Note** : Permettre au chauffeur d'envoyer le lien de notation par mail post-course si le client n'a pas scanné le QR Code.
+
+## 🚀 Phase 7 : Flux de Course Dynamique (Roadmap 2026-04-02)
+
+- [ ] **"Prendre en main"** : Déclenchement d'un email automatique au client lors de l'acceptation de la course par le chauffeur. Transition visuelle du bouton vers "Démarrer la course".
+- [ ] **Verrouillage Temporel** : Le bouton "Démarrer la course" ne s'active qu'à l'heure exacte de la prestation (H-15min tolerance plausible).
+- [ ] **"Fin de course"** : Action de clôture qui déclenche :
+  - L'émission immédiate de la facture PDF.
+  - L'envoi automatique par email au passager.
+  - L'affichage d'un QR Code unique de mission pour notation/avis.
+- [ ] **Accessibilité QR** : Le QR code de mission doit rester accessible dans les détails de la course au niveau du Cockpit.
+- [ ] **Archive Fiscale** : Liaison automatique de la facture générée au Ledger Fiscal (tenant_accounting_ledger).

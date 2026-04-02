@@ -4,6 +4,9 @@ import { ImmediateActions } from "@/components/dashboard/ImmediateActions";
 import { StripeConnectionCard } from "@/components/dashboard/StripeConnectionCard";
 import { supabase } from "@/lib/supabase/client";
 import AppLayout from "../../layouts/AppLayout.astro";
+import Badge from "../../components/ui/Badge.astro";
+import Button from "../../components/ui/Button.astro";
+import Card from "../../components/ui/Card.astro";
 
 const { profile, supabase: supabaseAdmin } = Astro.locals;
 
@@ -201,33 +204,47 @@ const fiscalYear = fiscalYearData as any;
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
 
             <!-- Card 2: Véhicule -->
-            <div class="glass p-5 rounded-[2rem] border border-white/5 bg-white/[0.01] flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-indigo-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            <Card href="/app/vehicles" padding="sm" rounded="xl" class="group relative overflow-hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Véhicule Actif</p>
+                            {activeVehicle && (
+                                <span class="bg-emerald-500/10 text-emerald-500 text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Actif</span>
+                            )}
+                        </div>
+                        <h3 class="text-lg md:text-xl font-black text-white leading-tight uppercase tracking-tighter">
+                            {activeVehicle ? `${activeVehicle.brand} ${activeVehicle.model}` : 'Aucun véhicule'}
+                        </h3>
+                        {activeVehicle && (
+                            <div class="flex items-center gap-2 mt-2">
+                                <p class="text-[10px] md:text-xs font-black text-rose-500 bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/10 tabular-nums uppercase tracking-widest shrink-0">
+                                    {activeVehicle.plate_number}
+                                </p>
+                                <div class="flex items-center gap-1.5 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/10 shrink-0">
+                                    <span class="text-[8px] font-black text-indigo-400 uppercase">{activeVehicle.capacity}p / {activeVehicle.luggage_capacity || 3}b</span>
+                                </div>
+                                <p class="text-[8px] font-bold text-slate-500 uppercase italic truncate">
+                                    {activeVehicle.category}
+                                </p>
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Véhicule Actif</p>
-                        <p class="text-xs font-black text-white truncate max-w-[120px]">
-                            {activeVehicle ? `${activeVehicle.brand} ${activeVehicle.model}` : 'Non assigné'}
-                        </p>
+                    <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-4 sm:pt-0 border-t border-white/5 sm:border-none">
+                        <span class="text-[8px] font-black text-indigo-400 group-hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1">
+                            Gérer la flotte <span>→</span>
+                        </span>
                     </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-[7px] font-black text-slate-600 uppercase tracking-widest mb-0.5">Plaque</p>
-                    <p class="text-[10px] font-black text-rose-500 tabular-nums uppercase tracking-tighter">
-                        {activeVehicle?.plate_number || '---'}
-                    </p>
-                </div>
-            </div>
+                {/* Background decorative element */}
+                <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full group-hover:bg-indigo-500/10 transition-all"></div>
+            </Card>
 
             <!-- Card 3: Comptabilité & Fiscalité -->
-            <div class="glass p-5 rounded-[2rem] border border-white/5 bg-white/[0.01] flex flex-col gap-4">
+            <Card padding="sm" rounded="xl" class="flex flex-col gap-4">
                 <div class="flex items-center justify-between">
                     <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Comptabilité & Fiscalité</span>
-                    <span class="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[7px] font-black text-indigo-400 uppercase tracking-widest">
-                        {currentYear}
-                    </span>
+                    <Badge variant="indigo">{currentYear}</Badge>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -258,7 +275,7 @@ const fiscalYear = fiscalYearData as any;
                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span>
                         Mission Prioritaire
                     </h3>
-                    <div class="relative overflow-hidden glass p-6 sm:p-8 rounded-[2.5rem] border border-indigo-500/30 bg-indigo-500/[0.03] shadow-2xl shadow-indigo-500/10 group">
+                    <Card padding="lg" rounded="xl" class="border-indigo-500/30 bg-indigo-500/[0.03] shadow-2xl shadow-indigo-500/10 group overflow-hidden">
                         <div class="absolute top-0 right-0 p-6 opacity-20">
                             <span class="text-4xl font-black text-white/10 tracking-tighter uppercase select-none">NOW</span>
                         </div>
@@ -300,7 +317,7 @@ const fiscalYear = fiscalYearData as any;
                                 invoiceUrl={immediateMission.invoice_url}
                             />
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 
@@ -313,11 +330,9 @@ const fiscalYear = fiscalYearData as any;
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {validatingBookings.map((booking) => (
-                            <div class="glass p-4 rounded-[1.5rem] border border-amber-500/10 bg-amber-500/[0.02] hover:border-amber-500/20 transition-all group">
+                            <Card padding="sm" rounded="xl" class="border-amber-500/10 bg-amber-500/[0.02] hover:border-amber-500/20 group">
                                 <div class="flex justify-between items-center mb-3">
-                                    <div class="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-[6px] font-black tracking-widest text-amber-500 uppercase">
-                                        Mise à Disposition
-                                    </div>
+                                    <Badge variant="amber">Mise à Disposition</Badge>
                                     <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none">
                                         {new Date(booking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                                     </span>
@@ -331,10 +346,10 @@ const fiscalYear = fiscalYearData as any;
                                     <span class="text-[7px] font-black uppercase text-slate-500">Est.</span>
                                     <span class="text-lg font-black text-white tabular-nums">{Number(booking.total_amount).toFixed(0)}€</span>
                                 </div>
-                                <a href={`/app/bookings?status=pending`} class="block w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[8px] font-black uppercase tracking-widest text-center rounded-lg transition-all active:scale-95 shadow-xl shadow-amber-500/10">
+                                <Button href={`/app/bookings?status=pending`} variant="amber" class="w-full">
                                     Finaliser
-                                </a>
-                            </div>
+                                </Button>
+                            </Card>
                         ))}
                     </div>
                 </div>
@@ -353,8 +368,11 @@ const fiscalYear = fiscalYearData as any;
                 {upcomingBookings && upcomingBookings.length > 0 ? (
                     <div class="flex flex-col gap-3">
                         {upcomingBookings.map((booking) => (
-                            <div
-                                class="glass p-4 rounded-[1.5rem] border border-white/5 bg-white/[0.01] hover:border-indigo-500/20 hover:bg-indigo-500/[0.02] transition-all cursor-pointer group booking-row relative overflow-hidden"
+                            <Card
+                                padding="sm"
+                                rounded="xl"
+                                hover={true}
+                                class="group booking-row overflow-hidden"
                                 data-booking={JSON.stringify(booking)}
                             >
                                 <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -367,13 +385,9 @@ const fiscalYear = fiscalYearData as any;
 
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-1.5 mb-1 md:mb-1.5">
-                                                <span class={`text-[5px] md:text-[6px] font-black uppercase tracking-widest px-1 py-0.5 rounded-[3px] border ${
-                                                    (booking.booking_type as any) === 'hourly'
-                                                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                    : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                                                }`}>
-                                                    {(booking.booking_type as any) === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
-                                                </span>
+                                            <Badge variant={(booking.booking_type as any) === 'hourly' ? 'amber' : 'indigo'}>
+                                                {(booking.booking_type as any) === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
+                                            </Badge>
                                                 <span class="text-[10px] md:text-[11px] font-black text-white uppercase tracking-tighter truncate max-w-[120px]">
                                                     {booking.customers.first_name} {booking.customers.last_name}
                                                 </span>
@@ -401,7 +415,7 @@ const fiscalYear = fiscalYearData as any;
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </Card>
                         ))}
                     </div>
                 ) : (

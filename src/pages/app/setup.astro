@@ -1,6 +1,9 @@
 ---
 // src/pages/app/setup.astro
 import AppLayout from "../../layouts/AppLayout.astro";
+import Badge from "../../components/ui/Badge.astro";
+import Button from "../../components/ui/Button.astro";
+import Card from "../../components/ui/Card.astro";
 import { createAdminClient } from "../../lib/supabase/server";
 
 const { profile, supabase: supabaseAdmin } = Astro.locals;
@@ -107,12 +110,14 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                 <div id="progress-bar" class="absolute top-1/2 left-0 h-0.5 bg-indigo-500 -translate-y-1/2 transition-all duration-500 ease-in-out" style="width: 0%"></div>
                 {
                     [1, 2, 3].map((step) => (
-                        <div
-                            class="step-dot w-12 h-12 rounded-2xl glass border border-white/10 flex items-center justify-center text-xs font-black z-10 transition-all duration-500"
+                        <Card
+                            padding="none"
+                            rounded="2xl"
+                            class="step-dot w-12 h-12 flex items-center justify-center text-xs font-black z-10 transition-all duration-500"
                             data-step={step}
                         >
                             {step}
-                        </div>
+                        </Card>
                     ))
                 }
             </div>
@@ -137,7 +142,7 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                 <!-- Step 1: Legal -->
                 <div class="step-content space-y-10" data-step="1">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <Card padding="lg" rounded="3xl" class="space-y-8">
                             <div class="flex items-center gap-4">
                                 <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                                 <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Identité Entreprise</h2>
@@ -159,7 +164,7 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                             </div>
                         </div>
 
-                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <Card padding="lg" rounded="3xl" class="space-y-8">
                             <div class="flex items-center gap-4">
                                 <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                                 <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Immatriculation</h2>
@@ -178,7 +183,7 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                             </div>
                         </div>
 
-                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <Card padding="lg" rounded="3xl" class="space-y-8">
                             <div class="flex items-center gap-4">
                                 <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                                 <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Fiscalité</h2>
@@ -198,7 +203,7 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                 <!-- Step 2: Vehicle -->
                 <div class="step-content hidden space-y-10" data-step="2">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <Card padding="lg" rounded="3xl" class="space-y-8">
                             <div class="flex items-center gap-4">
                                 <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                                 <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Détails Véhicule</h2>
@@ -219,7 +224,7 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                             </div>
                         </div>
 
-                        <div class="glass p-10 rounded-[3rem] space-y-8">
+                        <Card padding="lg" rounded="3xl" class="space-y-8">
                             <div class="flex items-center gap-4">
                                 <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                                 <h2 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/50">Configuration Service</h2>
@@ -258,7 +263,7 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
 
                 <!-- Step 3: Pricing -->
                 <div class="step-content hidden animate-in fade-in slide-in-from-bottom-4 duration-500" data-step="3">
-                    <div class="glass p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] space-y-10 max-w-4xl border border-white/10 shadow-2xl relative overflow-hidden group">
+                    <Card padding="lg" rounded="3xl" class="space-y-10 max-w-4xl shadow-2xl relative overflow-hidden group">
                         <div class="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full group-hover:bg-emerald-500/20 transition-all duration-1000"></div>
 
                         <div class="flex items-center gap-4 relative z-10">
@@ -352,13 +357,13 @@ const initialVatExempt = initialLegalForm === 'auto_entrepreneur';
                 </div>
 
                 <!-- Footer Actions -->
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-8 p-4 sm:p-8 glass rounded-[2rem] sm:rounded-[3rem] border border-white/10 shadow-2xl sticky bottom-4 z-50 bg-slate-900/50 backdrop-blur-xl">
-                    <button type="button" id="prev-btn" class="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-widest rounded-xl opacity-0 pointer-events-none transition-all border border-white/5">Retour</button>
+                <Card padding="md" rounded="3xl" class="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-8 sticky bottom-4 z-50 bg-slate-900/50 backdrop-blur-xl shadow-2xl">
+                    <Button type="button" id="prev-btn" variant="outline" class="w-full sm:w-auto px-8 py-4 opacity-0 pointer-events-none">Retour</Button>
                     <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-4">
-                        <button type="button" id="next-btn" class="w-full sm:w-auto px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-500 transition-all">Suivant</button>
-                        <button type="submit" id="final-btn" class="hidden w-full sm:w-auto px-10 py-4 bg-emerald-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-emerald-500/20 hover:bg-emerald-400 transition-all transform active:scale-95">Valider mon cockpit</button>
+                        <Button type="button" id="next-btn" variant="primary" class="w-full sm:w-auto px-10 py-4">Suivant</Button>
+                        <Button type="submit" id="final-btn" variant="emerald" class="hidden w-full sm:w-auto px-10 py-4">Valider mon cockpit</Button>
                     </div>
-                </div>
+                </Card>
             </form>
         </div>
     </div>

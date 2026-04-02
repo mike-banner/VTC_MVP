@@ -1,11 +1,11 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from '@/lib/supabase/client';
 
 export const getVehicles = async (tenantId: string) => {
   const { data, error } = await supabase
-    .from("vehicles")
-    .select("*")
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false });
+    .from('vehicles')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data;
@@ -20,8 +20,16 @@ export const createVehicle = async (vehicle: {
   capacity: number;
   status: string;
 }) => {
+  // Règle : un seul véhicule actif. Si on en crée un actif, on désactive les autres.
+  if (vehicle.status === 'active') {
+    await supabase
+      .from('vehicles')
+      .update({ status: 'inactive' })
+      .eq('tenant_id', vehicle.tenant_id);
+  }
+
   const { data, error } = await supabase
-    .from("vehicles")
+    .from('vehicles')
     .insert(vehicle as any)
     .select()
     .limit(1)
@@ -31,29 +39,32 @@ export const createVehicle = async (vehicle: {
   return data;
 };
 
-export const updateVehicle = async (id: string, updates: any) => {
+export const updateVehicle = async (id: string, updates: any, tenantId?: string) => {
+  // Règle : un seul véhicule actif. Si on en active un, on désactive les autres du tenant.
+  if (updates.status === 'active' && tenantId) {
+    await supabase
+      .from('vehicles')
+      .update({ status: 'inactive' })
+      .eq('tenant_id', tenantId)
+      .neq('id', id);
+  }
+
   const { data, error } = await supabase
-    .from("vehicles")
+    .from('vehicles')
     .update(updates)
-    .eq("id", id)
+    .eq('id', id)
     .select()
     .limit(1)
     .maybeSingle();
 
   if (error) {
-    console.error("Update vehicle error:", error);
+    console.error('Update vehicle error:', error);
     throw error;
-  }
-  if (!data) {
-    console.warn(`No vehicle found with id ${id} to update.`);
-    // Depending on desired behavior, you might throw an error or return null/undefined
-    // For now, let's return null if no data was updated.
-    return null;
   }
   return data;
 };
 
 export const deleteVehicle = async (id: string) => {
-  const { error } = await supabase.from("vehicles").delete().eq("id", id);
+  const { error } = await supabase.from('vehicles').delete().eq('id', id);
   if (error) throw error;
 };
