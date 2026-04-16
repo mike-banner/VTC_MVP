@@ -73,8 +73,8 @@ if (error) {
                 </div>
 
                 <div class="space-y-4">
-                    {rules && rules.length > 0 ? (
-                        rules.map((r) => (
+                    {rules?.length
+                        ? rules.map((r) => (
                             <Card padding="sm" rounded="xl" hover={true} class="group">
                                 <div class="flex items-center justify-between mb-6">
                                     <div class="flex items-center gap-3">
@@ -111,13 +111,13 @@ if (error) {
                                         <p class="text-xs md:text-lg font-black text-slate-400 tabular-nums leading-none">{r.minimum_fare?.toFixed(2)}€</p>
                                     </div>
                                 </div>
-                            </div>
+                            </Card>
                         ))
-                    ) : (
+                        : (
                         <div class="glass p-10 rounded-[2rem] border border-white/5 text-center text-slate-500 text-[10px] font-black uppercase tracking-widest">
                             Aucun tarif configuré
                         </div>
-                    )}
+                        )}
                 </div>
             </div>
 

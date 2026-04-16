@@ -6,6 +6,14 @@
 - **Tenant ID** : Présent sur toutes les tables métier pour l'isolation.
 - **RLS** : Activé sur toutes les tables de production.
 - **Onboarding V4** : Schéma propre (SIRET, Licence VTC), wizard unifié sur `/signup`.
+- **Front priority** : **Mobile First** (la version mobile prime sur desktop).
+
+## Mobile-First Priority (ULTIME)
+Pour tous les développements FRONT, la version mobile est la priorité absolue. L'interface doit être pensée pour un usage "on-the-go", fluide et sans encombrement.
+
+## Dashboard Optimization
+- Agenda : Limiter à 3 items pour l'aperçu rapide.
+- Prochaine Mission : Sticky Bar fixe en bas de l'écran sur mobile.
 
 ## 👷 Phase 2 : Workflow Chauffeur (TERMINÉ - REFILTRAGE)
 

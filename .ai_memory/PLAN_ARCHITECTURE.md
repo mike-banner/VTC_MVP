@@ -32,7 +32,8 @@ L'isolation multi-tenant est fonctionnelle via RLS et `tenant_id`.
 
 - [ ] **Brique 3.1 : Workflow Terrain**
   - Boutons "Je suis en route", "Client à bord", "Course terminée".
-  - Log des coordonnées GPS et heure de début.
+  - Verrouillage temporel "Démarrer" : activable à \(H-15\) (pas de GPS pour l’instant).
+  - Log horodaté des transitions (UTC).
 - [ ] **Brique 3.2 : Notifications**
   - Alertes pour les nouvelles missions (+ rappels).
 - [ ] **Brique 3.3 : QR Code Ratings**

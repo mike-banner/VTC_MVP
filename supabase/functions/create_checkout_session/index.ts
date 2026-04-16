@@ -156,6 +156,8 @@ Deno.serve(async (req) => {
 
     const feeInCents = Math.round((feeRate / 100) * amountInCents);
 
+    const origin = req.headers.get('origin') || req.headers.get('referer') || 'http://localhost:3000';
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
 
@@ -195,8 +197,8 @@ Deno.serve(async (req) => {
         on_behalf_of: tenant.stripe_account_id,
       },
 
-      success_url: `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/transfert`,
+      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/transfert`,
     });
 
     await supabaseAdmin.from('stripe_events').insert({

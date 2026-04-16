@@ -1,0 +1,12 @@
+---
+description: Docs: discipline minimale (architecture/flows/db/security)
+globs: docs/**/*.md
+alwaysApply: false
+---
+<!-- /home/mike/projects/vtc/vtc_mvp/.cursor/rules/docs-protocol.mdc -->
+
+## Règles d’édition `docs/*` (token-min)
+- Changements **réels** uniquement (aligné prod), pas de “drafts”.
+- Si un flow change: update `docs/flows.md`.
+- Si une décision change: update `docs/decisions.md` (1 section, concis).
+

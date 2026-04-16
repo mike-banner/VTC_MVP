@@ -102,7 +102,6 @@ Deno.serve(async (req) => {
   // --------------------------
   // CREATE BOOKING V1
   // --------------------------
-
   if (event.type === "checkout.session.completed") {
     const session = obj as any;
 
@@ -112,6 +111,8 @@ Deno.serve(async (req) => {
       const subtotal = Number(m.subtotal_amount ?? 0);
       const vat = Number(m.vat_amount ?? 0);
       const total = Number(m.total_amount ?? amount ?? 0);
+
+      console.log("INSERTING BOOKING FOR CUSTOMER", m.customer_id);
 
       const { data: booking, error } = await supabase
         .from("bookings")
@@ -130,6 +131,8 @@ Deno.serve(async (req) => {
 
           status: "paid",
           payment_mode: "stripe",
+          booking_source: "customer", // OBLIGATOIRE
+          pricing_mode: "direct",     // OBLIGATOIRE
 
           customer_id: m.customer_id,
 
@@ -145,7 +148,14 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      if (!error && booking) {
+      if (error) {
+        console.error("CRITICAL: BOOKING INSERTION FAILED", error);
+        // On retourne une 500 pour que Stripe retente le webhook plus tard
+        return new Response(`Error: ${error.message}`, { status: 500 });
+      }
+
+      if (booking) {
+        console.log("BOOKING CREATED SUCCESS", booking.id);
         await supabase
           .from("stripe_events")
           .update({
@@ -153,8 +163,6 @@ Deno.serve(async (req) => {
             booking_id: booking.id,
           })
           .eq("stripe_event_id", event.id);
-      } else {
-        console.log("BOOKING ERROR", error);
       }
     }
   }

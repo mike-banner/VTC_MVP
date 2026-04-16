@@ -15,3 +15,5 @@
 - [2026-04-02] **UX Custom UI** : Remplacement des `window.confirm` par des modales floutées et confirmations intégrées tactiles.
 - [2026-04-02] **Refining Visual Identity** : Suppression des icônes génériques, mise en valeur des plaques d'immatriculation.
 - [2026-04-02] **Roadmap Evolution** : Documentation du futur flux de course dynamique (Mail, Start, Finish, Facture, QR).
+- [2026-04-16] **Phase 3 Terrain** : Ajout du verrouillage temporel \(H-15\) (sans GPS) + log UTC des transitions dans `PLAN_ARCHITECTURE.md`.
+- [2026-04-16] **Front Rule** : Priorité ultime Mobile First ajoutée dans `.ai_memory/MEMORY.md`.

@@ -14,6 +14,15 @@ const currentYear = parseInt(Astro.url.searchParams.get("year") || now.getFullYe
 const currentMonth = Astro.url.searchParams.get("month") ? parseInt(Astro.url.searchParams.get("month")!) : null;
 const searchQuery = Astro.url.searchParams.get("search") || "";
 
+// Récupérer le nom de la société pour le Header
+const { data: tenant } = await supabase
+    .from("tenants")
+    .select("company_name")
+    .eq("id", profile.tenant_id!)
+    .single();
+
+const tenantName = tenant?.company_name || "VTC Hub";
+
 /**
  * 🎯 LOGIQUE SÉCURISÉE (BACKEND SSR)
  */
@@ -108,8 +117,10 @@ const getFilterUrl = (params: Record<string, string | number | null>) => {
                     <span class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase">
                         Comptabilité & Fiscalité
                     </span>
-                    <h1 class="text-4xl font-black mt-4 uppercase tracking-tighter text-white">
-                        Suivi Global
+                    <h1 class="text-2xl sm:text-fluid-3xl font-black tracking-tighter italic uppercase text-white leading-tight flex items-center gap-3 mt-4">
+                        <span class="opacity-40 truncate max-w-[120px] sm:max-w-none">{tenantName}</span>
+                        <span class="text-indigo-500">|</span>
+                        <span>Suivi Fiscal</span>
                     </h1>
                 </div>
 
