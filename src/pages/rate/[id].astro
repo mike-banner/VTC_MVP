@@ -1,7 +1,9 @@
 ---
 // src/pages/rate/[id].astro
 import AppLayout from '../../layouts/AppLayout.astro';
-import { supabaseAdmin } from '../../lib/supabase/admin';
+import { createAdminClient } from '../../lib/supabase/server';
+
+const supabaseAdmin = createAdminClient();
 
 const { id } = Astro.params;
 

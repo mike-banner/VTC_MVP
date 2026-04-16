@@ -1,8 +1,9 @@
 // src/pages/api/submit-rating.ts
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../lib/supabase/admin';
+import { createAdminClient } from '../../lib/supabase/server';
 
 export const POST: APIRoute = async ({ request }) => {
+  const supabaseAdmin = createAdminClient();
   try {
     const { bookingId, rating, comment } = await request.json();
 
