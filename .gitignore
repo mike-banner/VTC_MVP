@@ -26,3 +26,10 @@ pnpm-debug.log*
 
 #test
 test/
+
+# AI & Tooling
+.ai_memory/
+.agent/
+.cursor/
+repomix-output.md
+repomix.config.json
