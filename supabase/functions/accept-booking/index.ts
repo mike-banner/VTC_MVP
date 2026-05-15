@@ -19,6 +19,7 @@ serve(async (req) => {
       .update({
         driver_id,
         status: "accepted",
+        mission_status: "not_started",
       })
       .eq("id", booking_id)
       .eq("status", "paid")

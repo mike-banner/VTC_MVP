@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const { data: booking, error: fetchError } = await supabaseAdmin
       .from("bookings")
-      .select("id, status, pickup_time, notes")
+      .select("id, status, pickup_time, mission_note")
       .eq("id", bookingId)
       .limit(1)
       .maybeSingle();
@@ -88,12 +88,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const nowIso = toIsoUtc(new Date());
     const marker = `[terrain] ${TERRAIN_TAGS[action]}=${nowIso}`;
 
-    const currentNotes = (booking.notes ?? "").toString();
+    const currentNotes = (booking.mission_note ?? "").toString();
     const alreadyMarked = currentNotes.includes(`[terrain] ${TERRAIN_TAGS[action]}=`);
     const nextNotes = alreadyMarked ? currentNotes : `${currentNotes}${currentNotes ? "\n" : ""}${marker}`;
 
     const updatePayload: Record<string, unknown> = {
-      notes: nextNotes,
+      mission_note: nextNotes,
     };
 
     if (action === "completed") {

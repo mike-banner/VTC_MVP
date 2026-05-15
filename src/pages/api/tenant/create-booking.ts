@@ -16,6 +16,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       client_name,
       client_email,
       payment_mode,
+      manual_total,
+      booking_type,
+      passenger_count,
+      luggage_count,
+      vehicle_id,
     } = body;
 
     // Utilisation de la SERVICE_ROLE_KEY pour bypass RLS et calculs critiques
@@ -29,6 +34,48 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
       });
+    }
+
+    // Chauffeur obligatoire pour une création manuelle (driver connecté)
+    const { data: driverFull, error: driverError } = await supabase
+      .from("drivers")
+      .select("id, vehicles(*)")
+      .eq("tenant_id", profile.tenant_id)
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (driverError) {
+      return new Response(JSON.stringify({ error: driverError.message }), {
+        status: 500,
+      });
+    }
+
+    if (!driverFull?.id) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Profil chauffeur introuvable. Crée ton profil chauffeur avant de créer une course manuelle.",
+        }),
+        { status: 400 },
+      );
+    }
+
+    const resolvedVehicleId =
+      vehicle_id ||
+      (Array.isArray((driverFull as any).vehicles)
+        ? (driverFull as any).vehicles[0]?.id
+        : (driverFull as any).vehicles?.id) ||
+      null;
+
+    if (!resolvedVehicleId) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Aucun véhicule associé à ton profil chauffeur. Ajoute/associe un véhicule avant de créer une course manuelle.",
+        }),
+        { status: 400 },
+      );
     }
 
     // 1️⃣ Normalisation email
@@ -65,8 +112,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       customerId = newCustomer.id;
     }
 
-    // 2️ (Suite) Récupérer les règles tarifaires actives du tenant
-    const { data: pricing, error: pricingError } = await supabase
+    // 2️ (Suite) Récupérer les règles tarifaires (optionnel si montant manuel)
+    const { data: pricing } = await supabase
       .from("pricing_rules")
       .select("*")
       .eq("tenant_id", tenantId)
@@ -75,21 +122,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .limit(1)
       .maybeSingle();
 
-    if (pricingError || !pricing) {
+    // 3️⃣ Calcul du prix (Montant manuel prioritaire)
+    let total = 0;
+
+    if (manual_total) {
+      total = Number(manual_total);
+    } else if (pricing) {
+      total = Number(pricing.base_price) + Number(pricing.price_per_km) * Number(distance_km);
+      if (total < Number(pricing.minimum_fare)) {
+        total = Number(pricing.minimum_fare);
+      }
+    } else {
       return new Response(
         JSON.stringify({
-          error: "Aucune règle tarifaire active trouvée pour ce tenant.",
+          error: "Aucune règle tarifaire active et aucun montant manuel fourni.",
         }),
         { status: 400 },
       );
-    }
-
-    // 3️⃣ Calcul du prix (Logique V1)
-    let total =
-      Number(pricing.base_price) +
-      Number(pricing.price_per_km) * Number(distance_km);
-    if (total < Number(pricing.minimum_fare)) {
-      total = Number(pricing.minimum_fare);
     }
 
     // 4️⃣ Insertion de la réservation
@@ -98,13 +147,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .insert({
         original_tenant_id: tenantId,
         current_tenant_id: tenantId,
-        customer_id: customerId, // Utilisation de l'ID normalisé
+        customer_id: customerId,
         pickup_address: pickup,
-        dropoff_address: dropoff,
+        dropoff_address: dropoff || pickup || "À définir", // Fallback for hourly
         pickup_time,
         total_amount: total,
-        status: "pending",
+        subtotal_amount: total,
+        vat_amount: 0,
+        status: "accepted",
+        mission_status: "not_started",
         payment_mode: payment_mode || "cash",
+        booking_source: "manual_driver",
+        pricing_mode: "manual",
+        booking_type: booking_type || "transfer",
+        passenger_count: Number(passenger_count || 1),
+        luggage_count: Number(luggage_count || 0),
+        driver_id: driverFull.id,
+        vehicle_id: resolvedVehicleId,
       })
       .select()
       .limit(1)

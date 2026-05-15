@@ -1,6 +1,6 @@
 ---
 // src/pages/rate/[id].astro
-import AppLayout from '../../layouts/AppLayout.astro';
+import MainLayout from '../../layouts/MainLayout.astro';
 import { createAdminClient } from '../../lib/supabase/server';
 
 const supabaseAdmin = createAdminClient();
@@ -25,7 +25,7 @@ const tenantName = (booking.tenants as any)?.name || 'VTC HUB';
 const tenantLogo = (booking.tenants as any)?.logo_url;
 ---
 
-<AppLayout title={`Évaluer votre trajet - ${tenantName}`}>
+<MainLayout title={`Évaluer votre trajet - ${tenantName}`}>
     <div class="min-h-screen flex items-center justify-center p-6 bg-[#050505]">
         <div class="max-w-md w-full glass p-10 rounded-[3rem] border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-700">
 
@@ -41,10 +41,10 @@ const tenantLogo = (booking.tenants as any)?.logo_url;
                     </div>
                 )}
                 <h1 class="text-fluid-2xl font-black italic uppercase text-white tracking-widest leading-tight">
-                    Merci d'avoir choisi {tenantName}
+                    Notez votre course
                 </h1>
                 <p class="text-fluid-xs font-bold text-slate-500 uppercase tracking-widest mt-2 opacity-60">
-                    Votre avis nous aide à maintenir l'excellence
+                    {tenantName} vous invite à évaluer votre trajet terminé
                 </p>
             </div>
 
@@ -169,4 +169,4 @@ const tenantLogo = (booking.tenants as any)?.logo_url;
             }
         });
     </script>
-</AppLayout>
+</MainLayout>

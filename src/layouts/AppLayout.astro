@@ -3,6 +3,7 @@
 import "../styles/global.css";
 import { isTenant } from "../lib/guards";
 import InactivityTimeout from "../components/common/InactivityTimeout.astro";
+import appLayoutScriptUrl from "../scripts/app-layout.ts?url";
 
 interface Props {
     title: string;
@@ -41,13 +42,12 @@ const navItems = [
 
 const { data: tenant } = await Astro.locals.supabase
     .from("tenants")
-    .select("name, logo_url")
+    .select("name")
     .eq("id", safeProfile.tenant_id!)
     .maybeSingle();
 
-const logoUrl = tenant?.logo_url;
-
 const tenantName = tenant?.name || "VTC HUB";
+
 ---
 
 <!doctype html>
@@ -69,23 +69,19 @@ const tenantName = tenant?.name || "VTC HUB";
         class="bg-brand-dark h-screen overflow-hidden text-slate-50 selection:bg-indigo-500/30 font-inter"
     >
         <div class="flex h-full flex-col md:flex-row">
-            <header class="md:hidden flex items-center justify-center p-6 glass border-b border-white/5 flex-shrink-0 z-[60] relative min-h-[80px]">
-                <button id="mobile-menu-toggle" class="absolute left-6 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
+            <header class="md:hidden flex items-center justify-between px-6 py-4 glass border-b border-white/5 flex-shrink-0 z-[60] relative min-h-[70px]">
+                <div class="flex items-center gap-4">
+                    <button id="mobile-menu-toggle" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors bg-white/5 rounded-xl border border-white/5">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <h1 class="text-sm font-black italic uppercase tracking-wider text-white truncate max-w-[150px]">
+                        {title}
+                    </h1>
+                </div>
                 <div class="flex items-center gap-3">
-                    {logoUrl ? (
-                         <div class="p-1.5 bg-white rounded-lg shadow-lg">
-                            <img src={logoUrl} alt={tenantName} class="w-7 h-7 object-contain" />
-                         </div>
-                    ) : (
-                        <div class="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                            <span class="text-white font-black text-xs italic">{tenantName.charAt(0).toUpperCase()}</span>
-                        </div>
-                    )}
-                    <span class="text-xs font-black tracking-tighter italic uppercase text-white truncate max-w-[150px]">{tenantName}</span>
+                    <span class="text-[10px] font-black tracking-widest uppercase text-slate-500 truncate max-w-[120px]">{tenantName}</span>
                 </div>
             </header>
 
@@ -189,7 +185,24 @@ const tenantName = tenant?.name || "VTC HUB";
             <main
                 class="flex-1 h-full relative bg-[#050505] flex flex-col overflow-hidden"
             >
-                <slot />
+                <!-- TOP HEADER (Desktop) -->
+                <header class="hidden md:flex h-20 items-center justify-between px-10 border-b border-white/5 bg-black/20 backdrop-blur-xl z-20 flex-shrink-0">
+                    <div class="flex items-center gap-4">
+                        <h1 class="text-xl font-black italic uppercase tracking-tighter text-white">
+                            {title}
+                        </h1>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="flex flex-col items-end">
+                            <span class="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em]">{tenantName}</span>
+                            <span class="text-[9px] font-medium text-slate-500 uppercase tracking-widest">{safeProfile.tenant_role} mode</span>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+                    <slot />
+                </div>
             </main>
         </div>
 
@@ -198,19 +211,11 @@ const tenantName = tenant?.name || "VTC HUB";
             <div class="absolute inset-0 bg-black/90 backdrop-blur-sm mobile-menu-overlay"></div>
             <div class="absolute inset-y-0 left-0 w-[85%] max-w-sm glass border-r border-white/10 p-8 transform -translate-x-full transition-transform duration-300 flex flex-col overflow-hidden">
                 <div class="flex items-center justify-between mb-10">
-                    <div class="flex flex-col items-start text-left gap-4 w-full">
-                        {logoUrl ? (
-                            <div class="p-3 bg-white/5 border border-white/10 rounded-2xl">
-                                <img src={logoUrl} alt={tenantName} class="w-16 h-16 object-contain" />
-                            </div>
-                        ) : (
-                            <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                                <span class="text-white font-black text-fluid-4xl italic">{tenantName.charAt(0).toUpperCase()}</span>
-                            </div>
-                        )}
-                        <span class="text-fluid-3xl font-black tracking-tighter italic uppercase text-white leading-tight truncate w-full">{tenantName}</span>
+                    <div class="flex flex-col items-start text-left gap-1 w-full">
+                        <span class="text-[10px] font-black tracking-[0.3em] uppercase text-indigo-500 mb-1">Navigation</span>
+                        <h2 class="text-fluid-2xl font-black tracking-tighter italic uppercase text-white leading-tight truncate w-full">Menu Principal</h2>
                     </div>
-                    <button id="mobile-menu-close" class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-slate-400 hover:text-white">
+                    <button id="mobile-menu-close" class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all active:scale-95">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -296,6 +301,7 @@ const tenantName = tenant?.name || "VTC HUB";
                         <span>Se déconnecter</span>
                     </button>
                 </div>
+
             </div>
         </div>
 
@@ -352,56 +358,7 @@ const tenantName = tenant?.name || "VTC HUB";
             }
         </style>
 
-        <script>
-            import { supabase } from "@/lib/supabase/client";
-            const logoutBtn = document.querySelector("#logout-btn");
-            const modal = document.querySelector("#logout-modal");
-            const confirmBtn = document.querySelector("#confirm-logout");
-            const cancelBtn = document.querySelector("#cancel-logout");
-            const overlay = document.querySelector(".modal-overlay");
-
-            const toggleModal = () => {
-                modal?.classList.toggle('is-active');
-                document.body.classList.toggle('overflow-hidden');
-            };
-
-            logoutBtn?.addEventListener("click", toggleModal);
-            cancelBtn?.addEventListener("click", toggleModal);
-            overlay?.addEventListener("click", toggleModal);
-
-            confirmBtn?.addEventListener("click", async () => {
-                await supabase.auth.signOut();
-                window.location.href = "/";
-            });
-
-            // Mobile Menu Logic
-            const mobileMenu = document.querySelector("#mobile-menu");
-            const mobileMenuBtn = document.querySelector("#mobile-menu-toggle");
-            const mobileMenuClose = document.querySelector("#mobile-menu-close");
-            const mobileMenuOverlay = document.querySelector(".mobile-menu-overlay");
-            const logoutBtnMobile = document.querySelector("#logout-btn-mobile");
-
-            const toggleMobileMenu = () => {
-                mobileMenu?.classList.toggle('is-active');
-                document.body.classList.toggle('overflow-hidden');
-            };
-
-            mobileMenuBtn?.addEventListener("click", toggleMobileMenu);
-            mobileMenuClose?.addEventListener("click", toggleMobileMenu);
-            mobileMenuOverlay?.addEventListener("click", toggleMobileMenu);
-            logoutBtnMobile?.addEventListener("click", () => {
-                toggleMobileMenu();
-                toggleModal();
-            });
-
-            // Close on Escape
-            window.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    if (modal?.classList.contains('is-active')) toggleModal();
-                    if (mobileMenu?.classList.contains('is-active')) toggleMobileMenu();
-                }
-            });
-        </script>
+        <script type="module" src={appLayoutScriptUrl}></script>
         <InactivityTimeout timeoutMinutes={30} />
     </body>
 </html>

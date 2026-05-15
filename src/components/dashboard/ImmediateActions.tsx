@@ -10,6 +10,8 @@ interface ImmediateActionsProps {
   tenantName: string;
   pickupTime: string;
   invoiceUrl?: string | null;
+  missionStatus?: string;
+  rating?: number | null;
 }
 
 export const ImmediateActions: React.FC<ImmediateActionsProps> = ({
@@ -19,13 +21,13 @@ export const ImmediateActions: React.FC<ImmediateActionsProps> = ({
   tenantName,
   pickupTime,
   invoiceUrl,
+  missionStatus,
+  rating,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Consider it time for rating if we are within 30 mins before or anytime after pickup
-  const pickupDate = new Date(pickupTime);
-  const now = new Date();
-  const isTimeForRating = now >= new Date(pickupDate.getTime() - 30 * 60000);
+  const isCompleted = missionStatus === 'completed';
+  const alreadyRated = rating !== null && rating !== undefined;
 
   return (
     <>
@@ -46,19 +48,31 @@ export const ImmediateActions: React.FC<ImmediateActionsProps> = ({
           <span>Nav</span>
         </a>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className={`flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 ${
-            isTimeForRating
-              ? 'bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/30 text-rose-500'
-              : 'bg-white/5 text-slate-700 border border-white/5 opacity-50 cursor-not-allowed'
-          }`}
-          disabled={!isTimeForRating}>
-          <Star className={`w-3 h-3 ${isTimeForRating ? 'fill-current' : ''}`} />
-          <span>Note</span>
-        </button>
+        {isCompleted && alreadyRated ? (
+          <button
+            disabled
+            className='flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 bg-white/5 border border-white/5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-600 cursor-not-allowed'>
+            <Star className='w-3 h-3 fill-current text-amber-500/50' />
+            <span>Déjà noté</span>
+          </button>
+        ) : (
+          <button
+            onClick={() =>
+              isCompleted
+                ? setIsModalOpen(true)
+                : alert("Veuillez d'abord TERMINER la mission pour recueillir l'avis passager.")
+            }
+            className={`flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 ${
+              isCompleted
+                ? 'bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/30 text-rose-500'
+                : 'bg-white/5 text-slate-500 border border-white/5 opacity-50'
+            }`}>
+            <Star className={`w-3 h-3 ${isCompleted ? 'fill-current' : ''}`} />
+            <span>{isCompleted ? 'QR Avis' : 'Note'}</span>
+          </button>
+        )}
 
-        {invoiceUrl ? (
+        {isCompleted && invoiceUrl ? (
           <a
             href={invoiceUrl}
             target='_blank'
@@ -68,13 +82,19 @@ export const ImmediateActions: React.FC<ImmediateActionsProps> = ({
           </a>
         ) : (
           <button
-            onClick={() => alert('Génération de la facture en cours...')}
+            onClick={() => alert(isCompleted ? 'Génération de la facture...' : 'Mission en cours : Terminez la course pour émettre la facture.')}
             className='flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 md:px-6 py-2 md:py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-500 transition-all active:scale-95'>
             <FileText className='w-3 h-3' />
             <span>Doc</span>
           </button>
         )}
       </div>
+
+      {!isCompleted && missionStatus === 'in_progress' && (
+        <div className="mt-2 text-[7px] font-black text-rose-500 uppercase tracking-widest animate-pulse">
+           ⚠️ Course en cours... N'oubliez pas de Terminer la mission à l'arrivée.
+        </div>
+      )}
 
       <RatingQRModal
         bookingId={bookingId}

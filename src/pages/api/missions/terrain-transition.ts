@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 1. Fetch booking and verify ownership (tenant)
     const { data: booking, error: fetchError } = await supabase
       .from('bookings')
-      .select('id, status, pickup_time, notes, current_tenant_id')
+      .select('id, status, pickup_time, mission_note, current_tenant_id')
       .eq('id', booking_id)
       .eq('current_tenant_id', profile.tenant_id)
       .single();
@@ -48,13 +48,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 3. Prepare Notes Update
     const nowIso = new Date().toISOString();
     const marker = `[terrain] ${TERRAIN_TAGS[action as TerrainAction]}=${nowIso}`;
-    const currentNotes = (booking.notes ?? '').toString();
+    const currentNotes = (booking.mission_note ?? '').toString();
     const alreadyMarked = currentNotes.includes(`[terrain] ${TERRAIN_TAGS[action as TerrainAction]}=`);
     const nextNotes = alreadyMarked ? currentNotes : `${currentNotes}${currentNotes ? '\n' : ''}${marker}`;
 
-    const updatePayload: any = { notes: nextNotes };
-    if (action === 'completed') {
+    const updatePayload: any = { mission_note: nextNotes };
+
+    if (action === 'en_route') {
+      updatePayload.mission_status = 'in_progress';
+    } else if (action === 'completed') {
       updatePayload.status = 'completed';
+      updatePayload.mission_status = 'completed';
     }
 
     const { error: updateError } = await supabase
@@ -64,7 +68,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (updateError) throw updateError;
 
-    return new Response(JSON.stringify({ success: true, notes: nextNotes }), {
+    return new Response(JSON.stringify({ success: true, mission_note: nextNotes }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

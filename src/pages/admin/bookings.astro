@@ -177,19 +177,8 @@ const getStatusBadge = (s: string) => {
                             <tr
                                 class="hover:bg-white/5 transition-colors group booking-row cursor-pointer"
                                 data-booking={JSON.stringify({
-                                    id: b.id,
-                                    status: b.status,
-                                    pickup_time: b.pickup_time,
-                                    pickup_address: b.pickup_address,
-                                    dropoff_address: b.dropoff_address,
-                                    total_amount: b.total_amount,
-                                    notes: b.notes,
-                                    display_customer_first_name: b.display_customer_first_name,
-                                    display_customer_last_name: b.display_customer_last_name,
-                                    display_customer_email: b.display_customer_email,
-                                    display_customer_phone: b.display_customer_phone,
-                                    driver_first_name: b.driver_first_name,
-                                    driver_last_name: b.driver_last_name,
+                                    ...b,
+                                    notes: b.mission_note || b.notes // Backward compatibility
                                 })}
                             >
                                 <td class="px-6 py-4">
@@ -226,8 +215,8 @@ const getStatusBadge = (s: string) => {
                                     </p>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-tighter border status-badge ${getStatusBadge(b.status)}`}>
-                                        {b.status}
+                                    <span class={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-tighter border status-badge ${getStatusBadge(b.mission_status || b.status)}`}>
+                                        {b.mission_status || b.status}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
@@ -408,10 +397,10 @@ const getStatusBadge = (s: string) => {
             currentRow = row;
             if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent = ''; }
 
-            setText('m-client', `${booking.display_customer_first_name || ''} ${booking.display_customer_last_name || ''}`.trim() || '---');
+            setText('m-client', `${booking.display_customer_first_name || ''} ${booking.display_customer_last_name || ''}`.trim() || 'Client');
             setText('m-email', booking.display_customer_email || '---');
-            setText('m-ref', `REF: #${(booking.id || '').slice(0, 8)}`);
-            setText('m-status', booking.status || '---');
+            setText('m-ref', `REF: #${(booking.id || '').slice(0, 8).toUpperCase()}`);
+            setText('m-status', booking.mission_status || booking.status || '---');
             setText('m-pickup', booking.pickup_address || '---');
             setText('m-dropoff', booking.dropoff_address || '---');
             setText('m-time', formatDateTime(booking.pickup_time));
@@ -458,13 +447,16 @@ const getStatusBadge = (s: string) => {
 
         const applyUpdateToRow = (updated) => {
             if (!currentRow || !currentBooking) return;
-            currentBooking.status = updated.status ?? currentBooking.status;
-            currentBooking.notes = updated.notes ?? currentBooking.notes;
+            currentBooking.mission_status = updated.mission_status ?? updated.status ?? currentBooking.mission_status;
+            currentBooking.mission_note = updated.mission_note ?? updated.notes ?? currentBooking.mission_note;
             currentRow.setAttribute('data-booking', JSON.stringify(currentBooking));
             const badge = currentRow.querySelector('.status-badge');
-            if (badge) badge.textContent = currentBooking.status || '---';
-            setText('m-status', currentBooking.status || '---');
-            setText('m-notes', currentBooking.notes || 'Aucune note particulière.');
+            if (badge) {
+                badge.textContent = currentBooking.mission_status || currentBooking.status || '---';
+                // Trigger color update if needed, but easier to just reload if status changes significantly
+            }
+            setText('m-status', currentBooking.mission_status || currentBooking.status || '---');
+            setText('m-notes', currentBooking.mission_note || 'Aucune note particulière.');
         };
 
         const doAction = async (action) => {

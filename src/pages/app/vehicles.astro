@@ -12,12 +12,11 @@ if (!profile) return Astro.redirect("/login");
 ---
 
 <AppLayout title="Véhicules">
-    <div class="flex-1 flex flex-col p-4 md:p-12 overflow-hidden h-full relative">
+    <div class="flex-1 flex flex-col px-6 py-10 md:px-12 md:py-16 overflow-hidden h-full relative">
         <!-- HEADER -->
         <div class="flex flex-row items-center justify-between gap-4 mb-8 flex-shrink-0">
             <div>
                 <Badge variant="indigo">Gestion de Flotte</Badge>
-                <h1 class="text-3xl md:text-4xl font-black mt-2 uppercase tracking-tighter text-white">Véhicules</h1>
             </div>
             <Button id="btn-new-vehicle-content">
                 + Nouveau

@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
           subtotal_amount: subtotal,
           vat_amount: vat,
 
+          mission_status: "to_validate",
           status: "paid",
           payment_mode: "stripe",
           booking_source: "customer", // OBLIGATOIRE
