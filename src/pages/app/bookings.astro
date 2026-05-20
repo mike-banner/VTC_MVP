@@ -59,6 +59,20 @@ const { data: vehicles } = await supabaseServer
 
 const activeVehicle = vehicles?.[0]; // Default to first found for now
 
+// 🎯 Fetch Fixed Routes (Forfaits)
+const { data: fixedRoutes } = await supabaseServer
+    .from("fixed_routes")
+    .select("*, pickup_zone:pickup_zone_id(id, name), dropoff_zone:dropoff_zone_id(id, name)")
+    .eq("tenant_id", profile.tenant_id!)
+    .eq("active", true);
+
+// 🎯 Fetch Pricing Rules for dynamic calculations
+const { data: pricingRules } = await supabaseServer
+    .from("pricing_rules")
+    .select("*")
+    .eq("tenant_id", profile.tenant_id!)
+    .eq("active", true);
+
 const { data: bookings, error } = await query.order("created_at", {
     ascending: false,
 });
@@ -111,7 +125,7 @@ const getFilterUrl = (params: Record<string, string>) => {
 ---
 
 <AppLayout title="Mes Courses">
-    <div class="flex-1 flex flex-col px-6 py-10 md:px-12 md:py-16 overflow-hidden h-full">
+    <div class="flex-1 flex flex-col px-6 py-10 md:px-12 md:py-16 min-h-0">
         <!-- FIXED HEADER -->
         <div class="flex-shrink-0 border-b border-white/5 pb-8 mb-6">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -197,7 +211,7 @@ const getFilterUrl = (params: Record<string, string>) => {
         </div>
 
         <!-- SCROLLABLE CONTENT -->
-        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-4">
             {
                 bookings && bookings.length > 0 ? (
                     <div class="space-y-4">
@@ -440,7 +454,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                 </button>
             </div>
 
-            <form id="new-booking-form" class="space-y-8">
+             <form id="new-booking-form" class="space-y-8" data-fixed-routes={JSON.stringify(fixedRoutes)} data-pricing-rules={JSON.stringify(pricingRules)}>
                 <!-- CONFIGURATION MISSION -->
                 <div class="space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -471,11 +485,34 @@ const getFilterUrl = (params: Record<string, string>) => {
                                     <svg class="w-4 h-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 <input type="hidden" name="vehicle_id" id="vehicle_id_hidden" value={activeVehicle?.id || ""} />
+                                <input type="hidden" id="vehicle_category_hidden" value={activeVehicle?.category || ""} />
                                 <input type="hidden" name="driver_id" value={driverId || ""} />
                                 <div id="vehicle-custom-menu" class="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl p-2 shadow-2xl opacity-0 scale-95 pointer-events-none transition-all z-[210] max-h-60 overflow-y-auto custom-scrollbar">
                                     {vehicles?.map((v: any) => (
-                                        <button type="button" data-value={v.id} data-label={`🚗 ${v.brand} ${v.model} - ${v.plate_number}`} class="custom-option-vehicle w-full px-4 py-3 rounded-xl text-xs font-black uppercase text-left text-black hover:bg-slate-50 transition-all">
+                                        <button type="button" data-value={v.id} data-category={v.category} data-label={`🚗 ${v.brand} ${v.model} - ${v.plate_number}`} class="custom-option-vehicle w-full px-4 py-3 rounded-xl text-xs font-black uppercase text-left text-black hover:bg-slate-50 transition-all">
                                             🚗 {v.brand} {v.model} - {v.plate_number}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FORFAIT APPLIQUÉ (OPTIONNEL) -->
+                        <div class="col-span-full space-y-2" id="forfait-selector-container">
+                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Forfait Tarifaire (Optionnel)</p>
+                            <div class="relative group/forfait w-full">
+                                <button type="button" id="forfait-custom-btn" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
+                                    <span id="forfait-custom-label">❌ Aucun forfait appliqué</span>
+                                    <svg class="w-4 h-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                <input type="hidden" name="fixed_route_id" id="fixed_route_id_hidden" value="" />
+                                <div id="forfait-custom-menu" class="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl p-2 shadow-2xl opacity-0 scale-95 pointer-events-none transition-all z-[210] max-h-60 overflow-y-auto custom-scrollbar">
+                                    <button type="button" data-value="" data-label="❌ Aucun forfait appliqué" class="custom-option-forfait w-full px-4 py-3 rounded-xl text-xs font-black uppercase text-left text-black hover:bg-slate-50 transition-all">
+                                        ❌ Aucun forfait appliqué
+                                    </button>
+                                    {fixedRoutes?.map((r: any) => (
+                                        <button type="button" data-value={r.id} data-label={`✈️ ${r.pickup_zone?.name} ⇋ ${r.dropoff_zone?.name}`} class="custom-option-forfait w-full px-4 py-3 rounded-xl text-xs font-black uppercase text-left text-black hover:bg-slate-50 transition-all">
+                                            ✈️ {r.pickup_zone?.name} ⇋ {r.dropoff_zone?.name} ({r.vehicle_category.toUpperCase()})
                                         </button>
                                     ))}
                                 </div>
@@ -515,6 +552,10 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <input id="dropoff-input" type="text" name="dropoff" placeholder="Adresse d'Arrivée" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold italic" />
                         <div class="relative">
                             <input type="datetime-local" name="pickup_time" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                        </div>
+                        <div id="duration-hours-container" class="hidden space-y-2">
+                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Durée de la mise à disposition (Heures)</p>
+                            <input type="number" id="duration_hours" name="duration_hours" value="1" min="1" max="24" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
                     </div>
                 </div>

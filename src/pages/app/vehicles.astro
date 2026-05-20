@@ -11,8 +11,8 @@ const { profile } = Astro.locals;
 if (!profile) return Astro.redirect("/login");
 ---
 
-<AppLayout title="Véhicules">
-    <div class="flex-1 flex flex-col px-6 py-10 md:px-12 md:py-16 overflow-hidden h-full relative">
+<AppLayout title="Mes Véhicules">
+    <div class="flex-1 flex flex-col px-6 py-10 md:px-12 md:py-16 min-h-0">
         <!-- BACK LINK -->
         <a href="/app/settings" class="inline-flex items-center gap-2 text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors mb-8 flex-shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,7 +23,7 @@ if (!profile) return Astro.redirect("/login");
         <!-- HEADER -->
         <div class="flex flex-row items-center justify-between gap-4 mb-8 flex-shrink-0">
             <div>
-                <Badge variant="indigo">Gestion de Flotte</Badge>
+                <Badge variant="indigo">Mes Véhicules</Badge>
             </div>
             <Button id="btn-new-vehicle-content">
                 + Nouveau

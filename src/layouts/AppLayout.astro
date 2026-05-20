@@ -165,7 +165,7 @@ const tenantName = tenant?.name || "VTC HUB";
 
             <!-- Contenu Principal -->
             <main
-                class="flex-1 h-full relative bg-[#050505] flex flex-col overflow-hidden"
+                class="flex-1 min-h-0 relative bg-[#050505] flex flex-col overflow-hidden"
             >
                 <!-- TOP HEADER (Desktop) -->
                 <header class="hidden md:flex h-20 items-center justify-between px-10 border-b border-white/5 bg-black/20 backdrop-blur-xl z-20 flex-shrink-0">
@@ -182,8 +182,10 @@ const tenantName = tenant?.name || "VTC HUB";
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar relative pb-16 md:pb-0">
+                <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
                     <slot />
+                    <!-- Spacer mobile pour la barre de navigation fixe -->
+                    <div class="h-16 flex-shrink-0 md:hidden" aria-hidden="true"></div>
                 </div>
             </main>
         </div>
