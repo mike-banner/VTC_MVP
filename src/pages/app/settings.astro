@@ -27,7 +27,7 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
 ---
 
 <AppLayout title="Paramètres - Owner">
-    <div id="settings-page" data-confirmation-phrase={confirmationPhrase} class="flex-1 flex flex-col px-6 py-10 md:px-12 md:py-16 min-h-0">
+    <div id="settings-page" data-confirmation-phrase={confirmationPhrase} class="flex-1 flex flex-col px-6 py-10 md:px-12 md:py-16 overflow-y-auto custom-scrollbar">
         <!-- FIXED HEADER -->
         <div class="flex-shrink-0 border-b border-white/5 pb-10 mb-10">
             <span
@@ -41,7 +41,7 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
 
         <!-- SCROLLABLE CONTENT -->
         <div
-            class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8 pb-20"
+            class="space-y-8 pb-20"
         >
             <!-- Hub de navigation -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
