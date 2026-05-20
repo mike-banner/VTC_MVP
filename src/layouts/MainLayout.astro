@@ -4,14 +4,15 @@ import "../styles/global.css";
 
 interface Props {
     title: string;
+    hideFooter?: boolean;
 }
 
-const { title } = Astro.props;
+const { title, hideFooter = false } = Astro.props;
 const { user } = Astro.locals;
 ---
 
 <!doctype html>
-<html lang="fr" class="dark">
+<html lang="fr" class="dark h-full overflow-hidden">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,7 +27,7 @@ const { user } = Astro.locals;
         />
     </head>
     <body
-        class="premium-gradient h-screen flex flex-col overflow-hidden text-slate-50 selection:bg-indigo-500/30"
+        class="premium-gradient h-full flex flex-col overflow-hidden text-slate-50 selection:bg-indigo-500/30"
     >
         <div
             class="fixed inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] pointer-events-none opacity-20"
@@ -75,22 +76,17 @@ const { user } = Astro.locals;
             </div>
         </nav>
 
-        <main class="flex-1 flex flex-col min-h-0 overflow-y-auto relative z-10">
+        <main class="flex-1 flex flex-col min-h-0 overflow-hidden relative z-10">
             <slot />
         </main>
 
-        <footer class="flex-none border-t border-white/5 py-4 px-6 glass">
-            <div
-                class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2 text-slate-500 text-xs"
-            >
-                <div>
-                    &copy; {new Date().getFullYear()} VTC HUB. Précision. Luxe. Excellence.
+        {!hideFooter && (
+            <footer class="flex-none border-t border-white/5 py-3 px-6 glass">
+                <div class="max-w-7xl mx-auto flex justify-between items-center text-slate-600 text-[11px]">
+                    <span>&copy; {new Date().getFullYear()} VTC HUB &mdash; Précision. Luxe. Excellence.</span>
                 </div>
-                <div class="flex items-center gap-4">
-                    <!-- Bouton Admin retiré -->
-                </div>
-            </div>
-        </footer>
+            </footer>
+        )}
 
         <script>
             import { supabase } from "@/lib/supabase/client";

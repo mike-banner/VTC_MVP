@@ -3,29 +3,14 @@
 import MainLayout from "../layouts/MainLayout.astro";
 ---
 
-<MainLayout title="Connexion">
-    <div class="flex-1 flex items-center justify-center px-4 py-4">
-        <!-- Logo + Card groupés verticalement -->
-        <div class="w-full max-w-sm flex flex-col items-center gap-5">
-
-            <!-- Logo -->
-            <a href="/" class="flex items-center gap-2 group transition-opacity hover:opacity-80">
-                <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-                    <span class="text-white font-bold text-lg">V</span>
-                </div>
-                <span class="text-lg font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                    VTC HUB
-                </span>
-            </a>
-
-            <!-- Card -->
-            <div class="glass p-8 rounded-3xl w-full shadow-2xl border border-white/10 relative">
+<MainLayout title="Connexion" hideFooter>
+    <div class="flex-1 flex items-center justify-center px-4">
+        <div class="glass p-8 rounded-3xl w-full max-w-sm shadow-2xl border border-white/10 relative">
 
             <!-- Lien retour accueil -->
             <a
                 href="/"
                 class="absolute top-5 left-5 flex items-center gap-1.5 text-slate-500 hover:text-white transition-colors text-xs font-medium"
-                title="Retour à l'accueil"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -33,46 +18,30 @@ import MainLayout from "../layouts/MainLayout.astro";
                 Accueil
             </a>
 
-            <div class="text-center mb-7 pt-2">
-                <h1
-                    class="text-2xl font-extrabold mb-1.5 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white"
-                >
+            <div class="text-center mb-6 pt-4">
+                <h1 class="text-2xl font-extrabold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-white">
                     Bon retour
                 </h1>
-                <p class="text-slate-400 text-sm">
-                    Connectez-vous à votre espace
-                </p>
+                <p class="text-slate-500 text-sm">Connectez-vous à votre espace</p>
             </div>
 
-            <form id="login-form" class="space-y-6">
-                <div class="space-y-2">
-                    <label
-                        for="email"
-                        class="text-sm font-medium text-slate-300"
-                        >Email professionnel</label
-                    >
+            <form id="login-form" class="space-y-4">
+                <div class="space-y-1.5">
+                    <label for="email" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Email</label>
                     <input
                         type="email"
                         id="email"
                         name="email"
                         required
                         placeholder="nom@entreprise.fr"
-                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-inter"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm"
                     />
                 </div>
 
-                <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <label
-                            for="password"
-                            class="text-sm font-medium text-slate-300"
-                            >Mot de passe</label
-                        >
-                        <a
-                            href="#"
-                            class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                            >Oublié ?</a
-                        >
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center">
+                        <label for="password" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Mot de passe</label>
+                        <a href="#" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Oublié ?</a>
                     </div>
                     <input
                         type="password"
@@ -80,61 +49,34 @@ import MainLayout from "../layouts/MainLayout.astro";
                         name="password"
                         required
                         placeholder="••••••••"
-                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-inter"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm"
                     />
                 </div>
 
                 <button
                     type="submit"
                     id="submit-btn"
-                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden group"
+                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden group mt-2"
                 >
-                    <span
-                        class="btn-text group-hover:tracking-wider transition-all duration-300"
-                        >Se connecter</span
-                    >
-                    <div
-                        class="loader-container hidden absolute inset-0 flex items-center justify-center bg-indigo-600"
-                    >
-                        <svg
-                            class="animate-spin h-5 w-5 text-white"
-                            viewBox="0 0 24 24"
-                        >
-                            <circle
-                                class="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                stroke-width="4"></circle>
-                            <path
-                                class="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
+                    <span class="btn-text group-hover:tracking-wider transition-all duration-300 text-sm uppercase tracking-widest">Se connecter</span>
+                    <div class="loader-container hidden absolute inset-0 flex items-center justify-center bg-indigo-600">
+                        <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </div>
                 </button>
             </form>
 
-            <div class="mt-6 pt-6 border-t border-white/5 text-center">
-                <p class="text-slate-500 text-sm">
+            <div class="mt-5 pt-5 border-t border-white/5 text-center">
+                <p class="text-slate-500 text-xs">
                     Pas encore de compte ?
-                    <a
-                        href="/signup"
-                        class="text-indigo-400 font-bold hover:text-indigo-300 transition-colors"
-                        >Créer un compte</a
-                    >
+                    <a href="/signup" class="text-indigo-400 font-bold hover:text-indigo-300 transition-colors">Créer un compte</a>
                 </p>
             </div>
 
-            <div
-                id="message"
-                class="mt-4 text-center text-sm font-medium min-h-[20px]"
-            >
-            </div>
-        </div><!-- end card -->
-        </div><!-- end flex col -->
+            <div id="message" class="mt-4 text-center text-sm font-medium min-h-[16px]"></div>
+        </div>
     </div>
 </MainLayout>
 
@@ -143,19 +85,14 @@ import MainLayout from "../layouts/MainLayout.astro";
 
     const form = document.querySelector("#login-form") as HTMLFormElement;
     const messageEl = document.querySelector("#message") as HTMLDivElement;
-    const submitBtn = document.querySelector(
-        "#submit-btn",
-    ) as HTMLButtonElement;
-    const loader = document.querySelector(
-        ".loader-container",
-    ) as HTMLDivElement;
+    const submitBtn = document.querySelector("#submit-btn") as HTMLButtonElement;
+    const loader = document.querySelector(".loader-container") as HTMLDivElement;
     const btnText = document.querySelector(".btn-text") as HTMLSpanElement;
 
-    // Check for inactivity reason
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('reason') === 'inactivity' && messageEl) {
         messageEl.textContent = "Vous avez été déconnecté pour inactivité.";
-        messageEl.className = "mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center text-sm font-medium text-amber-500";
+        messageEl.className = "mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center text-xs font-medium text-amber-500";
     }
 
     form?.addEventListener("submit", async (e) => {
@@ -165,38 +102,29 @@ import MainLayout from "../layouts/MainLayout.astro";
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
 
-        // UI State: Loading
         submitBtn.disabled = true;
         loader.classList.remove("hidden");
         btnText.style.opacity = "0";
         messageEl.textContent = "";
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
 
             if (error) {
                 messageEl.textContent = "Erreur : " + error.message;
-                messageEl.className =
-                    "mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-center text-sm font-medium text-red-400";
+                messageEl.className = "mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-center text-xs font-medium text-red-400";
                 submitBtn.disabled = false;
                 loader.classList.add("hidden");
                 btnText.style.opacity = "1";
             } else {
                 messageEl.textContent = "Connexion réussie ! Redirection...";
-                messageEl.className =
-                    "mt-6 text-center text-sm font-medium text-emerald-400";
-
+                messageEl.className = "mt-4 text-center text-xs font-medium text-emerald-400";
                 window.location.href = "/dashboard";
-
             }
         } catch (err) {
             console.error(err);
             messageEl.textContent = "Une erreur technique est survenue.";
-            messageEl.className =
-                "mt-6 text-center text-sm font-medium text-red-400";
+            messageEl.className = "mt-4 text-center text-xs font-medium text-red-400";
             submitBtn.disabled = false;
             loader.classList.add("hidden");
             btnText.style.opacity = "1";

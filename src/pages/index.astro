@@ -3,10 +3,10 @@
 import MainLayout from "../layouts/MainLayout.astro";
 ---
 
-<MainLayout title="Accueil">
-	<div class="flex-1 flex items-center justify-center px-4 py-4">
-	<div class="glass p-8 sm:p-10 rounded-[2.5rem] text-center max-w-2xl w-full border border-white/10 shadow-[0_0_50px_-12px_rgba(79,70,229,0.2)]">
-			<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-4 sm:mb-8">
+<MainLayout title="Accueil" hideFooter>
+	<div class="flex-1 flex items-center justify-center px-4">
+		<div class="glass p-8 sm:p-12 rounded-[2.5rem] text-center max-w-2xl w-full border border-white/10 shadow-[0_0_50px_-12px_rgba(79,70,229,0.2)]">
+			<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-6">
 				<span class="relative flex h-2 w-2">
 					<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
 					<span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -15,27 +15,29 @@ import MainLayout from "../layouts/MainLayout.astro";
 			</div>
 
 			<h1
-				class="text-[2.2rem] sm:text-5xl font-black mb-3 sm:mb-5 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500 tracking-tighter italic uppercase leading-[1.1] py-1"
+				class="text-[2.2rem] sm:text-5xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500 tracking-tighter italic uppercase leading-[1.1]"
 			>
 				L'excellence <br/> du <span class="text-indigo-500">VTC</span>
 			</h1>
-			<p class="text-slate-400 text-sm sm:text-base mb-6 sm:mb-8 font-medium max-w-xl mx-auto leading-relaxed">
+			<p class="text-slate-400 text-sm sm:text-base mb-8 font-medium max-w-xl mx-auto leading-relaxed">
 				Propulsez votre entreprise de transport avec une infrastructure technologique <span class="text-white italic">Elite</span>.
 			</p>
-			<div class="flex flex-col sm:flex-row gap-4 justify-center">
+			<div class="flex flex-col sm:flex-row gap-3 justify-center">
 				<a
 					href="/signup"
-					class="px-5 py-3.5 sm:px-10 sm:py-5 bg-indigo-600 rounded-2xl font-black uppercase tracking-widest text-xs sm:text-base hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/30 active:scale-95"
+					class="px-8 py-3.5 bg-indigo-600 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/30 active:scale-95"
 				>
 					Démarrer maintenant
 				</a>
 				<button
 					id="btn-learn-more"
-					class="px-5 py-3.5 sm:px-10 sm:py-5 glass rounded-2xl font-black uppercase tracking-widest text-xs sm:text-base hover:bg-white/5 transition-all border border-white/10 active:scale-95"
+					class="px-8 py-3.5 glass rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-white/5 transition-all border border-white/10 active:scale-95"
 				>
 					En savoir plus
 				</button>
 			</div>
+
+			<p class="mt-8 text-[11px] text-slate-600">&copy; {new Date().getFullYear()} VTC HUB</p>
 		</div>
 	</div>
 
@@ -141,14 +143,12 @@ import MainLayout from "../layouts/MainLayout.astro";
 
 		const toggleModal = () => {
 			modal?.classList.toggle('is-active');
-			document.body.classList.toggle('overflow-hidden');
 		};
 
 		btn?.addEventListener('click', toggleModal);
 		closeBtns.forEach(b => b.addEventListener('click', toggleModal));
 		overlay?.addEventListener('click', toggleModal);
 
-		// Fermeture avec Echap
 		window.addEventListener('keydown', (e) => {
 			if (e.key === 'Escape' && modal?.classList.contains('is-active')) {
 				toggleModal();
