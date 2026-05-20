@@ -5,23 +5,34 @@ import { createAdminClient } from '../../lib/supabase/server';
 export const POST: APIRoute = async ({ request }) => {
   const supabaseAdmin = createAdminClient();
   try {
-    const { bookingId, rating, comment } = await request.json();
+    const body = await request.json();
+    const { bookingId } = body;
+    const rating = parseInt(body.rating, 10);
+    const comment = typeof body.comment === 'string'
+      ? body.comment.trim().slice(0, 500)
+      : null;
 
+    // Validation stricte
     if (!bookingId || !rating) {
       return new Response(JSON.stringify({ error: 'Données manquantes' }), { status: 400 });
     }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return new Response(JSON.stringify({ error: 'Note invalide (1-5)' }), { status: 400 });
+    }
 
-    // 1️⃣ Vérifier si déjà noté
+    // 1️⃣ Vérifier existence, statut completed, et non encore noté
     const { data: booking, error: fetchError } = await supabaseAdmin
       .from('bookings')
-      .select('rating')
+      .select('rating, mission_status')
       .eq('id', bookingId)
       .single();
 
     if (fetchError || !booking) {
       return new Response(JSON.stringify({ error: 'Réservation non trouvée' }), { status: 404 });
     }
-
+    if (booking.mission_status !== 'completed') {
+      return new Response(JSON.stringify({ error: 'Course non terminée' }), { status: 400 });
+    }
     if (booking.rating !== null) {
       return new Response(JSON.stringify({ error: 'Déjà noté' }), { status: 400 });
     }
@@ -30,7 +41,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { error: updateError } = await supabaseAdmin
       .from('bookings')
       .update({
-        rating: parseInt(rating),
+        rating,
         rating_comment: comment,
         rating_created_at: new Date().toISOString(),
       })
