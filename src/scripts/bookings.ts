@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import QRCode from "qrcode";
 
 type AnyBooking = Record<string, unknown> & {
   id?: string;
@@ -13,6 +14,8 @@ type AnyBooking = Record<string, unknown> & {
   booking_type?: string;
   mission_note?: string;
   notes?: string;
+  rating?: number | null;
+  rating_comment?: string | null;
   customers?: {
     first_name?: string;
     last_name?: string;
@@ -119,6 +122,52 @@ const updateTerrainUI = (booking: AnyBooking): void => {
   document.getElementById("btn-complete")?.addEventListener("click", () => void runAction("completed"));
 };
 
+const updateRatingUI = (booking: AnyBooking): void => {
+  const section = document.getElementById("modal-rating-section");
+  const ratingDisplay = document.getElementById("modal-rating-display");
+  const qrSection = document.getElementById("modal-qr-section");
+  if (!section || !ratingDisplay || !qrSection) return;
+
+  if (booking.mission_status !== "completed") {
+    section.classList.add("hidden");
+    return;
+  }
+
+  section.classList.remove("hidden");
+
+  if (booking.rating != null) {
+    ratingDisplay.classList.remove("hidden");
+    qrSection.classList.add("hidden");
+
+    const starsEl = document.getElementById("modal-rating-stars");
+    if (starsEl) {
+      starsEl.innerHTML = [1, 2, 3, 4, 5]
+        .map((s) => `<svg class="w-5 h-5 ${s <= Number(booking.rating) ? "text-amber-400" : "text-slate-700"}" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545-4.756-4.635 6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>`)
+        .join("");
+    }
+
+    const commentEl = document.getElementById("modal-rating-comment");
+    if (commentEl) {
+      commentEl.innerText = booking.rating_comment
+        ? `"${booking.rating_comment}"`
+        : "Aucun commentaire";
+    }
+  } else {
+    ratingDisplay.classList.add("hidden");
+    qrSection.classList.remove("hidden");
+
+    const canvas = document.getElementById("modal-qr-canvas") as HTMLCanvasElement | null;
+    if (canvas && booking.id) {
+      const ratingUrl = `${window.location.origin}/rate/${booking.id}`;
+      QRCode.toCanvas(canvas, ratingUrl, {
+        width: 112,
+        margin: 1,
+        color: { dark: "#000000", light: "#ffffff" },
+      }).catch(console.error);
+    }
+  }
+};
+
 const run = (): void => {
   const openBtn = document.querySelector<HTMLButtonElement>("#open-new-booking");
   const closeBtn = document.querySelector<HTMLButtonElement>("#close-new-booking");
@@ -154,6 +203,7 @@ const run = (): void => {
     row.addEventListener("click", () => {
       const booking = parseBookingFromRow(row);
       updateTerrainUI(booking);
+      updateRatingUI(booking);
 
       const nameEl = document.getElementById("modal-client-name");
       const phoneLinkEl = document.getElementById("modal-client-phone-link") as HTMLAnchorElement | null;

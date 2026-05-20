@@ -7,24 +7,8 @@ const run = (): void => {
   const cancelBtn = document.querySelector<HTMLButtonElement>("#cancel-logout");
   const overlay = document.querySelector<HTMLElement>("#logout-modal .modal-overlay");
 
-  const mobileMenu = document.querySelector<HTMLElement>("#mobile-menu");
-  const mobileMenuBtn =
-    document.querySelector<HTMLButtonElement>("#mobile-menu-toggle");
-  const mobileMenuClose =
-    document.querySelector<HTMLButtonElement>("#mobile-menu-close");
-  const mobileMenuOverlay = document.querySelector<HTMLElement>(
-    "#mobile-menu .mobile-menu-overlay",
-  );
-  const logoutBtnMobile =
-    document.querySelector<HTMLButtonElement>("#logout-btn-mobile");
-
   const toggleModal = (): void => {
     modal?.classList.toggle("is-active");
-    document.body.classList.toggle("overflow-hidden");
-  };
-
-  const toggleMobileMenu = (): void => {
-    mobileMenu?.classList.toggle("is-active");
     document.body.classList.toggle("overflow-hidden");
   };
 
@@ -37,19 +21,9 @@ const run = (): void => {
     window.location.href = "/";
   });
 
-  mobileMenuBtn?.addEventListener("click", toggleMobileMenu);
-  mobileMenuClose?.addEventListener("click", toggleMobileMenu);
-  mobileMenuOverlay?.addEventListener("click", toggleMobileMenu);
-
-  logoutBtnMobile?.addEventListener("click", () => {
-    toggleMobileMenu();
-    toggleModal();
-  });
-
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (modal?.classList.contains("is-active")) toggleModal();
-    if (mobileMenu?.classList.contains("is-active")) toggleMobileMenu();
   });
 };
 

@@ -1,5 +1,9 @@
--- Update admin_bookings_full_view to include mission columns
-CREATE OR REPLACE VIEW "public"."admin_bookings_full_view" AS
+-- 20260417050500_update_admin_view.sql
+-- Update admin_bookings_full_view to include mission columns (mission_status, mission_note)
+
+DROP VIEW IF EXISTS "public"."admin_bookings_full_view";
+
+CREATE VIEW "public"."admin_bookings_full_view" AS
  SELECT "b"."id",
     "b"."created_at",
     "b"."pickup_time",

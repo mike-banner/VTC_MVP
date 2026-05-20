@@ -283,8 +283,8 @@ const getFilterUrl = (params: Record<string, string>) => {
 
                         <!-- DESKTOP VIEW: TABLE -->
                         <Card padding="none" rounded="3xl" class="hidden md:block overflow-hidden shadow-xl">
-                            <div class="table-container">
-                                <table class="w-full text-left border-collapse">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse min-w-[700px]">
                                     <thead class="bg-white/5 sticky top-0 z-10">
                                         <tr class="border-b border-white/5">
                                             <th class="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -647,6 +647,27 @@ const getFilterUrl = (params: Record<string, string>) => {
                     <div class="glass p-6 rounded-[2rem] border border-white/5">
                         <p class="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-3">Instructions Chauffeur</p>
                         <p id="modal-notes" class="text-xs text-slate-500 font-medium leading-relaxed">---</p>
+                    </div>
+
+                    <!-- AVIS & QR CODE -->
+                    <div id="modal-rating-section" class="glass p-6 rounded-[2rem] border border-white/5 hidden">
+                        <!-- Cas 1: avis existant -->
+                        <div id="modal-rating-display" class="hidden">
+                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-3">Avis Passager</p>
+                            <div id="modal-rating-stars" class="flex gap-1.5 mb-3"></div>
+                            <p id="modal-rating-comment" class="text-xs text-slate-400 font-medium leading-relaxed italic"></p>
+                        </div>
+                        <!-- Cas 2: pas encore noté -->
+                        <div id="modal-qr-section" class="hidden">
+                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-3">Recueillir l'Avis Passager</p>
+                            <div class="flex flex-col sm:flex-row items-center gap-6">
+                                <canvas id="modal-qr-canvas" class="w-28 h-28 rounded-2xl bg-white p-1.5 flex-shrink-0"></canvas>
+                                <div class="text-center sm:text-left">
+                                    <p class="text-xs font-bold text-slate-300">Faites scanner ce QR code au passager</p>
+                                    <p class="text-[10px] text-slate-600 mt-1">Généré localement — aucune donnée envoyée à des tiers</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- FINANCES & ACTION -->

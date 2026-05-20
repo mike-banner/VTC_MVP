@@ -1,7 +1,7 @@
 ---
 // src/layouts/AppLayout.astro
 import "../styles/global.css";
-import { isTenant } from "../lib/guards";
+import { isTenant, isPlatform } from "../lib/guards";
 import InactivityTimeout from "../components/common/InactivityTimeout.astro";
 import appLayoutScriptUrl from "../scripts/app-layout.ts?url";
 
@@ -37,7 +37,6 @@ const navItems = [
         href: "/app/ledger",
         roles: ["owner", "manager"],
     },
-    { label: "Pricing", href: "/app/pricing", roles: ["owner", "manager"] },
 ];
 
 const { data: tenant } = await Astro.locals.supabase
@@ -66,23 +65,14 @@ const tenantName = tenant?.name || "VTC HUB";
         />
     </head>
     <body
-        class="bg-brand-dark h-screen overflow-hidden text-slate-50 selection:bg-indigo-500/30 font-inter"
+        class="bg-brand-dark h-screen overflow-hidden text-slate-50 selection:bg-indigo-500/30 font-inter max-w-[100vw]"
     >
         <div class="flex h-full flex-col md:flex-row">
-            <header class="md:hidden flex items-center justify-between px-6 py-4 glass border-b border-white/5 flex-shrink-0 z-[60] relative min-h-[70px]">
-                <div class="flex items-center gap-4">
-                    <button id="mobile-menu-toggle" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white transition-colors bg-white/5 rounded-xl border border-white/5">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                    <h1 class="text-sm font-black italic uppercase tracking-wider text-white truncate max-w-[150px]">
-                        {title}
-                    </h1>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-[10px] font-black tracking-widest uppercase text-slate-500 truncate max-w-[120px]">{tenantName}</span>
-                </div>
+            <header class="md:hidden flex items-center justify-between gap-3 px-5 py-4 glass border-b border-white/5 flex-shrink-0 z-[60] relative min-h-[64px]">
+                <h1 class="text-sm font-black italic uppercase tracking-wider text-white truncate min-w-0 flex-1">
+                    {title}
+                </h1>
+                <span class="text-[9px] font-black tracking-widest uppercase text-slate-500 truncate flex-shrink-0 max-w-[100px]">{tenantName}</span>
             </header>
 
             <!-- Sidebar Fixe (Desktop) -->
@@ -123,44 +113,25 @@ const tenantName = tenant?.name || "VTC HUB";
                 </nav>
 
                 <div class="pt-6 mt-6 border-t border-white/5 space-y-2">
-                    {
-                        (safeProfile.tenant_role === "owner" || safeProfile.tenant_role === "manager") && (
-                            <>
-                                <a
-                                    href="/app/profile"
-                                    class={`flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                        pathname === "/app/profile"
-                                            ? "bg-white/10 text-white border border-white/10"
-                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
-                                    }`}
-                                >
-                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0h4" />
-                                    </svg>
-                                    Profil
-                                </a>
-                                <a
-                                    href="/app/vehicles"
-                                    class={`flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                        pathname === "/app/vehicles"
-                                            ? "bg-white/10 text-white border border-white/10"
-                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
-                                    }`}
-                                >
-                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-                                    </svg>
-                                    Véhicules
-                                </a>
-                            </>
-                        )
-                    }
+                    <a
+                        href="/app/profile"
+                        class={`flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            pathname === "/app/profile"
+                                ? "bg-white/10 text-white border border-white/10"
+                                : "text-slate-500 hover:bg-white/5 hover:text-white"
+                        }`}
+                    >
+                        <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Profil
+                    </a>
                     {
                         safeProfile.tenant_role === "owner" && (
                             <a
                                 href="/app/settings"
                                 class={`flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    pathname === "/app/settings"
+                                    pathname === "/app/settings" || pathname === "/app/pricing" || pathname === "/app/vehicles"
                                         ? "bg-white/10 text-white border border-white/10"
                                         : "text-slate-500 hover:bg-white/5 hover:text-white"
                                 }`}
@@ -168,10 +139,21 @@ const tenantName = tenant?.name || "VTC HUB";
                                 <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
-                                Paramètres
+                                Réglages
                             </a>
                         )
                     }
+                    {isPlatform(safeProfile) && (
+                        <a
+                            href="/admin/dashboard"
+                            class="flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-indigo-400/70 hover:bg-indigo-500/10 hover:text-indigo-400 border border-indigo-500/10"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+                            </svg>
+                            Backoffice Admin
+                        </a>
+                    )}
                     <button
                         id="logout-btn"
                         class="w-full flex items-center px-4 py-4 rounded-2xl hover:bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left group"
@@ -200,110 +182,49 @@ const tenantName = tenant?.name || "VTC HUB";
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative pb-16 md:pb-0">
                     <slot />
                 </div>
             </main>
         </div>
 
-        <!-- Mobile Menu Drawer -->
-        <div id="mobile-menu" class="fixed inset-0 z-[100] md:hidden pointer-events-none opacity-0 transition-all duration-300">
-            <div class="absolute inset-0 bg-black/90 backdrop-blur-sm mobile-menu-overlay"></div>
-            <div class="absolute inset-y-0 left-0 w-[85%] max-w-sm glass border-r border-white/10 p-8 transform -translate-x-full transition-transform duration-300 flex flex-col overflow-hidden">
-                <div class="flex items-center justify-between mb-10">
-                    <div class="flex flex-col items-start text-left gap-1 w-full">
-                        <span class="text-[10px] font-black tracking-[0.3em] uppercase text-indigo-500 mb-1">Navigation</span>
-                        <h2 class="text-fluid-2xl font-black tracking-tighter italic uppercase text-white leading-tight truncate w-full">Menu Principal</h2>
-                    </div>
-                    <button id="mobile-menu-close" class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all active:scale-95">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <nav class="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                    {
-                        navItems.map(
-                            (item) =>
-                                item.roles.includes(
-                                    safeProfile.tenant_role || "",
-                                ) && (
-                                    <a
-                                        href={item.href}
-                                        class={`flex items-center px-5 py-4 rounded-2xl text-sm font-bold transition-all ${
-                                            pathname === item.href
-                                                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                                                : "text-slate-400 hover:bg-white/5 hover:text-white"
-                                        }`}
-                                    >
-                                        {item.label}
-                                    </a>
-                                ),
-                        )
-                    }
-                </nav>
-
-                <div class="pt-6 mt-6 border-t border-white/5 space-y-2">
-                    {
-                        (safeProfile.tenant_role === "owner" || safeProfile.tenant_role === "manager") && (
-                            <>
-                                <a
-                                    href="/app/profile"
-                                    class={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                        pathname === "/app/profile"
-                                            ? "bg-white/10 text-white border border-white/10"
-                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
-                                    }`}
-                                >
-                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 012-2h2a2 2 0 012 2v1m-4 0h4" />
-                                    </svg>
-                                    Profil
-                                </a>
-                                <a
-                                    href="/app/vehicles"
-                                    class={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                        pathname === "/app/vehicles"
-                                            ? "bg-white/10 text-white border border-white/10"
-                                            : "text-slate-500 hover:bg-white/5 hover:text-white"
-                                    }`}
-                                >
-                                    <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-                                    </svg>
-                                    Véhicules
-                                </a>
-                            </>
-                        )
-                    }
-                    {
-                        safeProfile.tenant_role === "owner" && (
-                            <a
-                                href="/app/settings"
-                                class={`flex items-center gap-4 px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    pathname === "/app/settings"
-                                        ? "bg-white/10 text-white border border-white/10"
-                                        : "text-slate-500 hover:bg-white/5 hover:text-white"
-                                }`}
-                            >
-                                <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                Paramètres
-                            </a>
-                        )
-                    }
-                    <button
-                        id="logout-btn-mobile"
-                        class="w-full flex items-center px-5 py-4 rounded-2xl hover:bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-all text-left group"
-                    >
-                        <span>Se déconnecter</span>
-                    </button>
-                </div>
-
-            </div>
-        </div>
+        <!-- Bottom Navigation Bar (Mobile only) -->
+        <nav class="fixed bottom-0 left-0 right-0 z-50 md:hidden flex justify-around items-stretch h-16 bg-black/70 backdrop-blur-xl border-t border-white/5 safe-area-bottom">
+            <a href="/app/dashboard" class={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 px-1 transition-colors ${pathname === "/app/dashboard" ? "text-indigo-400" : "text-slate-500"}`}>
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span class="text-[8px] font-black uppercase tracking-tight leading-none truncate w-full text-center">Home</span>
+            </a>
+            <a href="/app/bookings" class={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 px-1 transition-colors ${pathname === "/app/bookings" ? "text-indigo-400" : "text-slate-500"}`}>
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-[8px] font-black uppercase tracking-tight leading-none truncate w-full text-center">Courses</span>
+            </a>
+            {(safeProfile.tenant_role === "owner" || safeProfile.tenant_role === "manager") && (
+                <a href="/app/ledger" class={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 px-1 transition-colors ${pathname === "/app/ledger" ? "text-indigo-400" : "text-slate-500"}`}>
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="text-[8px] font-black uppercase tracking-tight leading-none truncate w-full text-center">Compta</span>
+                </a>
+            )}
+            <a href="/app/profile" class={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 px-1 transition-colors ${pathname === "/app/profile" ? "text-indigo-400" : "text-slate-500"}`}>
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span class="text-[8px] font-black uppercase tracking-tight leading-none truncate w-full text-center">Profil</span>
+            </a>
+            {safeProfile.tenant_role === "owner" && (
+                <a href="/app/settings" class={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 px-1 transition-colors ${pathname === "/app/settings" || pathname === "/app/pricing" || pathname === "/app/vehicles" ? "text-indigo-400" : "text-slate-500"}`}>
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="text-[8px] font-black uppercase tracking-tight leading-none truncate w-full text-center">Config</span>
+                </a>
+            )}
+        </nav>
 
         <!-- Logout Confirmation Modal -->
         <div id="logout-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
@@ -347,14 +268,6 @@ const tenantName = tenant?.name || "VTC HUB";
             }
             #logout-modal.is-active > div:last-child {
                 transform: scale(1);
-            }
-
-            #mobile-menu.is-active {
-                opacity: 1;
-                pointer-events: auto;
-            }
-            #mobile-menu.is-active > div:last-child {
-                transform: translateX(0);
             }
         </style>
 
