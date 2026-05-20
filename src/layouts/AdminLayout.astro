@@ -21,7 +21,7 @@ if (!isPlatform(profile)) {
 ---
 
 <!doctype html>
-<html lang="fr" class="dark scroll-smooth">
+<html lang="fr" class="dark h-full overflow-hidden">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -70,11 +70,11 @@ if (!isPlatform(profile)) {
         </style>
     </head>
     <body
-        class="bg-[#050505] min-h-screen text-slate-50 selection:bg-indigo-500/30 overflow-x-hidden"
+        class="bg-[#050505] h-full overflow-hidden text-slate-50 selection:bg-indigo-500/30"
     >
         <Sidebar />
 
-        <main class="md:ml-64 relative min-h-screen flex flex-col p-8 md:p-12 lg:p-20 overflow-hidden">
+        <main class="md:ml-64 h-full overflow-y-auto relative flex flex-col p-8 md:p-12 lg:p-20">
             <!-- Background Decoration -->
             <div class="absolute top-0 right-0 w-full h-full pointer-events-none opacity-50">
                 <div class="absolute top-[10%] right-[10%] w-[400px] h-[400px] bg-indigo-600/10 blur-[150px] rounded-full"></div>
