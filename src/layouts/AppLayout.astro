@@ -65,9 +65,9 @@ const tenantName = tenant?.name || "VTC HUB";
         />
     </head>
     <body
-        class="bg-brand-dark h-screen overflow-hidden text-slate-50 selection:bg-indigo-500/30 font-inter max-w-[100vw]"
+        class="bg-brand-dark h-screen overflow-hidden text-slate-50 selection:bg-indigo-500/30 font-inter max-w-[100vw] flex flex-col"
     >
-        <div class="flex h-full flex-col md:flex-row">
+        <div class="flex flex-1 min-h-0 flex-col md:flex-row">
             <header class="md:hidden flex items-center justify-between gap-3 px-5 py-4 glass border-b border-white/5 flex-shrink-0 z-[60] relative min-h-[64px]">
                 <h1 class="text-sm font-black italic uppercase tracking-wider text-white truncate min-w-0 flex-1">
                     {title}
@@ -184,14 +184,12 @@ const tenantName = tenant?.name || "VTC HUB";
 
                 <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
                     <slot />
-                    <!-- Spacer mobile pour la barre de navigation fixe -->
-                    <div class="h-16 flex-shrink-0 md:hidden" aria-hidden="true"></div>
                 </div>
             </main>
         </div>
 
-        <!-- Bottom Navigation Bar (Mobile only) -->
-        <nav class="fixed bottom-0 left-0 right-0 z-50 md:hidden flex justify-around items-stretch h-16 bg-black/70 backdrop-blur-xl border-t border-white/5 safe-area-bottom">
+        <!-- Bottom Navigation Bar (Mobile only) — in-flow footer -->
+        <nav class="md:hidden flex-shrink-0 flex justify-around items-stretch h-16 bg-black/70 backdrop-blur-xl border-t border-white/5 safe-area-bottom">
             <a href="/app/dashboard" class={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 px-1 transition-colors ${pathname === "/app/dashboard" ? "text-indigo-400" : "text-slate-500"}`}>
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />

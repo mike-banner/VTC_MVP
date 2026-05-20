@@ -383,6 +383,75 @@ const run = (): void => {
     });
   };
 
+  const updatePriceAndFields = (): void => {
+    const bookingType = (document.getElementById("booking_type_hidden") as HTMLInputElement | null)?.value || "transfer";
+    const fixedRouteId = (document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null)?.value || "";
+    const vehicleCategory = (document.getElementById("vehicle_category_hidden") as HTMLInputElement | null)?.value || "";
+    const durationHours = Number((document.getElementById("duration_hours") as HTMLInputElement | null)?.value || "1");
+    const manualTotalInput = document.querySelector<HTMLInputElement>("input[name='manual_total']");
+    const pickupInput = document.querySelector<HTMLInputElement>("input[name='pickup']");
+    const dropoffInput = document.querySelector<HTMLInputElement>("input[name='dropoff']");
+
+    const formEl = document.getElementById("new-booking-form");
+    if (!formEl) return;
+
+    if (bookingType === "hourly") {
+      const pricingRulesStr = formEl.getAttribute("data-pricing-rules") || "[]";
+      try {
+        const pricingRules = JSON.parse(pricingRulesStr);
+        const rule = pricingRules.find((r: any) => r.service_category.toLowerCase() === vehicleCategory.toLowerCase()) || pricingRules[0];
+        if (rule) {
+          const basePrice = Number(rule.base_price || 0);
+          const pricePerHour = Number(rule.price_per_hour || 0);
+          let total = basePrice + pricePerHour * durationHours;
+          const minFare = Number(rule.minimum_fare || 0);
+          if (total < minFare) {
+            total = minFare;
+          }
+          if (manualTotalInput) {
+            manualTotalInput.value = total.toFixed(2);
+          }
+        }
+      } catch (err) {
+        console.error("Error parsing pricing rules:", err);
+      }
+      return;
+    }
+
+    if (!fixedRouteId) return;
+
+    const fixedRoutesStr = formEl.getAttribute("data-fixed-routes") || "[]";
+    try {
+      const fixedRoutes = JSON.parse(fixedRoutesStr);
+      const route = fixedRoutes.find((r: any) => r.id === fixedRouteId);
+      if (route) {
+        const matchingRoute = fixedRoutes.find((r: any) => 
+          r.pickup_zone_id === route.pickup_zone_id &&
+          r.dropoff_zone_id === route.dropoff_zone_id &&
+          r.vehicle_category.toLowerCase() === vehicleCategory.toLowerCase()
+        ) || route;
+
+        if (manualTotalInput && matchingRoute) {
+          manualTotalInput.value = Number(matchingRoute.price).toFixed(2);
+        }
+
+        if (pickupInput && (!pickupInput.value || pickupInput.value.trim() === "" || pickupInput.value === "PARTIR DE")) {
+          pickupInput.value = `${route.pickup_zone?.name || ""} - `;
+        }
+        if (dropoffInput && (!dropoffInput.value || dropoffInput.value.trim() === "" || dropoffInput.value === "ALLER À")) {
+          dropoffInput.value = `${route.dropoff_zone?.name || ""} - `;
+        }
+      }
+    } catch (err) {
+      console.error("Error parsing fixed routes:", err);
+    }
+  };
+
+  const durationHoursInput = document.getElementById("duration_hours");
+  durationHoursInput?.addEventListener("input", () => {
+    updatePriceAndFields();
+  });
+
   const dropoffInput = document.querySelector<HTMLInputElement>("#dropoff-input");
   setupCustomDropdown(
     "type-custom-btn",
@@ -391,20 +460,63 @@ const run = (): void => {
     "type-custom-label",
     "custom-option",
     (val) => {
+      const durationHoursContainer = document.getElementById("duration-hours-container");
+      const forfaitSelectorContainer = document.getElementById("forfait-selector-container");
+
       if (!dropoffInput) return;
       if (val === "hourly") {
         dropoffInput.required = false;
         dropoffInput.placeholder = "Destination (Optionnel)";
         dropoffInput.parentElement?.classList.add("opacity-40");
+
+        durationHoursContainer?.classList.remove("hidden");
+        forfaitSelectorContainer?.classList.add("hidden");
+
+        const fixedRouteHidden = document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null;
+        if (fixedRouteHidden) fixedRouteHidden.value = "";
+        const forfaitLabel = document.getElementById("forfait-custom-label");
+        if (forfaitLabel) forfaitLabel.textContent = "❌ Aucun forfait appliqué";
       } else {
         dropoffInput.required = true;
         dropoffInput.placeholder = "Adresse d'Arrivée";
         dropoffInput.parentElement?.classList.remove("opacity-40");
+
+        durationHoursContainer?.classList.add("hidden");
+        forfaitSelectorContainer?.classList.remove("hidden");
       }
+      updatePriceAndFields();
     },
   );
 
-  setupCustomDropdown("vehicle-custom-btn", "vehicle-custom-menu", "vehicle_id_hidden", "vehicle-custom-label", "custom-option-vehicle");
+  setupCustomDropdown(
+    "vehicle-custom-btn",
+    "vehicle-custom-menu",
+    "vehicle_id_hidden",
+    "vehicle-custom-label",
+    "custom-option-vehicle",
+    (val) => {
+      const menu = document.getElementById("vehicle-custom-menu");
+      const opt = menu?.querySelector<HTMLElement>(`[data-value='${val}']`);
+      const category = opt?.dataset.category || "";
+      const categoryHidden = document.getElementById("vehicle_category_hidden") as HTMLInputElement | null;
+      if (categoryHidden) {
+        categoryHidden.value = category;
+      }
+      updatePriceAndFields();
+    }
+  );
+
+  setupCustomDropdown(
+    "forfait-custom-btn",
+    "forfait-custom-menu",
+    "fixed_route_id_hidden",
+    "forfait-custom-label",
+    "custom-option-forfait",
+    () => {
+      updatePriceAndFields();
+    }
+  );
+
   setupCustomDropdown("payment-custom-btn", "payment-custom-menu", "payment_mode_hidden", "payment-custom-label", "custom-option-payment");
 
   const setupHeaderDropdown = (btnId: string, menuId: string): void => {
