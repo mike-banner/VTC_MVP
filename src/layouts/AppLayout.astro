@@ -61,6 +61,21 @@ const tenantName = tenant?.name || "VTC HUB";
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
         />
+        <!--
+            FIX iOS SAFARI : window.innerHeight = seule valeur fiable pour la hauteur visible.
+            Script inline bloquant = s'exécute avant tout rendu, donc pas de flash.
+            Fallback CSS 100vh si JS désactivé (rare).
+        -->
+        <script is:inline>
+        (function () {
+            function setAppHeight() {
+                document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+            }
+            setAppHeight();
+            window.addEventListener('resize', setAppHeight, { passive: true });
+            window.addEventListener('orientationchange', setAppHeight, { passive: true });
+        })();
+        </script>
     </head>
 
     <body class="bg-brand-dark text-slate-50 selection:bg-indigo-500/30 font-inter flex flex-col">
@@ -257,31 +272,16 @@ const tenantName = tenant?.name || "VTC HUB";
 
         <style is:global>
             /*
-             * VIEWPORT HEIGHT — app-shell iOS Safari fix
-             *
-             * Règles séparées par @supports pour éviter la déduplication du minifier CSS.
-             * Chaque navigateur applique le bloc le plus spécifique qu'il supporte :
-             *
-             *   1. Baseline          → 100vh   (tous navigateurs, fallback)
-             *   2. iOS Safari < 15.4 → -webkit-fill-available  (-webkit-touch-callout détecte iOS)
-             *   3. iOS 15.4+ / Chrome 108+ / Android → 100dvh  (viewport dynamique)
-             *
-             * overflow:hidden sur body : empêche le scroll natif du body.
-             * Seul le slot wrapper (overflow-y-auto) est scrollable.
-             * Sans ça, overflow-x:hidden de global.css crée un overflow-y:auto implicite
-             * qui permet au body de scroller → header/footer disparaissent en scrollant.
+             * --app-h est défini par le script inline dans <head> : window.innerHeight + 'px'
+             * C'est la seule valeur 100% fiable sur iOS Safari (viewport visible réel).
+             * Fallback 100vh si JS désactivé.
+             * overflow:hidden : empêche le body de scroller nativement.
+             * Seul le slot wrapper (.overflow-y-auto) défile.
              */
-            html, body { height: 100vh; }
-
-            @supports (-webkit-touch-callout: none) {
-                html, body { height: -webkit-fill-available; }
+            html, body {
+                height: var(--app-h, 100vh);
+                overflow: hidden !important;
             }
-
-            @supports (height: 100dvh) {
-                html, body { height: 100dvh; }
-            }
-
-            body { overflow: hidden !important; }
 
             .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
