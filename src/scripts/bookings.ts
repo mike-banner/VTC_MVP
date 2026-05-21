@@ -27,7 +27,7 @@ const parseBookingFromRow = (row: Element): AnyBooking => {
   const encodedData = row.getAttribute("data-booking") ?? "";
   if (!encodedData) return {};
   try {
-    return JSON.parse(atob(encodedData)) as AnyBooking;
+    return JSON.parse(decodeURIComponent(encodedData)) as AnyBooking;
   } catch {
     return {};
   }

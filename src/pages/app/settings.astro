@@ -2,9 +2,8 @@
 // src/pages/app/settings.astro
 import AppLayout from "../../layouts/AppLayout.astro";
 import { requireTenantRole } from "../../lib/guards";
-import { createAdminClient } from "../../lib/supabase/server";
 
-const { profile } = Astro.locals;
+const { profile, supabase } = Astro.locals;
 
 // Protection Guard : Owner uniquement
 try {
@@ -13,10 +12,8 @@ try {
     return Astro.redirect("/app/dashboard");
 }
 
-const supabaseAdmin = createAdminClient();
-
 // 1️⃣ Récupérer les infos du tenant pour la confirmation
-const { data: tenant } = await supabaseAdmin
+const { data: tenant } = await supabase
   .from("tenants")
   .select("name, logo_url")
   .eq("id", profile!.tenant_id)

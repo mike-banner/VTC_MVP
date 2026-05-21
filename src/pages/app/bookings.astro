@@ -223,7 +223,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                     rounded="xl"
                                     hover={true}
                                     class="relative overflow-hidden group transition-all active:scale-[0.98] booking-row cursor-pointer"
-                                    data-booking={Buffer.from(JSON.stringify(booking)).toString('base64')}
+                                    data-booking={encodeURIComponent(JSON.stringify(booking))}
                                 >
                                     <div class="flex justify-between items-start mb-3">
                                         <div class="max-w-[170px]">
@@ -322,7 +322,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                         {bookings.map((booking: any) => (
                                             <tr
                                                 class="hover:bg-white/[0.03] transition-colors group cursor-pointer booking-row"
-                                                data-booking={Buffer.from(JSON.stringify(booking)).toString('base64')}
+                                                data-booking={encodeURIComponent(JSON.stringify(booking))}
                                             >
                                                 <td class="px-8 py-4">
                                                     <div class="font-black text-white uppercase italic tracking-tighter text-lg leading-tight">
