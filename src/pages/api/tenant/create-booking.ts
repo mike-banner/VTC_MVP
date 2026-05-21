@@ -18,6 +18,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       payment_mode,
       manual_total,
       booking_type,
+      duration_hours,
       passenger_count,
       luggage_count,
       vehicle_id,
@@ -128,7 +129,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (manual_total) {
       total = Number(manual_total);
     } else if (pricing) {
-      total = Number(pricing.base_price) + Number(pricing.price_per_km) * Number(distance_km);
+      if (booking_type === "hourly") {
+        total = Number(pricing.base_price) + Number(pricing.price_per_hour || 0) * Number(duration_hours || 1);
+      } else {
+        total = Number(pricing.base_price) + Number(pricing.price_per_km) * Number(distance_km || 0);
+      }
       if (total < Number(pricing.minimum_fare)) {
         total = Number(pricing.minimum_fare);
       }
