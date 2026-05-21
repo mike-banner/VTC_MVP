@@ -69,11 +69,21 @@ const tenantName = tenant?.name || "VTC HUB";
         <script is:inline>
         (function () {
             function setAppHeight() {
-                document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+                var h = window.innerHeight + 'px';
+                document.documentElement.style.setProperty('--app-h', h);
+                /* Inline style takes priority over any stylesheet cascade issue */
+                document.documentElement.style.height = h;
+                document.documentElement.style.overflow = 'hidden';
             }
             setAppHeight();
             window.addEventListener('resize', setAppHeight, { passive: true });
             window.addEventListener('orientationchange', setAppHeight, { passive: true });
+            /* Set body once it's available */
+            document.addEventListener('DOMContentLoaded', function () {
+                var h = window.innerHeight + 'px';
+                document.body.style.height = h;
+                document.body.style.overflow = 'hidden';
+            }, { once: true });
         })();
         </script>
     </head>
@@ -201,6 +211,8 @@ const tenantName = tenant?.name || "VTC HUB";
                 <div class="flex-1 min-h-0 overflow-y-auto">
                     <slot />
                 </div>
+                <!-- PORTAL MODALS — outside overflow-y-auto so position:fixed works on iOS Safari -->
+                <slot name="modals" />
 
             </main>
         </div>
