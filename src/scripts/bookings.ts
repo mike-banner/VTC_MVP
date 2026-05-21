@@ -199,7 +199,10 @@ const run = (): void => {
   closeDetailBtns.forEach((btn) => btn.addEventListener("click", toggleDetailModal));
   detailOverlay?.addEventListener("click", toggleDetailModal);
 
-  document.querySelectorAll(".booking-row").forEach((row) => {
+  document.querySelectorAll<HTMLElement>(".booking-row").forEach((row) => {
+    row.setAttribute("role", "button");
+    row.setAttribute("tabindex", "0");
+    row.style.touchAction = "manipulation";
     row.addEventListener("click", () => {
       const booking = parseBookingFromRow(row);
       updateTerrainUI(booking);
@@ -418,7 +421,23 @@ const run = (): void => {
       return;
     }
 
-    if (!fixedRouteId) return;
+    if (!fixedRouteId) {
+      const kmInput = document.getElementById("distance_km") as HTMLInputElement | null;
+      const km = Number(kmInput?.value || 0);
+      if (km > 0) {
+        const pricingRulesStr = formEl.getAttribute("data-pricing-rules") || "[]";
+        try {
+          const pricingRules = JSON.parse(pricingRulesStr) as Array<{ service_category?: string; base_price?: number; price_per_km?: number; minimum_fare?: number }>;
+          const rule = pricingRules.find(r => (r.service_category ?? "").toLowerCase() === vehicleCategory.toLowerCase()) ?? pricingRules[0];
+          if (rule) {
+            let total = Number(rule.base_price || 0) + Number(rule.price_per_km || 0) * km;
+            if (total < Number(rule.minimum_fare || 0)) total = Number(rule.minimum_fare || 0);
+            if (manualTotalInput) manualTotalInput.value = total.toFixed(2);
+          }
+        } catch { /* ignore */ }
+      }
+      return;
+    }
 
     const fixedRoutesStr = formEl.getAttribute("data-fixed-routes") || "[]";
     try {
@@ -452,6 +471,11 @@ const run = (): void => {
     updatePriceAndFields();
   });
 
+  const distanceKmInput = document.getElementById("distance_km");
+  distanceKmInput?.addEventListener("input", () => {
+    updatePriceAndFields();
+  });
+
   const dropoffInput = document.querySelector<HTMLInputElement>("#dropoff-input");
   setupCustomDropdown(
     "type-custom-btn",
@@ -462,6 +486,7 @@ const run = (): void => {
     (val) => {
       const durationHoursContainer = document.getElementById("duration-hours-container");
       const forfaitSelectorContainer = document.getElementById("forfait-selector-container");
+      const distanceKmContainer = document.getElementById("distance-km-container");
 
       if (!dropoffInput) return;
       if (val === "hourly") {
@@ -471,6 +496,7 @@ const run = (): void => {
 
         durationHoursContainer?.classList.remove("hidden");
         forfaitSelectorContainer?.classList.add("hidden");
+        distanceKmContainer?.classList.add("hidden");
 
         const fixedRouteHidden = document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null;
         if (fixedRouteHidden) fixedRouteHidden.value = "";
@@ -483,6 +509,10 @@ const run = (): void => {
 
         durationHoursContainer?.classList.add("hidden");
         forfaitSelectorContainer?.classList.remove("hidden");
+        const forfaitVal = (document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null)?.value || "";
+        if (!forfaitVal) {
+          distanceKmContainer?.classList.remove("hidden");
+        }
       }
       updatePriceAndFields();
     },
@@ -512,7 +542,15 @@ const run = (): void => {
     "fixed_route_id_hidden",
     "forfait-custom-label",
     "custom-option-forfait",
-    () => {
+    (val) => {
+      const distanceKmContainer = document.getElementById("distance-km-container");
+      if (!val) {
+        distanceKmContainer?.classList.remove("hidden");
+      } else {
+        distanceKmContainer?.classList.add("hidden");
+        const kmInput = document.getElementById("distance_km") as HTMLInputElement | null;
+        if (kmInput) kmInput.value = "";
+      }
       updatePriceAndFields();
     }
   );
@@ -563,7 +601,6 @@ const run = (): void => {
 
     const payload = {
       ...data,
-      distance_km: 0,
       manual_total: data.manual_total,
     };
 
@@ -600,8 +637,6 @@ const run = (): void => {
     if (detailModal && !detailModal.classList.contains("opacity-0")) toggleDetailModal();
   });
 };
-
-document.addEventListener("astro:page-load", run);
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", run);

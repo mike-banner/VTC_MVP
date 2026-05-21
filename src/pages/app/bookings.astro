@@ -553,6 +553,11 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <div class="relative">
                             <input type="datetime-local" name="pickup_time" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
+                        <div id="distance-km-container" class="space-y-2">
+                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Distance A <span class="text-indigo-400">→</span> B (km)</p>
+                            <input type="number" id="distance_km" name="distance_km" value="" min="0" step="0.1" placeholder="Ex: 25.0" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                            <p class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Prix calculé auto selon la grille tarifaire</p>
+                        </div>
                         <div id="duration-hours-container" class="hidden space-y-2">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Durée de la mise à disposition (Heures)</p>
                             <input type="number" id="duration_hours" name="duration_hours" value="1" min="1" max="24" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
