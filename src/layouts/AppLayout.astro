@@ -61,15 +61,28 @@ const tenantName = tenant?.name || "VTC HUB";
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
         />
+        <style>
+            /*
+             * VIEWPORT HEIGHT — compatibilité universelle
+             * Les navigateurs prennent la dernière valeur valide qu'ils comprennent :
+             *   100vh                   → fallback universel (tous navigateurs)
+             *   -webkit-fill-available  → iOS Safari < 15.4 (viewport visible réel)
+             *   100dvh                  → iOS 15.4+, Chrome 108+, Android moderne
+             *                             (dynamic viewport = s'adapte à l'apparition de la barre d'adresse)
+             */
+            html {
+                height: 100%;
+                height: -webkit-fill-available;
+                height: 100dvh;
+            }
+            body {
+                height: 100vh;
+                height: -webkit-fill-available;
+                height: 100dvh;
+            }
+        </style>
     </head>
 
-    <!--
-        LAYOUT IN-FLOW (iOS Safari compatible)
-        Body = flex column pleine hauteur.
-        Header mobile + Footer mobile = flex-shrink-0, toujours visibles.
-        Contenu central = flex-1, overflow caché horizontalement.
-        Slot = overflow-y-auto, seule zone qui scroll.
-    -->
     <body class="bg-brand-dark text-slate-50 selection:bg-indigo-500/30 font-inter flex flex-col">
 
         <!-- ═══════════════════════════════════
