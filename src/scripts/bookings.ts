@@ -181,15 +181,32 @@ const run = (): void => {
   const detailOverlay = detailModal?.querySelector<HTMLElement>(".modal-overlay") ?? null;
 
   const toggleNewBookingModal = (): void => {
-    modal?.classList.toggle("is-active");
-    if (!modal?.classList.contains("is-active")) form?.reset();
+    if (!modal) return;
+    const isOpen = modal.style.display === "flex";
+    if (isOpen) {
+      modal.classList.remove("is-active");
+      form?.reset();
+      setTimeout(() => { if (!modal.classList.contains("is-active")) modal.style.display = "none"; }, 500);
+    } else {
+      modal.style.display = "flex";
+      requestAnimationFrame(() => modal.classList.add("is-active"));
+    }
   };
 
   const toggleDetailModal = (): void => {
-    detailModal?.classList.toggle("opacity-0");
-    detailModal?.classList.toggle("pointer-events-none");
-    detailModal?.querySelector(".relative")?.classList.toggle("scale-95");
-    document.body.classList.toggle("overflow-hidden");
+    if (!detailModal) return;
+    const isOpen = detailModal.style.display === "flex";
+    if (isOpen) {
+      detailModal.classList.add("opacity-0");
+      detailModal.querySelector(".relative")?.classList.add("scale-95");
+      setTimeout(() => { if (detailModal.classList.contains("opacity-0")) detailModal.style.display = "none"; }, 500);
+    } else {
+      detailModal.style.display = "flex";
+      requestAnimationFrame(() => {
+        detailModal.classList.remove("opacity-0");
+        detailModal.querySelector(".relative")?.classList.remove("scale-95");
+      });
+    }
   };
 
   overlay?.addEventListener("click", toggleNewBookingModal);
@@ -199,11 +216,7 @@ const run = (): void => {
   closeDetailBtns.forEach((btn) => btn.addEventListener("click", toggleDetailModal));
   detailOverlay?.addEventListener("click", toggleDetailModal);
 
-  document.querySelectorAll<HTMLElement>(".booking-row").forEach((row) => {
-    row.setAttribute("role", "button");
-    row.setAttribute("tabindex", "0");
-    row.style.touchAction = "manipulation";
-    row.addEventListener("click", () => {
+  const openDetailForRow = (row: HTMLElement): void => {
       const booking = parseBookingFromRow(row);
       updateTerrainUI(booking);
       updateRatingUI(booking);
@@ -337,7 +350,36 @@ const run = (): void => {
       }
 
       toggleDetailModal();
+  };
+
+  document.querySelectorAll<HTMLElement>(".booking-row").forEach((row) => {
+    row.setAttribute("role", "button");
+    row.setAttribute("tabindex", "0");
+    row.style.touchAction = "manipulation";
+    row.style.cursor = "pointer";
+
+    // iOS Safari: click events are unreliable on non-interactive elements inside
+    // -webkit-overflow-scrolling containers. Use touchend + scroll detection.
+    let touchStartY = 0;
+    let touchMoved = false;
+
+    row.addEventListener("touchstart", (e) => {
+      touchStartY = e.touches[0].clientY;
+      touchMoved = false;
+    }, { passive: true });
+
+    row.addEventListener("touchmove", () => {
+      touchMoved = true;
+    }, { passive: true });
+
+    row.addEventListener("touchend", (e) => {
+      if (!touchMoved) {
+        e.preventDefault();
+        openDetailForRow(row);
+      }
     });
+
+    row.addEventListener("click", () => openDetailForRow(row));
   });
 
   const setupCustomDropdown = (
@@ -633,8 +675,8 @@ const run = (): void => {
 
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    if (modal?.classList.contains("is-active")) toggleNewBookingModal();
-    if (detailModal && !detailModal.classList.contains("opacity-0")) toggleDetailModal();
+    if (modal?.style.display === "flex") toggleNewBookingModal();
+    if (detailModal?.style.display === "flex") toggleDetailModal();
   });
 };
 

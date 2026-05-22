@@ -11,11 +11,11 @@ interface Props {
 const { timeoutMinutes = 30 } = Astro.props;
 const timeoutMs = timeoutMinutes * 60 * 1000;
 
-import inactivityTimeoutScriptUrl from "../../scripts/inactivity-timeout.ts?url";
 ---
 
-<script
-  type="module"
-  src={inactivityTimeoutScriptUrl}
-  data-timeout-ms={timeoutMs}
-></script>
+<script define:vars={{ timeoutMs }}>
+    window.__INACTIVITY_TIMEOUT_MS__ = timeoutMs;
+</script>
+<script>
+    import "../../scripts/inactivity-timeout.ts";
+</script>

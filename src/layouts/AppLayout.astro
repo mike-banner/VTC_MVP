@@ -3,7 +3,6 @@
 import "../styles/global.css";
 import { isTenant, isPlatform } from "../lib/guards";
 import InactivityTimeout from "../components/common/InactivityTimeout.astro";
-import appLayoutScriptUrl from "../scripts/app-layout.ts?url";
 
 interface Props {
     title: string;
@@ -330,7 +329,9 @@ const tenantName = tenant?.name || "VTC HUB";
             }
         </style>
 
-        <script type="module" src={appLayoutScriptUrl}></script>
+        <script>
+            import "../scripts/app-layout.ts";
+        </script>
         <InactivityTimeout timeoutMinutes={30} />
     </body>
 </html>

@@ -1,13 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 
-const getTimeoutMsFromScriptTag = (): number => {
-  const script = document.currentScript as HTMLScriptElement | null;
-  const raw = script?.dataset.timeoutMs;
-  const parsed = raw ? Number(raw) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 30 * 60 * 1000;
-};
-
-const timeoutMs = getTimeoutMsFromScriptTag();
+// Value injected by InactivityTimeout.astro via define:vars before this module loads
+const timeoutMs: number = (window as any).__INACTIVITY_TIMEOUT_MS__ ?? 30 * 60 * 1000;
 
 let inactivityTimer: number | undefined;
 
