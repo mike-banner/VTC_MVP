@@ -440,7 +440,7 @@ const getFilterUrl = (params: Record<string, string>) => {
     {/* 🎭 MODAL: NOUVELLE COURSE MANUELLE */}
     <div slot="modals" id="new-booking-modal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 transition-all duration-500" style="display: none;">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-md modal-overlay"></div>
-        <div class="relative glass max-w-xl w-full rounded-[3rem] border border-white/10 shadow-2xl p-8 sm:p-12 transform scale-95 transition-all duration-500 bg-[#0A0A0B] overflow-y-auto max-h-[90vh] custom-scrollbar" style="-webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
+        <div class="relative glass max-w-xl w-full rounded-[3rem] border border-white/10 shadow-2xl p-8 sm:p-12 transform scale-95 transition-all duration-500 bg-[#0A0A0B] overflow-y-auto overflow-x-hidden max-h-[90vh] custom-scrollbar" style="-webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
             <div class="flex items-center justify-between mb-10">
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
@@ -461,7 +461,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <div class="space-y-2">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Type de Course</p>
                             <div class="relative group/type w-full">
-                                <button type="button" id="type-custom-btn" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
+                                <button type="button" id="type-custom-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                     <span id="type-custom-label">🚗 Transfert Classique</span>
                                     <svg class="w-4 h-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </button>
@@ -477,7 +477,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <div class="space-y-2">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Véhicule Assigné</p>
                             <div class="relative group/veh w-full">
-                                <button type="button" id="vehicle-custom-btn" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
+                                <button type="button" id="vehicle-custom-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                     <span id="vehicle-custom-label" class="truncate">
                                         {activeVehicle ? `🚗 ${activeVehicle.brand} ${activeVehicle.model} - ${activeVehicle.plate_number}` : 'Sélectionner un véhicule'}
                                     </span>
@@ -500,7 +500,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <div class="col-span-full space-y-2" id="forfait-selector-container">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Forfait Tarifaire (Optionnel)</p>
                             <div class="relative group/forfait w-full">
-                                <button type="button" id="forfait-custom-btn" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
+                                <button type="button" id="forfait-custom-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                     <span id="forfait-custom-label">❌ Aucun forfait appliqué</span>
                                     <svg class="w-4 h-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </button>
@@ -523,11 +523,11 @@ const getFilterUrl = (params: Record<string, string>) => {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Passagers (Max 8)</p>
-                            <input type="number" name="passenger_count" value="1" min="1" max="8" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                            <input type="number" name="passenger_count" value="1" min="1" max="8" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
                         <div class="space-y-2">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Bagages</p>
-                            <input type="number" name="luggage_count" value="0" min="0" max="12" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                            <input type="number" name="luggage_count" value="0" min="0" max="12" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
                     </div>
                 </div>
@@ -536,8 +536,8 @@ const getFilterUrl = (params: Record<string, string>) => {
                 <div class="space-y-4">
                     <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Informations Client</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <input type="text" name="client_name" placeholder="Nom Complet" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
-                        <input type="email" name="client_email" placeholder="Email Client" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                        <input type="text" name="client_name" placeholder="Nom Complet" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                        <input type="email" name="client_email" placeholder="Email Client" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                     </div>
                 </div>
 
@@ -547,19 +547,19 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Itinéraire & Temps</p>
                     </div>
                     <div class="space-y-4">
-                        <input type="text" name="pickup" placeholder="Adresse de Départ" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold italic" />
-                        <input id="dropoff-input" type="text" name="dropoff" placeholder="Adresse d'Arrivée" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold italic" />
+                        <input type="text" name="pickup" placeholder="Adresse de Départ" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold italic" />
+                        <input id="dropoff-input" type="text" name="dropoff" placeholder="Adresse d'Arrivée" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold italic" />
                         <div class="relative">
-                            <input type="datetime-local" name="pickup_time" required class="w-full bg-white border border-white/5 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                            <input type="datetime-local" name="pickup_time" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
                         <div id="distance-km-container" class="space-y-2">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Distance A <span class="text-indigo-400">→</span> B (km)</p>
-                            <input type="number" id="distance_km" name="distance_km" value="" min="0" step="0.1" placeholder="Ex: 25.0" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                            <input type="number" id="distance_km" name="distance_km" value="" min="0" step="0.1" placeholder="Ex: 25.0" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                             <p class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Prix calculé auto selon la grille tarifaire</p>
                         </div>
                         <div id="duration-hours-container" class="hidden space-y-2">
                             <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Durée de la mise à disposition (Heures)</p>
-                            <input type="number" id="duration_hours" name="duration_hours" value="1" min="1" max="24" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                            <input type="number" id="duration_hours" name="duration_hours" value="1" min="1" max="24" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
                     </div>
                 </div>
@@ -569,11 +569,11 @@ const getFilterUrl = (params: Record<string, string>) => {
                     <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Facturation & Paiement</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="relative group">
-                            <input type="number" name="manual_total" placeholder="Prix (€)" required class="w-full bg-white border border-emerald-500/20 rounded-2xl px-6 py-4 text-xl text-emerald-600 font-black tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all" />
+                            <input type="number" name="manual_total" placeholder="Prix (€)" required class="w-full min-w-0 bg-white border border-emerald-500/20 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-xl text-emerald-600 font-black tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all" />
                             <span class="absolute right-6 top-1/2 -translate-y-1/2 text-emerald-600/50 font-black">€</span>
                         </div>
                         <div class="relative group/payment w-full">
-                            <button type="button" id="payment-custom-btn" class="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
+                            <button type="button" id="payment-custom-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                 <span id="payment-custom-label">Paiement Espèces</span>
                                 <svg class="w-4 h-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                             </button>
@@ -598,7 +598,7 @@ const getFilterUrl = (params: Record<string, string>) => {
     <!-- 🎭 MODAL: DÉTAILS MISSION ELITE -->
     <div slot="modals" id="detail-booking-modal" data-driver-id={driverId} class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 transition-all duration-500" style="display: none;">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-md modal-overlay"></div>
-        <div class="relative glass max-w-2xl w-full max-h-[90vh] rounded-[3rem] border border-white/10 shadow-[0_0_100px_rgba(79,70,229,0.1)] overflow-y-auto custom-scrollbar transform scale-95 transition-all duration-500 bg-[#0A0A0B]" style="-webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
+        <div class="relative glass max-w-2xl w-full max-h-[90vh] rounded-[3rem] border border-white/10 shadow-[0_0_100px_rgba(79,70,229,0.1)] overflow-y-auto overflow-x-hidden custom-scrollbar transform scale-95 transition-all duration-500 bg-[#0A0A0B]" style="-webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
             <div class="p-8 sm:p-12">
                 <!-- Header Modal -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 pb-10 border-b border-white/5">
