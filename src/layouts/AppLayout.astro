@@ -313,6 +313,21 @@ const tenantName = tenant?.name || "VTC HUB";
             #logout-modal.is-active > div:last-child {
                 transform: scale(1);
             }
+
+            /*
+             * iOS Safari: empêche le délai de 300ms sur les taps pour tous
+             * les éléments interactifs natifs. touch-action:manipulation
+             * indique au browser que l'élément ne gère pas le double-tap-zoom
+             * → les clicks se déclenchent immédiatement.
+             */
+            button, a, [role="button"], input, select, textarea, label, [tabindex] {
+                touch-action: manipulation;
+            }
+
+            /* Scroll fluide dans le conteneur principal sur iOS */
+            .overflow-y-auto {
+                -webkit-overflow-scrolling: touch;
+            }
         </style>
 
         <script type="module" src={appLayoutScriptUrl}></script>

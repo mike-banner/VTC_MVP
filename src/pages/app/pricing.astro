@@ -5,10 +5,9 @@ import Badge from "../../components/ui/Badge.astro";
 import Button from "../../components/ui/Button.astro";
 import Card from "../../components/ui/Card.astro";
 import { requireTenantRole } from "../../lib/guards";
-import { createAdminClient } from "../../lib/supabase/server";
 import { TransferManager } from "@/components/pricing/TransferManager";
 
-const { profile } = Astro.locals;
+const { profile, supabase } = Astro.locals;
 
 // Protection Guard : Owner + Manager
 try {
@@ -17,17 +16,15 @@ try {
     return Astro.redirect("/app/dashboard");
 }
 
-const supabaseAdmin = createAdminClient();
-
 // 1️ Récupérer les règles réelles du tenant
-const { data: rules, error } = await supabaseAdmin
+const { data: rules, error } = await supabase
     .from("pricing_rules")
     .select("*")
     .eq("tenant_id", profile!.tenant_id)
     .order("service_category", { ascending: true });
 
 // 2️ Récupérer les infos onboarding pour l'initialisation éventuelle
-const { data: onboarding } = await supabaseAdmin
+const { data: onboarding } = await supabase
     .from("onboarding")
     .select("*")
     .eq("profile_id", profile!.id)
