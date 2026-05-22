@@ -573,20 +573,13 @@ const getFilterUrl = (params: Record<string, string>) => {
                                 </svg>
                             </div>
                         </div>
-                        <div id="distance-km-container" class="space-y-2">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Distance A <span class="text-indigo-400">→</span> B (km)</p>
-                            <div class="flex gap-2">
-                                <input type="number" id="distance_km" name="distance_km" value="" min="0" step="0.1" placeholder="Ex: 25.0" class="flex-1 min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
-                                <button type="button" id="estimate-route-btn" class="shrink-0 px-4 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8px] font-black uppercase tracking-wider transition-all hover:bg-indigo-500/20 active:scale-95 flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                    <span id="estimate-btn-label">Estimer</span>
-                                </button>
-                            </div>
-                            <p class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Prix calculé auto selon la grille tarifaire</p>
+                        <div id="distance-km-container" class="flex items-center gap-3" style="display:flex">
+                            <label class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] whitespace-nowrap">Distance (km)</label>
+                            <input type="number" id="distance_km" name="distance_km" value="" min="0" step="0.1" placeholder="0.0" class="w-28 min-w-0 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold tabular-nums" />
                         </div>
-                        <div id="duration-hours-container" class="hidden space-y-2">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Durée de la mise à disposition (Heures)</p>
-                            <input type="number" id="duration_hours" name="duration_hours" value="1" min="1" max="24" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
+                        <div id="duration-hours-container" class="hidden flex items-center gap-3">
+                            <label class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] whitespace-nowrap">Durée (heures)</label>
+                            <input type="number" id="duration_hours" name="duration_hours" value="1" min="1" max="24" class="w-20 min-w-0 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold tabular-nums" />
                         </div>
                     </div>
                 </div>

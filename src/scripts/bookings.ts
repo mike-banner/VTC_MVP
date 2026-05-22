@@ -2,30 +2,6 @@ import { supabase } from "@/lib/supabase/client";
 import QRCode from "qrcode";
 import { calculatePrice, findPricingRule, type PricingRule } from "@/lib/pricing";
 
-// --- GPS helpers (Nominatim + OSRM public demo) ---
-
-const geocodeAddress = async (address: string): Promise<[number, number] | null> => {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&accept-language=fr`;
-    const res = await fetch(url, { headers: { "User-Agent": "vtc-hub-app" } });
-    const data = await res.json() as Array<{ lat: string; lon: string }>;
-    if (!data.length) return null;
-    return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
-  } catch {
-    return null;
-  }
-};
-
-const getOsrmDistance = async (origin: [number, number], dest: [number, number]): Promise<number | null> => {
-  try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?overview=false`;
-    const res = await fetch(url);
-    const data = await res.json() as { routes?: Array<{ distance: number }> };
-    return data.routes?.[0]?.distance ?? null;
-  } catch {
-    return null;
-  }
-};
 
 type AnyBooking = Record<string, unknown> & {
   id?: string;
@@ -669,51 +645,6 @@ const run = (): void => {
     });
   });
 
-  const estimateBtn = document.getElementById("estimate-route-btn");
-  const estimateBtnLabel = document.getElementById("estimate-btn-label");
-
-  estimateBtn?.addEventListener("click", async () => {
-    const pickupInput = document.querySelector<HTMLInputElement>("input[name='pickup']");
-    const dropoffInput = document.querySelector<HTMLInputElement>("#dropoff-input");
-    const distanceInput = document.getElementById("distance_km") as HTMLInputElement | null;
-
-    if (!pickupInput?.value?.trim() || !dropoffInput?.value?.trim()) {
-      alert("Renseigne les adresses de départ et d'arrivée d'abord.");
-      return;
-    }
-
-    if (estimateBtn) (estimateBtn as HTMLButtonElement).disabled = true;
-    if (estimateBtnLabel) estimateBtnLabel.textContent = "...";
-
-    try {
-      const [originCoords, destCoords] = await Promise.all([
-        geocodeAddress(pickupInput.value),
-        geocodeAddress(dropoffInput.value),
-      ]);
-
-      if (!originCoords || !destCoords) {
-        alert("Adresse(s) introuvable(s). Précise l'adresse complète avec la ville.");
-        return;
-      }
-
-      const distanceM = await getOsrmDistance(originCoords, destCoords);
-      if (distanceM === null) {
-        alert("Impossible de calculer l'itinéraire routier.");
-        return;
-      }
-
-      const distanceKm = (distanceM / 1000).toFixed(1);
-      if (distanceInput) {
-        distanceInput.value = distanceKm;
-        distanceInput.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-      if (estimateBtnLabel) estimateBtnLabel.textContent = `✓ ${distanceKm} km`;
-    } catch {
-      alert("Erreur réseau lors de l'estimation.");
-    } finally {
-      if (estimateBtn) (estimateBtn as HTMLButtonElement).disabled = false;
-    }
-  });
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
