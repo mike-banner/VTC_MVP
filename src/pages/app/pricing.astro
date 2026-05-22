@@ -143,76 +143,94 @@ if (error) {
     </div>
 
     <!-- MODAL EDIT/ADD -->
-    <div id="pricing-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
+    <div id="pricing-modal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-6 opacity-0 pointer-events-none transition-all duration-300">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay"></div>
-        <div class="relative glass max-w-lg w-full rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden transform scale-95 transition-all duration-300">
-            <div class="p-10 sm:p-12">
-                <div class="flex items-center gap-4 mb-8">
-                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="relative glass w-full sm:max-w-lg rounded-t-[2rem] sm:rounded-[2.5rem] border border-white/10 shadow-2xl transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 flex flex-col max-h-[92dvh] sm:max-h-[90vh]">
+
+            <!-- HEADER (fixed) -->
+            <div class="flex-shrink-0 flex items-center justify-between gap-4 px-7 pt-7 pb-5 border-b border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
                     <div>
-                        <h2 id="modal-title" class="text-3xl font-black uppercase text-white tracking-tighter">Édition Tarif</h2>
-                        <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">Paramètres financiers du service</p>
+                        <h2 id="modal-title" class="text-xl font-black uppercase text-white tracking-tighter leading-none">Édition Tarif</h2>
+                        <p class="text-slate-500 text-[9px] font-bold uppercase tracking-widest mt-0.5">Grille financière du service</p>
                     </div>
                 </div>
+                <button type="button" class="close-modal w-8 h-8 flex items-center justify-center rounded-xl text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
 
-                <form id="pricing-form" class="space-y-6" data-tenant-id={profile?.tenant_id} data-onboarding={JSON.stringify(onboarding)}>
+            <!-- SCROLLABLE BODY -->
+            <div class="flex-1 overflow-y-auto overscroll-contain">
+                <form id="pricing-form" class="px-7 py-6 space-y-7" data-tenant-id={profile?.tenant_id} data-onboarding={JSON.stringify(onboarding)}>
                     <input type="hidden" name="rule_id" id="rule-id">
 
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="col-span-2 sm:col-span-1">
-                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Nom du Service</label>
-                            <input type="text" name="service_category" id="service-category" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold" placeholder="E.g. BUSINESS">
-                        </div>
-                        <div class="col-span-2 sm:col-span-1">
-                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Base (€)</label>
-                            <input type="number" step="0.01" name="base_price" id="base-price" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold tabular-nums">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Prix / KM (€)</label>
-                            <input type="number" step="0.01" name="price_per_km" id="price-per-km" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold tabular-nums">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Prix / Heure (€)</label>
-                            <input type="number" step="0.01" name="price_per_hour" id="price-per-hour" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold tabular-nums" placeholder="0.00">
+                    <!-- SECTION: Identité -->
+                    <div class="space-y-4">
+                        <p class="text-[8px] font-black uppercase tracking-[0.25em] text-slate-600">Identité</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-2 sm:col-span-1">
+                                <label class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Nom du service</label>
+                                <input type="text" name="service_category" id="service-category" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-sm" placeholder="Ex: BUSINESS">
+                            </div>
+                            <div class="col-span-2 sm:col-span-1 flex items-end pb-1">
+                                <label class="relative inline-flex items-center cursor-pointer gap-3">
+                                    <input type="checkbox" name="active" id="is-active" class="sr-only peer">
+                                    <div class="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 flex-shrink-0"></div>
+                                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 peer-checked:text-white transition-colors">Service actif</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="col-span-2 sm:col-span-1">
-                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block">Montant Minimum (€)</label>
-                            <input type="number" step="0.01" name="minimum_fare" id="minimum-fare" required class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold tabular-nums">
-                        </div>
-                        <div class="col-span-2 sm:col-span-1 flex items-end pb-3 pl-2">
-                             <button type="button" id="init-from-profile" class="text-[8px] font-black uppercase tracking-widest text-indigo-400 hover:text-white transition-colors cursor-pointer border-b border-indigo-400/20">
-                                Copier Infos Profil
-                             </button>
+                    <!-- SECTION: Tarification -->
+                    <div class="space-y-4">
+                        <p class="text-[8px] font-black uppercase tracking-[0.25em] text-slate-600">Tarification</p>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-1">
+                                <label class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 mb-2 block">Base (€)</label>
+                                <input type="number" step="0.01" min="0" name="base_price" id="base-price" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white font-bold tabular-nums text-sm">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 mb-2 block">/ km (€)</label>
+                                <input type="number" step="0.01" min="0" name="price_per_km" id="price-per-km" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white font-bold tabular-nums text-sm">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 mb-2 block">/ heure (€)</label>
+                                <input type="number" step="0.01" min="0" name="price_per_hour" id="price-per-hour" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white font-bold tabular-nums text-sm" placeholder="0.00">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3 py-4">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="active" id="is-active" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Service Actif</span>
-                    </div>
-
-                    <div class="flex flex-col sm:flex-row gap-4 pt-6 mt-4 border-t border-white/5">
-                        <button type="button" class="close-modal px-8 py-5 glass border border-white/10 rounded-2xl font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all order-2 sm:order-1">
-                            Annuler
-                        </button>
-                        <button type="submit" id="save-rule-btn" class="flex-1 px-8 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/30 active:scale-95 order-1 sm:order-2">
-                            Sauvegarder
-                        </button>
+                    <!-- SECTION: Seuil -->
+                    <div class="space-y-4">
+                        <p class="text-[8px] font-black uppercase tracking-[0.25em] text-slate-600">Seuil minimum</p>
+                        <div class="flex items-end gap-4">
+                            <div class="flex-1">
+                                <label class="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 mb-2 block">Montant minimum (€)</label>
+                                <input type="number" step="0.01" min="0" name="minimum_fare" id="minimum-fare" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold tabular-nums text-sm">
+                            </div>
+                            <button type="button" id="init-from-profile" class="flex-shrink-0 mb-0.5 px-4 py-3 text-[8px] font-black uppercase tracking-widest text-indigo-400 hover:text-white transition-colors border border-indigo-400/20 hover:border-indigo-400/50 rounded-xl">
+                                Copier profil
+                            </button>
+                        </div>
                     </div>
                 </form>
+            </div>
+
+            <!-- FOOTER (fixed) -->
+            <div class="flex-shrink-0 flex flex-col sm:flex-row gap-3 px-7 py-5 border-t border-white/5">
+                <button type="button" class="close-modal sm:w-auto px-6 py-4 glass border border-white/10 rounded-xl font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white transition-all order-2 sm:order-1">
+                    Annuler
+                </button>
+                <button type="submit" form="pricing-form" id="save-rule-btn" class="flex-1 px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-indigo-600/30 active:scale-95 order-1 sm:order-2">
+                    Sauvegarder
+                </button>
             </div>
         </div>
     </div>
@@ -228,8 +246,18 @@ if (error) {
         opacity: 1;
         pointer-events: auto;
     }
+    /* mobile: slide up from bottom */
     #pricing-modal.is-active > div:last-child {
-        transform: scale(1);
+        transform: translateY(0);
+    }
+    /* desktop: scale in */
+    @media (min-width: 640px) {
+        #pricing-modal > div:last-child {
+            transform: scale(0.95);
+        }
+        #pricing-modal.is-active > div:last-child {
+            transform: scale(1);
+        }
     }
 </style>
 
