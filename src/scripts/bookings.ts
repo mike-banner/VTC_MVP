@@ -1,5 +1,31 @@
 import { supabase } from "@/lib/supabase/client";
 import QRCode from "qrcode";
+import { calculatePrice, findPricingRule, type PricingRule } from "@/lib/pricing";
+
+// --- GPS helpers (Nominatim + OSRM public demo) ---
+
+const geocodeAddress = async (address: string): Promise<[number, number] | null> => {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&accept-language=fr`;
+    const res = await fetch(url, { headers: { "User-Agent": "vtc-hub-app" } });
+    const data = await res.json() as Array<{ lat: string; lon: string }>;
+    if (!data.length) return null;
+    return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+  } catch {
+    return null;
+  }
+};
+
+const getOsrmDistance = async (origin: [number, number], dest: [number, number]): Promise<number | null> => {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?overview=false`;
+    const res = await fetch(url);
+    const data = await res.json() as { routes?: Array<{ distance: number }> };
+    return data.routes?.[0]?.distance ?? null;
+  } catch {
+    return null;
+  }
+};
 
 type AnyBooking = Record<string, unknown> & {
   id?: string;
@@ -429,83 +455,63 @@ const run = (): void => {
   };
 
   const updatePriceAndFields = (): void => {
+    const formEl = document.getElementById("new-booking-form");
+    if (!formEl) return;
+
     const bookingType = (document.getElementById("booking_type_hidden") as HTMLInputElement | null)?.value || "transfer";
     const fixedRouteId = (document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null)?.value || "";
     const vehicleCategory = (document.getElementById("vehicle_category_hidden") as HTMLInputElement | null)?.value || "";
     const durationHours = Number((document.getElementById("duration_hours") as HTMLInputElement | null)?.value || "1");
+    const kmInput = document.getElementById("distance_km") as HTMLInputElement | null;
     const manualTotalInput = document.querySelector<HTMLInputElement>("input[name='manual_total']");
     const pickupInput = document.querySelector<HTMLInputElement>("input[name='pickup']");
     const dropoffInput = document.querySelector<HTMLInputElement>("input[name='dropoff']");
 
-    const formEl = document.getElementById("new-booking-form");
-    if (!formEl) return;
-
-    if (bookingType === "hourly") {
-      const pricingRulesStr = formEl.getAttribute("data-pricing-rules") || "[]";
+    // --- Forfait fixe ---
+    if (fixedRouteId && bookingType !== "hourly") {
       try {
-        const pricingRules = JSON.parse(pricingRulesStr);
-        const rule = pricingRules.find((r: any) => r.service_category.toLowerCase() === vehicleCategory.toLowerCase()) || pricingRules[0];
-        if (rule) {
-          const basePrice = Number(rule.base_price || 0);
-          const pricePerHour = Number(rule.price_per_hour || 0);
-          let total = basePrice + pricePerHour * durationHours;
-          const minFare = Number(rule.minimum_fare || 0);
-          if (total < minFare) {
-            total = minFare;
-          }
-          if (manualTotalInput) {
-            manualTotalInput.value = total.toFixed(2);
-          }
+        const fixedRoutes = JSON.parse(formEl.getAttribute("data-fixed-routes") || "[]");
+        const route = fixedRoutes.find((r: any) => r.id === fixedRouteId);
+        if (route) {
+          const matched = fixedRoutes.find((r: any) =>
+            r.pickup_zone_id === route.pickup_zone_id &&
+            r.dropoff_zone_id === route.dropoff_zone_id &&
+            r.vehicle_category.toLowerCase() === vehicleCategory.toLowerCase()
+          ) || route;
+          if (manualTotalInput) manualTotalInput.value = Number(matched.price).toFixed(2);
+          if (pickupInput && !pickupInput.value.trim()) pickupInput.value = `${route.pickup_zone?.name || ""} - `;
+          if (dropoffInput && !dropoffInput.value.trim()) dropoffInput.value = `${route.dropoff_zone?.name || ""} - `;
         }
-      } catch (err) {
-        console.error("Error parsing pricing rules:", err);
-      }
+      } catch { /* ignore */ }
       return;
     }
 
-    if (!fixedRouteId) {
-      const kmInput = document.getElementById("distance_km") as HTMLInputElement | null;
-      const km = Number(kmInput?.value || 0);
-      if (km > 0) {
-        const pricingRulesStr = formEl.getAttribute("data-pricing-rules") || "[]";
-        try {
-          const pricingRules = JSON.parse(pricingRulesStr) as Array<{ service_category?: string; base_price?: number; price_per_km?: number; minimum_fare?: number }>;
-          const rule = pricingRules.find(r => (r.service_category ?? "").toLowerCase() === vehicleCategory.toLowerCase()) ?? pricingRules[0];
-          if (rule) {
-            let total = Number(rule.base_price || 0) + Number(rule.price_per_km || 0) * km;
-            if (total < Number(rule.minimum_fare || 0)) total = Number(rule.minimum_fare || 0);
-            if (manualTotalInput) manualTotalInput.value = total.toFixed(2);
-          }
-        } catch { /* ignore */ }
-      }
-      return;
-    }
-
-    const fixedRoutesStr = formEl.getAttribute("data-fixed-routes") || "[]";
+    // --- Tarif dynamique (module partagé) ---
     try {
-      const fixedRoutes = JSON.parse(fixedRoutesStr);
-      const route = fixedRoutes.find((r: any) => r.id === fixedRouteId);
-      if (route) {
-        const matchingRoute = fixedRoutes.find((r: any) => 
-          r.pickup_zone_id === route.pickup_zone_id &&
-          r.dropoff_zone_id === route.dropoff_zone_id &&
-          r.vehicle_category.toLowerCase() === vehicleCategory.toLowerCase()
-        ) || route;
+      const rules = JSON.parse(formEl.getAttribute("data-pricing-rules") || "[]") as PricingRule[];
+      const rule = findPricingRule(rules, vehicleCategory);
+      if (!rule) return;
 
-        if (manualTotalInput && matchingRoute) {
-          manualTotalInput.value = Number(matchingRoute.price).toFixed(2);
-        }
+      const km = Number(kmInput?.value || 0);
 
-        if (pickupInput && (!pickupInput.value || pickupInput.value.trim() === "" || pickupInput.value === "PARTIR DE")) {
-          pickupInput.value = `${route.pickup_zone?.name || ""} - `;
-        }
-        if (dropoffInput && (!dropoffInput.value || dropoffInput.value.trim() === "" || dropoffInput.value === "ALLER À")) {
-          dropoffInput.value = `${route.dropoff_zone?.name || ""} - `;
-        }
-      }
-    } catch (err) {
-      console.error("Error parsing fixed routes:", err);
-    }
+      // Mise à dispo au km → on price avec price_per_km (comme un transfert)
+      const madsMode = (document.getElementById("mads_mode_hidden") as HTMLInputElement | null)?.value || "km";
+      const effectiveType = bookingType === "hourly"
+        ? (madsMode === "km" ? "transfer" : "hourly")
+        : "transfer";
+
+      if (effectiveType === "transfer" && km <= 0) return;
+      if (effectiveType === "hourly" && durationHours <= 0) return;
+
+      const total = calculatePrice({
+        bookingType: effectiveType,
+        distanceKm: km,
+        durationHours,
+        rule,
+      });
+
+      if (manualTotalInput) manualTotalInput.value = total.toFixed(2);
+    } catch { /* ignore */ }
   };
 
   const durationHoursInput = document.getElementById("duration_hours");
@@ -529,28 +535,42 @@ const run = (): void => {
       const durationHoursContainer = document.getElementById("duration-hours-container");
       const forfaitSelectorContainer = document.getElementById("forfait-selector-container");
       const distanceKmContainer = document.getElementById("distance-km-container");
+      const madsContainer = document.getElementById("mads-mode-container");
 
       if (!dropoffInput) return;
+
       if (val === "hourly") {
+        // Mise à disposition — adresse arrivée optionnelle mais jamais grisée
         dropoffInput.required = false;
-        dropoffInput.placeholder = "Destination (Optionnel)";
-        dropoffInput.parentElement?.classList.add("opacity-40");
+        dropoffInput.placeholder = "Adresse de fin (Optionnel)";
 
-        durationHoursContainer?.classList.remove("hidden");
+        madsContainer?.classList.remove("hidden");
         forfaitSelectorContainer?.classList.add("hidden");
-        distanceKmContainer?.classList.add("hidden");
 
+        // Réinitialiser le forfait
         const fixedRouteHidden = document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null;
         if (fixedRouteHidden) fixedRouteHidden.value = "";
         const forfaitLabel = document.getElementById("forfait-custom-label");
         if (forfaitLabel) forfaitLabel.textContent = "❌ Aucun forfait appliqué";
+
+        // Afficher km ou heure selon le mode mads courant
+        const madsMode = (document.getElementById("mads_mode_hidden") as HTMLInputElement | null)?.value || "km";
+        if (madsMode === "km") {
+          distanceKmContainer?.classList.remove("hidden");
+          durationHoursContainer?.classList.add("hidden");
+        } else {
+          distanceKmContainer?.classList.add("hidden");
+          durationHoursContainer?.classList.remove("hidden");
+        }
       } else {
+        // Transfert — adresse arrivée obligatoire
         dropoffInput.required = true;
         dropoffInput.placeholder = "Adresse d'Arrivée";
-        dropoffInput.parentElement?.classList.remove("opacity-40");
 
+        madsContainer?.classList.add("hidden");
         durationHoursContainer?.classList.add("hidden");
         forfaitSelectorContainer?.classList.remove("hidden");
+
         const forfaitVal = (document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null)?.value || "";
         if (!forfaitVal) {
           distanceKmContainer?.classList.remove("hidden");
@@ -597,6 +617,27 @@ const run = (): void => {
     }
   );
 
+  // Sous-dropdown mise à dispo : km ↔ heure
+  setupCustomDropdown(
+    "mads-mode-btn",
+    "mads-mode-menu",
+    "mads_mode_hidden",
+    "mads-mode-label",
+    "custom-option-mads",
+    (val) => {
+      const durationHoursContainer = document.getElementById("duration-hours-container");
+      const distanceKmContainer = document.getElementById("distance-km-container");
+      if (val === "km") {
+        distanceKmContainer?.classList.remove("hidden");
+        durationHoursContainer?.classList.add("hidden");
+      } else {
+        distanceKmContainer?.classList.add("hidden");
+        durationHoursContainer?.classList.remove("hidden");
+      }
+      updatePriceAndFields();
+    },
+  );
+
   setupCustomDropdown("payment-custom-btn", "payment-custom-menu", "payment_mode_hidden", "payment-custom-label", "custom-option-payment");
 
   const setupHeaderDropdown = (btnId: string, menuId: string): void => {
@@ -626,6 +667,52 @@ const run = (): void => {
       m.classList.remove("opacity-100", "scale-100", "pointer-events-auto");
       m.classList.add("opacity-0", "scale-95", "pointer-events-none");
     });
+  });
+
+  const estimateBtn = document.getElementById("estimate-route-btn");
+  const estimateBtnLabel = document.getElementById("estimate-btn-label");
+
+  estimateBtn?.addEventListener("click", async () => {
+    const pickupInput = document.querySelector<HTMLInputElement>("input[name='pickup']");
+    const dropoffInput = document.querySelector<HTMLInputElement>("#dropoff-input");
+    const distanceInput = document.getElementById("distance_km") as HTMLInputElement | null;
+
+    if (!pickupInput?.value?.trim() || !dropoffInput?.value?.trim()) {
+      alert("Renseigne les adresses de départ et d'arrivée d'abord.");
+      return;
+    }
+
+    if (estimateBtn) (estimateBtn as HTMLButtonElement).disabled = true;
+    if (estimateBtnLabel) estimateBtnLabel.textContent = "...";
+
+    try {
+      const [originCoords, destCoords] = await Promise.all([
+        geocodeAddress(pickupInput.value),
+        geocodeAddress(dropoffInput.value),
+      ]);
+
+      if (!originCoords || !destCoords) {
+        alert("Adresse(s) introuvable(s). Précise l'adresse complète avec la ville.");
+        return;
+      }
+
+      const distanceM = await getOsrmDistance(originCoords, destCoords);
+      if (distanceM === null) {
+        alert("Impossible de calculer l'itinéraire routier.");
+        return;
+      }
+
+      const distanceKm = (distanceM / 1000).toFixed(1);
+      if (distanceInput) {
+        distanceInput.value = distanceKm;
+        distanceInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (estimateBtnLabel) estimateBtnLabel.textContent = `✓ ${distanceKm} km`;
+    } catch {
+      alert("Erreur réseau lors de l'estimation.");
+    } finally {
+      if (estimateBtn) (estimateBtn as HTMLButtonElement).disabled = false;
+    }
   });
 
   form?.addEventListener("submit", async (e) => {
