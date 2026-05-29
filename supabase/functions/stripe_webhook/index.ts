@@ -120,8 +120,8 @@ Deno.serve(async (req) => {
           original_tenant_id: tenantId,
           current_tenant_id: tenantId,
 
-          pickup_address: m.pickup_address,
-          dropoff_address: m.dropoff_address,
+          pickup_address: String(m.pickup_address ?? "").trim().substring(0, 500),
+          dropoff_address: String(m.dropoff_address ?? "").trim().substring(0, 500),
 
           pickup_time: m.pickup_time,
 
