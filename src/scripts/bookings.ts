@@ -160,7 +160,8 @@ const updateRatingUI = (booking: AnyBooking): void => {
 
     const canvas = document.getElementById("modal-qr-canvas") as HTMLCanvasElement | null;
     if (canvas && booking.id) {
-      const ratingUrl = `${window.location.origin}/rate/${booking.id}`;
+      const siteOrigin = (import.meta.env.PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, "") || window.location.origin;
+      const ratingUrl = `${siteOrigin}/rate/${booking.id}`;
       QRCode.toCanvas(canvas, ratingUrl, {
         width: 112,
         margin: 1,
