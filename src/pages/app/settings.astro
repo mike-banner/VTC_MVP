@@ -491,6 +491,8 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
                 const { error } = await supabase.from('tenants').update({
                     legal_form: form,
                     vat_number: vatNum,
+                    is_vat_exempt: isExempt,
+                    vat_rate: isExempt ? 0 : 10,
                 }).eq('id', tid);
 
                 if (error) throw error;
