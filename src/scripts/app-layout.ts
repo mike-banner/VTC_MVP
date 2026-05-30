@@ -162,7 +162,46 @@ function initMissionBanner(): void {
   });
 
   void checkBanner();
-  setInterval(checkBanner, 60_000);
+  void checkUpcomingNotifications();
+  setInterval(() => { void checkBanner(); void checkUpcomingNotifications(); }, 60_000);
+}
+
+// --- Upcoming booking notifications ---
+
+async function requestNotificationPermission(): Promise<void> {
+  if (!('Notification' in window) || Notification.permission !== 'default') return;
+  await Notification.requestPermission();
+}
+
+async function checkUpcomingNotifications(): Promise<void> {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const now = Date.now();
+  const in20min = now + 20 * 60 * 1000;
+
+  const { data: bookings } = await supabase
+    .from('bookings')
+    .select('id, pickup_time, pickup_address, customers(first_name, last_name)')
+    .in('mission_status', ['to_validate', 'not_started'])
+    .gte('pickup_time', new Date(now + 60_000).toISOString())
+    .lte('pickup_time', new Date(in20min).toISOString());
+
+  bookings?.forEach((booking: any) => {
+    const key = `notif_sent_${String(booking.id)}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+
+    const pickupMs = new Date(booking.pickup_time as string).getTime();
+    const minutesLeft = Math.round((pickupMs - now) / 60_000);
+    const customer = booking.customers as { first_name?: string; last_name?: string } | null;
+    const name = customer ? `${customer.first_name ?? ''} ${customer.last_name ?? ''}`.trim() : 'Client';
+
+    new Notification(`Course dans ${minutesLeft} min`, {
+      body: `${name} — ${String(booking.pickup_address)}`,
+      icon: '/favicon.svg',
+      tag: `booking-${String(booking.id)}`,
+    });
+  });
 }
 
 // ---
@@ -194,6 +233,7 @@ const run = (): void => {
   });
 
   initMissionBanner();
+  void requestNotificationPermission();
 };
 
 if (document.readyState === "loading") {

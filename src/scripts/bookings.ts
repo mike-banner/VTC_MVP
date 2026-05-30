@@ -46,10 +46,9 @@ const updateTerrainUI = (booking: AnyBooking): void => {
   const hasTag = (tag: string): boolean => notes.includes(`[terrain] ${tag}_at=`);
 
   const isEnRoute = hasTag("en_route");
-  const isOnBoard = hasTag("on_board");
   const isCompleted = status === "completed";
 
-  if (isCompleted || status === "cancelled") {
+  if (isCompleted || String(booking.status ?? "").startsWith("cancel") || status === "to_validate") {
     root.innerHTML = "";
     return;
   }
@@ -59,57 +58,8 @@ const updateTerrainUI = (booking: AnyBooking): void => {
   const availableAtMs = pickupMs ? pickupMs - 15 * 60 * 1000 : null;
   const canStart = availableAtMs ? Date.now() >= availableAtMs : true;
 
-  root.innerHTML = `
-    <div class="mt-6 space-y-2.5">
-      <div class="flex items-center justify-between mb-3">
-        <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Pilotage</p>
-        ${!canStart && !isEnRoute && availableAtMs ? `
-          <div class="px-2.5 py-1 bg-amber-500/8 rounded-lg border border-amber-500/20 text-[9px] font-black text-amber-400 uppercase tracking-wide tabular-nums">
-            Disponible à ${new Date(availableAtMs).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-          </div>
-        ` : ""}
-      </div>
-      <div class="grid grid-cols-3 gap-2">
-        <button id="btn-en-route" ${isEnRoute || !canStart ? "disabled" : ""}
-          class="flex items-center justify-center gap-2 min-h-[52px] px-2 rounded-xl border transition-all
-            ${isEnRoute
-              ? "bg-indigo-600 border-indigo-500 text-white"
-              : "bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/5 hover:text-slate-200"}
-            disabled:opacity-25 disabled:cursor-not-allowed">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span class="text-[10px] font-black uppercase tracking-tight leading-none">En route</span>
-        </button>
-        <button id="btn-on-board" ${isOnBoard || !isEnRoute ? "disabled" : ""}
-          class="flex items-center justify-center gap-2 min-h-[52px] px-2 rounded-xl border transition-all
-            ${isOnBoard
-              ? "bg-emerald-600 border-emerald-500 text-white"
-              : "bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/5 hover:text-slate-200"}
-            disabled:opacity-25 disabled:cursor-not-allowed">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <span class="text-[10px] font-black uppercase tracking-tight leading-none">À bord</span>
-        </button>
-        <button id="btn-complete" ${!isOnBoard ? "disabled" : ""}
-          class="flex items-center justify-center gap-2 min-h-[52px] px-2 rounded-xl border transition-all
-            bg-white/[0.03] border-white/10 text-slate-400
-            hover:bg-rose-600/20 hover:border-rose-500/40 hover:text-rose-400
-            disabled:opacity-25 disabled:cursor-not-allowed">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          <span class="text-[10px] font-black uppercase tracking-tight leading-none">Terminée</span>
-        </button>
-      </div>
-    </div>
-  `;
-
-  const runAction = async (action: "en_route" | "on_board" | "completed"): Promise<void> => {
-    const btnId =
-      action === "en_route" ? "btn-en-route" : action === "on_board" ? "btn-on-board" : "btn-complete";
+  const runAction = async (action: "en_route" | "completed"): Promise<void> => {
+    const btnId = action === "en_route" ? "btn-start" : "btn-complete";
     const btn = document.getElementById(btnId) as HTMLButtonElement | null;
     if (btn) btn.disabled = true;
 
@@ -122,10 +72,11 @@ const updateTerrainUI = (booking: AnyBooking): void => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ booking_id: bookingId, action }),
       });
-      const data = (await res.json()) as { success?: boolean; notes?: string; error?: string };
+      const data = (await res.json()) as { success?: boolean; mission_note?: string; error?: string };
 
       if (data.success) {
-        booking.mission_note = data.notes ?? booking.mission_note;
+        booking.mission_note = data.mission_note ?? booking.mission_note;
+        if (action === "en_route") booking.mission_status = "in_progress";
         if (action === "completed") {
           booking.mission_status = "completed";
           window.location.reload();
@@ -142,9 +93,51 @@ const updateTerrainUI = (booking: AnyBooking): void => {
     }
   };
 
-  document.getElementById("btn-en-route")?.addEventListener("click", () => void runAction("en_route"));
-  document.getElementById("btn-on-board")?.addEventListener("click", () => void runAction("on_board"));
-  document.getElementById("btn-complete")?.addEventListener("click", () => void runAction("completed"));
+  if (!isEnRoute) {
+    root.innerHTML = `
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Pilotage</p>
+          ${!canStart && availableAtMs ? `
+            <div class="px-2.5 py-1 bg-amber-500/8 rounded-lg border border-amber-500/20 text-[9px] font-black text-amber-400 uppercase tracking-wide tabular-nums">
+              Dispo à ${new Date(availableAtMs).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          ` : ""}
+        </div>
+        <button id="btn-start" ${!canStart ? "disabled" : ""}
+          class="w-full flex items-center justify-center gap-2 min-h-[52px] px-4 rounded-xl border transition-all
+            bg-indigo-600 border-indigo-500 text-white font-black text-[11px] uppercase tracking-widest
+            hover:bg-indigo-500 active:scale-95 shadow-lg shadow-indigo-600/20
+            disabled:opacity-30 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z" />
+          </svg>
+          Démarrer la course
+        </button>
+      </div>
+    `;
+    document.getElementById("btn-start")?.addEventListener("click", () => void runAction("en_route"));
+  } else {
+    root.innerHTML = `
+      <div class="mt-6 space-y-2.5">
+        <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Pilotage</p>
+        <div class="flex items-center gap-2 px-3 py-2.5 bg-indigo-600/10 border border-indigo-500/20 rounded-xl">
+          <div class="w-2 h-2 bg-indigo-400 rounded-full animate-pulse flex-shrink-0"></div>
+          <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Course en cours</span>
+        </div>
+        <button id="btn-complete"
+          class="w-full flex items-center justify-center gap-2 min-h-[52px] px-4 rounded-xl border transition-all
+            bg-emerald-600 border-emerald-500 text-white font-black text-[11px] uppercase tracking-widest
+            hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-600/20">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Terminer la course
+        </button>
+      </div>
+    `;
+    document.getElementById("btn-complete")?.addEventListener("click", () => void runAction("completed"));
+  }
 };
 
 const updateRatingUI = (booking: AnyBooking): void => {
