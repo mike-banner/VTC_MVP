@@ -20,7 +20,7 @@ UPDATE public.tenants
 SET is_vat_exempt = false,
     vat_rate      = 10
 WHERE legal_form IN ('sasu', 'sas', 'eurl', 'sarl', 'other')
-  AND is_vat_exempt = true;   -- ne pas écraser un réglage manuel existant
+  AND (is_vat_exempt = true OR vat_rate = 0);
 
 -- 2. Trigger BEFORE UPDATE : synchronise is_vat_exempt + vat_rate quand legal_form change
 CREATE OR REPLACE FUNCTION sync_tenant_vat_config()
