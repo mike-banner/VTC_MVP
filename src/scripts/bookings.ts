@@ -58,27 +58,48 @@ const updateTerrainUI = (booking: AnyBooking): void => {
   const canStart = availableAtMs ? Date.now() >= availableAtMs : true;
 
   root.innerHTML = `
-    <div class="flex flex-col gap-4 p-5 bg-indigo-500/[0.03] rounded-[2rem] border border-indigo-500/10 mt-6 animate-in fade-in duration-500">
-      <div class="flex items-center justify-between">
-        <h4 class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400">Pilotage Mission</h4>
+    <div class="mt-6 space-y-2.5">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-[10px] font-black uppercase tracking-widest text-slate-500">Pilotage</p>
         ${!canStart && !isEnRoute && availableAtMs ? `
-          <div class="px-2 py-1 bg-amber-500/5 rounded-lg border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase tabular-nums">
-            Dispo à ${new Date(availableAtMs).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+          <div class="px-2.5 py-1 bg-amber-500/8 rounded-lg border border-amber-500/20 text-[9px] font-black text-amber-400 uppercase tracking-wide tabular-nums">
+            Disponible à ${new Date(availableAtMs).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
           </div>
         ` : ""}
       </div>
       <div class="grid grid-cols-3 gap-2">
-        <button id="btn-en-route" ${isEnRoute || !canStart ? "disabled" : ""} class="flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${isEnRoute ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-slate-500 hover:bg-white/10"} disabled:opacity-30">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
-          <span class="text-[8px] font-black uppercase tracking-tighter">En route</span>
+        <button id="btn-en-route" ${isEnRoute || !canStart ? "disabled" : ""}
+          class="flex items-center justify-center gap-2 min-h-[52px] px-2 rounded-xl border transition-all
+            ${isEnRoute
+              ? "bg-indigo-600 border-indigo-500 text-white"
+              : "bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/5 hover:text-slate-200"}
+            disabled:opacity-25 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span class="text-[10px] font-black uppercase tracking-tight leading-none">En route</span>
         </button>
-        <button id="btn-on-board" ${isOnBoard || !isEnRoute ? "disabled" : ""} class="flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${isOnBoard ? "bg-emerald-600 border-emerald-500 text-white" : "bg-white/5 border-white/10 text-slate-500 hover:bg-white/10"} disabled:opacity-30">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-          <span class="text-[8px] font-black uppercase tracking-tighter">À bord</span>
+        <button id="btn-on-board" ${isOnBoard || !isEnRoute ? "disabled" : ""}
+          class="flex items-center justify-center gap-2 min-h-[52px] px-2 rounded-xl border transition-all
+            ${isOnBoard
+              ? "bg-emerald-600 border-emerald-500 text-white"
+              : "bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/5 hover:text-slate-200"}
+            disabled:opacity-25 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span class="text-[10px] font-black uppercase tracking-tight leading-none">À bord</span>
         </button>
-        <button id="btn-complete" ${!isOnBoard ? "disabled" : ""} class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-500 hover:bg-rose-600 hover:border-rose-500 hover:text-white transition-all disabled:opacity-30">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-          <span class="text-[8px] font-black uppercase tracking-tighter">Terminée</span>
+        <button id="btn-complete" ${!isOnBoard ? "disabled" : ""}
+          class="flex items-center justify-center gap-2 min-h-[52px] px-2 rounded-xl border transition-all
+            bg-white/[0.03] border-white/10 text-slate-400
+            hover:bg-rose-600/20 hover:border-rose-500/40 hover:text-rose-400
+            disabled:opacity-25 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-[10px] font-black uppercase tracking-tight leading-none">Terminée</span>
         </button>
       </div>
     </div>
@@ -471,8 +492,10 @@ const run = (): void => {
 
       const km = Number(kmInput?.value || 0);
 
-      // Mise à dispo au km → on price avec price_per_km (comme un transfert)
-      const madsMode = (document.getElementById("mads_mode_hidden") as HTMLInputElement | null)?.value || "km";
+      const madsMode = (document.getElementById("mads_mode_hidden") as HTMLInputElement | null)?.value ?? "";
+      // Si hourly et aucun mode sélectionné, on ne calcule pas encore
+      if (bookingType === "hourly" && !madsMode) return;
+
       const effectiveType = bookingType === "hourly"
         ? (madsMode === "km" ? "transfer" : "hourly")
         : "transfer";
@@ -517,7 +540,6 @@ const run = (): void => {
       if (!dropoffInput) return;
 
       if (val === "hourly") {
-        // Mise à disposition — adresse arrivée optionnelle mais jamais grisée
         dropoffInput.required = false;
         dropoffInput.placeholder = "Adresse de fin (Optionnel)";
 
@@ -528,30 +550,36 @@ const run = (): void => {
         const fixedRouteHidden = document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null;
         if (fixedRouteHidden) fixedRouteHidden.value = "";
         const forfaitLabel = document.getElementById("forfait-custom-label");
-        if (forfaitLabel) forfaitLabel.textContent = "❌ Aucun forfait appliqué";
+        if (forfaitLabel) forfaitLabel.textContent = "Aucun forfait";
 
-        // Afficher km ou heure selon le mode mads courant
-        const madsMode = (document.getElementById("mads_mode_hidden") as HTMLInputElement | null)?.value || "km";
+        // Afficher km ou heure seulement si un mode a déjà été choisi
+        const madsMode = (document.getElementById("mads_mode_hidden") as HTMLInputElement | null)?.value ?? "";
         if (madsMode === "km") {
           distanceKmContainer?.classList.remove("hidden");
+          distanceKmContainer?.style.setProperty("display", "flex");
           durationHoursContainer?.classList.add("hidden");
-        } else {
+          durationHoursContainer?.style.setProperty("display", "none");
+        } else if (madsMode === "hour") {
           distanceKmContainer?.classList.add("hidden");
+          distanceKmContainer?.style.setProperty("display", "none");
           durationHoursContainer?.classList.remove("hidden");
+          durationHoursContainer?.style.setProperty("display", "flex");
+        } else {
+          // Aucun mode sélectionné : les deux restent cachés
+          distanceKmContainer?.classList.add("hidden");
+          durationHoursContainer?.classList.add("hidden");
         }
       } else {
-        // Transfert — adresse arrivée obligatoire
+        // Transfert — adresse arrivée obligatoire, pas de km/heures
         dropoffInput.required = true;
-        dropoffInput.placeholder = "Adresse d'Arrivée";
+        dropoffInput.placeholder = "Adresse d'arrivée";
 
         madsContainer?.classList.add("hidden");
         durationHoursContainer?.classList.add("hidden");
+        durationHoursContainer?.style.setProperty("display", "none");
+        distanceKmContainer?.classList.add("hidden");
+        distanceKmContainer?.style.setProperty("display", "none");
         forfaitSelectorContainer?.classList.remove("hidden");
-
-        const forfaitVal = (document.getElementById("fixed_route_id_hidden") as HTMLInputElement | null)?.value || "";
-        if (!forfaitVal) {
-          distanceKmContainer?.classList.remove("hidden");
-        }
       }
       updatePriceAndFields();
     },
@@ -582,14 +610,11 @@ const run = (): void => {
     "forfait-custom-label",
     "custom-option-forfait",
     (val) => {
-      const distanceKmContainer = document.getElementById("distance-km-container");
-      if (!val) {
-        distanceKmContainer?.classList.remove("hidden");
-      } else {
-        distanceKmContainer?.classList.add("hidden");
+      if (val) {
         const kmInput = document.getElementById("distance_km") as HTMLInputElement | null;
         if (kmInput) kmInput.value = "";
       }
+      // km field stays hidden for transfer — price comes from forfait or manual entry
       updatePriceAndFields();
     }
   );
@@ -606,10 +631,14 @@ const run = (): void => {
       const distanceKmContainer = document.getElementById("distance-km-container");
       if (val === "km") {
         distanceKmContainer?.classList.remove("hidden");
+        distanceKmContainer?.style.setProperty("display", "flex");
         durationHoursContainer?.classList.add("hidden");
+        durationHoursContainer?.style.setProperty("display", "none");
       } else {
         distanceKmContainer?.classList.add("hidden");
+        distanceKmContainer?.style.setProperty("display", "none");
         durationHoursContainer?.classList.remove("hidden");
+        durationHoursContainer?.style.setProperty("display", "flex");
       }
       updatePriceAndFields();
     },
