@@ -40,6 +40,28 @@ export const calculatePrice = (input: PriceInput): number => {
 };
 
 /**
+ * Décompose un montant TTC en net + TVA.
+ * Les prix de la grille sont TTC — la TVA est extraite (non ajoutée).
+ * Si exempt ou taux nul, retourne gross = net, vat = 0.
+ */
+export const computeVat = (
+  grossAmount: number,
+  vatRate: number,
+  isExempt: boolean,
+): { net: number; vat: number; gross: number } => {
+  if (isExempt || vatRate <= 0 || grossAmount <= 0) {
+    return { net: grossAmount, vat: 0, gross: grossAmount };
+  }
+  const net = grossAmount / (1 + vatRate / 100);
+  const vat = grossAmount - net;
+  return {
+    net:   Math.round(net * 100) / 100,
+    vat:   Math.round(vat * 100) / 100,
+    gross: grossAmount,
+  };
+};
+
+/**
  * Sélectionne la règle tarifaire la plus pertinente pour une catégorie de véhicule.
  * Fallback sur la première règle disponible si aucune ne matche la catégorie.
  */
