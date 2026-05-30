@@ -108,9 +108,24 @@ Deno.serve(async (req) => {
     if (session?.metadata) {
       const m = session.metadata;
 
-      const subtotal = Number(m.subtotal_amount ?? 0);
-      const vat = Number(m.vat_amount ?? 0);
       const total = Number(m.total_amount ?? amount ?? 0);
+
+      // Recalcul TVA serveur depuis la config du tenant (ne pas faire confiance aux metadata)
+      let subtotal = total;
+      let vat = 0;
+      if (tenantId) {
+        const { data: tenantVat } = await supabase
+          .from("tenants")
+          .select("vat_rate, is_vat_exempt")
+          .eq("id", tenantId)
+          .maybeSingle();
+        const vatRate  = Number(tenantVat?.vat_rate ?? 0);
+        const isExempt = tenantVat?.is_vat_exempt !== false;
+        if (!isExempt && vatRate > 0 && total > 0) {
+          subtotal = Math.round((total / (1 + vatRate / 100)) * 100) / 100;
+          vat      = Math.round((total - subtotal) * 100) / 100;
+        }
+      }
 
       console.log("INSERTING BOOKING FOR CUSTOMER", m.customer_id);
 
