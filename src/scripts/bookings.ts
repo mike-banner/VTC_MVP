@@ -76,13 +76,7 @@ const updateTerrainUI = (booking: AnyBooking): void => {
 
       if (data.success) {
         booking.mission_note = data.mission_note ?? booking.mission_note;
-        if (action === "en_route") booking.mission_status = "in_progress";
-        if (action === "completed") {
-          booking.mission_status = "completed";
-          window.location.reload();
-        } else {
-          updateTerrainUI(booking);
-        }
+        window.location.reload();
       } else {
         alert(data.error || "Erreur");
         updateTerrainUI(booking);
@@ -931,6 +925,25 @@ const run = (): void => {
     if (detailModal?.style.display === "flex") toggleDetailModal();
     if (editModal?.style.display === "flex") closeEditModal();
   });
+
+  const checkLateBookings = () => {
+    const now = Date.now();
+    document.querySelectorAll<HTMLElement>("[data-booking]").forEach(row => {
+      try {
+        const data = JSON.parse(decodeURIComponent(row.getAttribute("data-booking") ?? "{}"));
+        if (data.mission_status !== "not_started" || !data.pickup_time) return;
+        const isLate = now > new Date(data.pickup_time as string).getTime() + 5 * 60 * 1000;
+        if (isLate) {
+          row.style.outline = "1px solid rgba(239,68,68,0.45)";
+          row.style.boxShadow = "0 0 0 1px rgba(239,68,68,0.25), 0 0 16px rgba(239,68,68,0.08)";
+          row.style.borderColor = "rgba(239,68,68,0.4)";
+        }
+      } catch {}
+    });
+  };
+
+  checkLateBookings();
+  setInterval(checkLateBookings, 60_000);
 };
 
 if (document.readyState === "loading") {

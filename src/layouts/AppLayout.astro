@@ -221,7 +221,7 @@ const tenantName = tenant?.name || "VTC HUB";
              Visible uniquement sur mobile, uniquement si mission in_progress
              JS retire la classe "hidden" quand une mission active est détectée
              ═══════════════════════════════════ -->
-        <div id="mission-banner" class="hidden md:hidden flex-shrink-0 bg-gradient-to-r from-green-950/90 to-emerald-950/70 border-t border-green-500/25 px-4 py-3">
+        <div id="mission-banner" class="hidden flex-shrink-0 bg-gradient-to-r from-green-950/90 to-emerald-950/70 border-t border-green-500/25 px-4 py-3">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
                     <span class="relative flex-shrink-0">
@@ -233,16 +233,9 @@ const tenantName = tenant?.name || "VTC HUB";
                         <p id="mission-banner-addr" class="text-[11px] text-slate-300 truncate font-medium leading-none"></p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button id="mission-complete-btn" class="text-[9px] font-black uppercase tracking-widest bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 whitespace-nowrap">
-                        Terminer
-                    </button>
-                    <button id="mission-dismiss-btn" class="w-7 h-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-slate-500 transition-all active:scale-95 flex-shrink-0" aria-label="Masquer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
+                <button id="mission-complete-btn" class="text-[9px] font-black uppercase tracking-widest bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 whitespace-nowrap flex-shrink-0">
+                    Terminer la course
+                </button>
             </div>
         </div>
 

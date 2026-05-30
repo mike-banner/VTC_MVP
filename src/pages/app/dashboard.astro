@@ -73,20 +73,31 @@ const { data: ongoingMissions } = await supabaseAdmin
     .eq("mission_status", "in_progress")
     .limit(1);
 
+const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
+const { data: overdueData } = await supabaseAdmin
+    .from("bookings")
+    .select("*, customers!inner(*)")
+    .eq("current_tenant_id", profile.tenant_id!)
+    .eq("mission_status", "not_started")
+    .lt("pickup_time", fiveMinAgo)
+    .not("status", "in", "(cancelled,cancelled_no_refund,cancelled_pending_refund,cancelled_refunded)")
+    .order("pickup_time", { ascending: true })
+    .limit(1);
+
+const overdueBooking = overdueData?.[0] ?? null;
+
 const { data: allUpcoming } = await supabaseAdmin
     .from("bookings")
     .select("*, customers!inner(*)")
     .eq("current_tenant_id", profile.tenant_id!)
     .gte("pickup_time", now.toISOString())
-    .neq("mission_status", "in_progress")
-    .order("pickup_time", { ascending: true });
+    .not("mission_status", "in", "(in_progress,completed)")
+    .not("status", "in", "(cancelled,cancelled_no_refund,cancelled_pending_refund,cancelled_refunded)")
+    .order("pickup_time", { ascending: true })
+    .limit(3);
 
-const upcomingBookings = allUpcoming?.slice(0, 1) || [];
-let immediateMission = ongoingMissions?.[0] || allUpcoming?.find(b => {
-    const pickTime = new Date(b.pickup_time).getTime();
-    const diff = (pickTime - now.getTime()) / (1000 * 60); // minutes
-    return diff > 0 && diff < 120; // Dans les 2 prochaines heures
-});
+const upcomingBookings = allUpcoming ?? [];
+const immediateMission = ongoingMissions?.[0] ?? null;
 
 // 4️⃣ Courses en attente de validation (Mise à dispo)
 const { data: validatingBookings } = await supabaseAdmin
@@ -223,60 +234,75 @@ const fiscalYear = fiscalYearData as any;
                 </div>
             </div>
 
-        {/* 🎯 FOCUS: MISSION IMMÉDIATE - FULL WIDTH BAR */}
+        {/* ⚠️ COURSE EN RETARD — 5+ min après l'heure de prise en charge, non démarrée */}
+        {overdueBooking && !immediateMission && (
+            <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div class="rounded-2xl border border-rose-500/40 bg-rose-500/[0.04] shadow-2xl shadow-rose-500/10 overflow-hidden">
+                    <div class="flex items-center gap-3 px-4 py-2 bg-rose-500/10 border-b border-rose-500/20">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse flex-shrink-0"></span>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-rose-400">Course non démarrée — en retard</p>
+                    </div>
+                    <div class="flex flex-col lg:flex-row lg:items-center">
+                        <div class="flex items-center gap-4 p-5 lg:border-r border-rose-500/10 min-w-[200px]">
+                            <div class="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/30 flex flex-col items-center justify-center text-rose-400 shadow-lg">
+                                <span class="text-[10px] font-black uppercase leading-none opacity-70">{new Date(overdueBooking.pickup_time).toLocaleDateString('fr-FR', { month: 'short' })}</span>
+                                <span class="text-lg font-black leading-none">{new Date(overdueBooking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit' })}</span>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-black text-rose-300 tracking-tighter tabular-nums leading-none mb-1">
+                                    {new Date(overdueBooking.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                                <p class="text-[10px] font-black text-rose-400/70 uppercase tracking-widest">Heure dépassée</p>
+                            </div>
+                        </div>
+                        <div class="flex-1 p-5 space-y-1">
+                            <p class="text-base font-black text-white uppercase tracking-tighter truncate">
+                                {overdueBooking.customers.first_name} {overdueBooking.customers.last_name}
+                            </p>
+                            <p class="text-[11px] text-rose-400/60 truncate">{overdueBooking.pickup_address}</p>
+                            <a href="/app/bookings" class="inline-flex items-center gap-1.5 mt-3 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95">
+                                Démarrer maintenant →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* 🟢 MISSION EN COURS */}
         {immediateMission && (
             <div class="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <Card padding="none" rounded="2xl" class="border-indigo-500/30 bg-indigo-500/[0.03] shadow-2xl shadow-indigo-500/10 group overflow-hidden">
+                <Card padding="none" rounded="2xl" class="border-emerald-500/30 bg-emerald-500/[0.03] shadow-2xl shadow-emerald-500/10 group overflow-hidden">
+                    <div class="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/15">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-400">Mission en cours</p>
+                    </div>
                     <div class="flex flex-col lg:flex-row lg:items-center">
-                        {/* Temps & Status */}
-                        <div class="flex items-center gap-4 p-5 lg:p-6 lg:border-r border-white/5 bg-indigo-500/10 min-w-[200px]">
-                            <div class="w-12 h-12 rounded-xl bg-indigo-500 flex flex-col items-center justify-center text-white shadow-lg">
-                                <span class="text-[10px] font-black uppercase leading-none opacity-60">{new Date(immediateMission.pickup_time).toLocaleDateString('fr-FR', { month: 'short' })}</span>
+                        <div class="flex items-center gap-4 p-5 lg:p-6 lg:border-r border-white/5 min-w-[200px]">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex flex-col items-center justify-center text-emerald-400 shadow-lg">
+                                <span class="text-[10px] font-black uppercase leading-none opacity-70">{new Date(immediateMission.pickup_time).toLocaleDateString('fr-FR', { month: 'short' })}</span>
                                 <span class="text-lg font-black leading-none">{new Date(immediateMission.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit' })}</span>
                             </div>
                             <div>
                                 <p class="text-2xl font-black text-white tracking-tighter tabular-nums leading-none mb-1">
                                     {new Date(immediateMission.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
-                                <div class="flex items-center gap-1.5 font-black uppercase tracking-widest text-indigo-400">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                    <span class="text-[10px]">Mission Prioritaire</span>
-                                </div>
+                                <p class="text-[10px] font-black text-emerald-400/70 uppercase tracking-widest">Démarrée</p>
                             </div>
                         </div>
-
-                        {/* Itinéraire */}
-                        <div class="flex-1 p-5 lg:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8">
-                            <div class="flex-1 min-w-0 space-y-1">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></div>
-                                    <p class="text-sm font-black text-white truncate uppercase tracking-tight">{immediateMission.pickup_address}</p>
+                        <div class="flex-1 p-5 lg:p-6">
+                            <p class="text-base font-black text-white uppercase tracking-tighter truncate mb-1">
+                                {immediateMission.customers.first_name} {immediateMission.customers.last_name}
+                            </p>
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2 text-[11px] text-slate-400 truncate">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></div>
+                                    {immediateMission.pickup_address}
                                 </div>
-                                <div class="flex items-center gap-3 opacity-40">
-                                    <div class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></div>
-                                    <p class="text-[10px] font-bold text-slate-400 truncate uppercase tracking-tight">{immediateMission.dropoff_address || 'Destination à confirmer'}</p>
+                                <div class="flex items-center gap-2 text-[11px] text-slate-600 truncate">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></div>
+                                    {immediateMission.dropoff_address || 'Destination à confirmer'}
                                 </div>
-                            </div>
-
-                            {/* Actions Pilote */}
-                            <div class="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0 pt-4 sm:pt-0 border-t border-white/5 sm:border-none">
-                                <ImmediateActions
-                                    client:load
-                                    bookingId={immediateMission.id}
-                                    missionStatus={immediateMission.mission_status}
-                                    customerPhone={immediateMission.customers.phone}
-                                    pickupAddress={immediateMission.pickup_address}
-                                    tenantName={tenantName}
-                                    pickupTime={immediateMission.pickup_time}
-                                    invoiceUrl={null}
-                                    rating={immediateMission.rating}
-                                />
-                                <button
-                                    class="booking-row p-3 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:bg-white/10 transition-all"
-                                    data-booking={JSON.stringify({ ...immediateMission, notes: immediateMission.mission_note })}
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -322,8 +348,8 @@ const fiscalYear = fiscalYearData as any;
         </div>
     </div>
 
-    {/* ⚓️ AGENDA: 100% WIDTH FIXED BOTTOM DOCK */}
-    <div class="fixed bottom-16 md:bottom-0 left-0 md:left-72 right-0 z-[80] bg-slate-900/90 backdrop-blur-2xl border-t border-white/10 p-4 pb-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-700">
+    {/* ⚓️ AGENDA: 100% WIDTH FIXED BOTTOM DOCK — masqué JS si banner mission actif */}
+    <div id="upcoming-dock" class="fixed bottom-16 md:bottom-0 left-0 md:left-72 right-0 z-[80] bg-slate-900/90 backdrop-blur-2xl border-t border-white/10 p-4 pb-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-700">
         <div class="max-w-5xl mx-auto">
             <div class="flex items-center justify-between mb-3 px-2">
                 <div class="flex items-center gap-2">
@@ -735,4 +761,18 @@ const fiscalYear = fiscalYearData as any;
 
     closeBtns.forEach(btn => btn.addEventListener('click', toggleModal));
     overlay?.addEventListener('click', toggleModal);
+
+    // Masquer le dock "Prochaines Missions" quand le banner mission est actif
+    const syncDockVisibility = () => {
+        const banner = document.getElementById('mission-banner');
+        const dock = document.getElementById('upcoming-dock');
+        if (!dock) return;
+        const bannerVisible = banner && !banner.classList.contains('hidden');
+        dock.style.display = bannerVisible ? 'none' : '';
+    };
+    syncDockVisibility();
+    new MutationObserver(syncDockVisibility).observe(
+        document.getElementById('mission-banner') ?? document.body,
+        { attributes: true, attributeFilter: ['class'] }
+    );
 </script>

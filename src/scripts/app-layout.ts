@@ -90,9 +90,8 @@ function initMissionBanner(): void {
   const banner = document.querySelector<HTMLElement>("#mission-banner");
   const addrEl = document.querySelector<HTMLElement>("#mission-banner-addr");
   const completeBtn = document.querySelector<HTMLButtonElement>("#mission-complete-btn");
-  const dismissBtn = document.querySelector<HTMLButtonElement>("#mission-dismiss-btn");
 
-  if (!banner || !addrEl || !completeBtn || !dismissBtn) return;
+  if (!banner || !addrEl || !completeBtn) return;
 
   const showBanner = (booking: ActiveBooking) => {
     currentBannerBooking = booking;
@@ -116,31 +115,8 @@ function initMissionBanner(): void {
     const booking = bookings?.[0] ?? null;
     if (!booking) { hideBanner(); return; }
 
-    if (sessionStorage.getItem(`banner_dismissed_${booking.id}`)) { hideBanner(); return; }
-
     showBanner(booking);
   };
-
-  // Dismiss via X button
-  dismissBtn.addEventListener("click", () => {
-    if (currentBannerBooking) {
-      sessionStorage.setItem(`banner_dismissed_${currentBannerBooking.id}`, "1");
-    }
-    hideBanner();
-  });
-
-  // Swipe down to dismiss
-  let touchStartY = 0;
-  banner.addEventListener("touchstart", (e) => {
-    touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-  banner.addEventListener("touchend", (e) => {
-    const deltaY = e.changedTouches[0].clientY - touchStartY;
-    if (deltaY > 50 && currentBannerBooking) {
-      sessionStorage.setItem(`banner_dismissed_${currentBannerBooking.id}`, "1");
-      hideBanner();
-    }
-  }, { passive: true });
 
   // Complete button
   completeBtn.addEventListener("click", async () => {
