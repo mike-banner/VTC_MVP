@@ -539,6 +539,17 @@ const run = (): void => {
 
       if (!dropoffInput) return;
 
+      // Reset montant, adresses et km/heures à chaque changement de type
+      const pickupInput = document.querySelector<HTMLInputElement>("input[name='pickup']");
+      const manualTotalInput = document.querySelector<HTMLInputElement>("input[name='manual_total']");
+      const kmInput = document.getElementById("distance_km") as HTMLInputElement | null;
+      const hoursInput = document.getElementById("duration_hours") as HTMLInputElement | null;
+      if (pickupInput) pickupInput.value = "";
+      if (dropoffInput) dropoffInput.value = "";
+      if (manualTotalInput) manualTotalInput.value = "";
+      if (kmInput) kmInput.value = "";
+      if (hoursInput) hoursInput.value = "1";
+
       if (val === "hourly") {
         dropoffInput.required = false;
         dropoffInput.placeholder = "Adresse de fin (Optionnel)";
