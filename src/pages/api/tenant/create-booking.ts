@@ -1,7 +1,7 @@
 // src/pages/api/tenant/create-booking.ts
-import { createClient } from "@supabase/supabase-js";
 import type { APIRoute } from "astro";
 import { calculatePrice, computeVat, findPricingRule } from "@/lib/pricing";
+import { createAdminClient } from "@/lib/supabase/server";
 
 /**
  * API pour créer une course avec calcul de prix automatisé côté serveur
@@ -25,11 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       vehicle_id,
     } = body;
 
-    // Utilisation de la SERVICE_ROLE_KEY pour bypass RLS et calculs critiques
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
-    );
+    const supabase = createAdminClient(locals);
 
     const { user, profile } = locals as any;
     if (!user || !profile) {

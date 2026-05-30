@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import type { APIRoute } from "astro";
 import { isPlatform } from "../../../lib/guards";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
@@ -21,10 +21,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
-    );
+    const supabase = createAdminClient(locals);
 
     // Passer le statut en 'rejected'
     const { error } = await supabase

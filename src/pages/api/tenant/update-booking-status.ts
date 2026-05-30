@@ -1,6 +1,6 @@
 // src/pages/api/tenant/update-booking-status.ts
 import type { APIRoute } from "astro";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/server";
 
 /**
  * API pour mettre à jour le statut d'une course
@@ -15,10 +15,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabase = createAdminClient(locals);
 
     // Mise à jour sécurisée : on vérifie que la course appartient bien au tenant du profil
     const { error } = await supabase

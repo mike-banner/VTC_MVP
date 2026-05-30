@@ -1,9 +1,9 @@
 // src/pages/api/tenant/booking-actions.ts
 // Actions exclusives chauffeur pré-mission : annulation (avec motif) + modification horaires/adresses.
 // La Edge Function cancel-booking gère le remboursement Stripe côté admin/plateforme.
-import { createClient } from "@supabase/supabase-js";
 import type { APIRoute } from "astro";
 import { calculatePrice, findPricingRule } from "@/lib/pricing";
+import { createAdminClient } from "@/lib/supabase/server";
 
 type Action = "cancel" | "update";
 
@@ -23,10 +23,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: "Paramètres manquants" }), { status: 400 });
     }
 
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
-    );
+    const supabase = createAdminClient(locals);
 
     // Fetch + vérification tenant
     const { data: booking, error: fetchError } = await supabase

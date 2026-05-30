@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
-import { createClient } from "@supabase/supabase-js";
 import { isPlatform } from "../../../lib/guards";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export const POST: APIRoute = async ({ request, locals }) => {
     try {
@@ -17,10 +17,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
         }
 
-        const supabase = createClient(
-            import.meta.env.PUBLIC_SUPABASE_URL,
-            import.meta.env.SUPABASE_SERVICE_ROLE_KEY
-        );
+        const supabase = createAdminClient(locals);
 
         const { error } = await supabase.rpc("approve_onboarding_tx", {
             onboarding_uuid: onboarding_id
