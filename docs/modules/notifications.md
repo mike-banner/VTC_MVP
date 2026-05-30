@@ -7,6 +7,4 @@ Notification des chauffeurs et clients lors des événements clés de la course.
 - **Emails (Resend/SendGrid)** : Confirmation de commande client, factures PDF, création de compte tenant.
 - **SMS (Twilio)** : Alertes terrain (ex: "Votre chauffeur est en route").
 
-## Triggers Métier
-- `booking.status = 'paid'` -> Envoi email confirmation client.
-- `mission_status = 'completed'` -> Envoi facture PDF par email au client.
+- Déclencheur Facturation : Statut de paiement finalisé (via Webhook Stripe ou validation chauffeur pour TPE/Cash) -> Envoi de la facture Factur-X par email.
