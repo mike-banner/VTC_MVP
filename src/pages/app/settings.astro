@@ -23,16 +23,16 @@ const tenantName = tenant?.name || "Inconnu";
 const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
 ---
 
-<AppLayout title="Paramètres - Owner">
-    <div id="settings-page" data-confirmation-phrase={confirmationPhrase} class="flex flex-col px-6 py-10 md:px-12 md:py-16">
+<AppLayout title="Entreprise">
+    <div id="settings-page" class="flex flex-col px-6 py-10 md:px-12 md:py-16">
         <!-- FIXED HEADER -->
         <div class="flex-shrink-0 border-b border-white/5 pb-10 mb-10">
             <span
-                class="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-black tracking-widest text-red-400 uppercase"
-                >Administration</span
+                class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase"
+                >Entreprise</span
             >
             <p class="text-slate-500 mt-2 font-medium italic text-sm">
-                Configuration critique du tenant (Réservé au Propriétaire)
+                Identité, fiscalité et configuration de votre société.
             </p>
         </div>
 
@@ -217,97 +217,11 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
                 <p id="vat-save-msg" class="hidden text-xs text-emerald-400 font-bold mt-3"></p>
             </div>
 
-            <div
-                class="glass p-10 rounded-[2.5rem] border border-red-500/10 bg-red-500/[0.02]"
-            >
-                <h3
-                    class="text-xl font-black mb-2 text-red-500 italic uppercase italic tracking-tighter"
-                >
-                    Zone de Danger
-                </h3>
-                <p class="text-slate-500 mb-8 font-medium italic">
-                    La suppression de votre compte désactivera votre société, votre site chauffeur et votre accès au dashboard. Cette action est irréversible.
-                </p>
-                <button
-                    id="open-delete-modal"
-                    class="px-8 py-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-xl shadow-red-900/10 active:scale-95"
-                >
-                    Supprimer le compte entreprise
-                </button>
-            </div>
         </div>
     </div>
-
-    <!-- MODAL DE CONFIRMATION SUPPRESSION -->
-    <div slot="modals" id="delete-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay"></div>
-        <div class="relative glass max-w-lg w-full rounded-[2.5rem] border border-red-500/20 shadow-2xl p-10 transform scale-95 transition-all duration-300">
-            <div class="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500 mb-8 mx-auto sm:mx-0">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            </div>
-
-            <h2 class="text-3xl font-black italic uppercase text-white mb-4 tracking-tighter">Confirmation de suppression</h2>
-
-            <p class="text-slate-400 font-medium mb-6 leading-relaxed italic">
-                Vous êtes sur le point de supprimer définitivement le compte de votre société :<br/>
-                <strong class="text-red-500 uppercase tracking-tighter text-xl block mt-2">{tenantName}</strong>
-            </p>
-
-            <div class="bg-red-500/5 border border-red-500/10 rounded-2xl p-6 mb-8">
-                <p class="text-[10px] font-black uppercase tracking-widest text-red-400 mb-3 italic">Phrase de confirmation requise :</p>
-                <p class="text-white font-mono text-sm font-bold bg-black/40 p-4 rounded-xl border border-white/5 select-all" id="phrase-target">
-                    {confirmationPhrase}
-                </p>
-            </div>
-
-            <div class="space-y-4 mb-8">
-                <input
-                    type="text"
-                    id="confirmation-input"
-                    placeholder="Écrire la phrase de confirmation"
-                    class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-red-500/50 focus:outline-none font-bold transition-all"
-                />
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-4">
-                <button id="cancel-delete" class="px-8 py-4 glass border border-white/10 rounded-2xl font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all order-2 sm:order-1">
-                    Annuler
-                </button>
-                <button
-                    id="confirm-delete-btn"
-                    disabled
-                    class="flex-1 px-8 py-4 bg-red-600/20 border border-red-600/20 text-red-600/40 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-red-900/20 disabled:cursor-not-allowed order-1 sm:order-2"
-                >
-                    Supprimer définitivement
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <style is:global>
-        #delete-modal.is-active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        #delete-modal.is-active > div:last-child {
-            transform: scale(1);
-        }
-    </style>
 
     <script>
         import { supabase } from "@/lib/supabase/client";
-
-        const container = document.getElementById('settings-page');
-        const confirmationPhrase = container?.getAttribute('data-confirmation-phrase');
-
-        const openBtn = document.getElementById('open-delete-modal');
-        const modal = document.getElementById('delete-modal');
-        const cancelBtn = document.getElementById('cancel-delete');
-        const confirmBtn = document.getElementById('confirm-delete-btn') as HTMLButtonElement;
-        const input = document.getElementById('confirmation-input') as HTMLInputElement;
-        const overlay = document.querySelector('.modal-overlay');
 
         // --- GESTION LOGO ---
         const logoInput = document.getElementById('logo-input') as HTMLInputElement;
@@ -398,62 +312,6 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
                 alert("Erreur lors du téléchargement du logo : " + err.message);
                 saveLogoBtn.disabled = false;
                 saveLogoBtn.innerText = "Enregistrer le logo";
-            }
-        });
-
-        const toggleModal = () => {
-            modal?.classList.toggle('is-active');
-            document.body.classList.toggle('overflow-hidden');
-            if (modal?.classList.contains('is-active')) {
-                input.value = '';
-                confirmBtn.disabled = true;
-                confirmBtn.classList.add('bg-red-600/20', 'text-red-600/40');
-                confirmBtn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-500');
-            }
-        };
-
-        openBtn?.addEventListener('click', toggleModal);
-        cancelBtn?.addEventListener('click', toggleModal);
-        overlay?.addEventListener('click', toggleModal);
-
-        input?.addEventListener('input', (e) => {
-            const target = e.target as HTMLInputElement;
-            const val = target.value;
-            if (val === confirmationPhrase) {
-                confirmBtn.disabled = false;
-                confirmBtn.classList.remove('bg-red-600/20', 'text-red-600/40');
-                confirmBtn.classList.add('bg-red-600', 'text-white', 'hover:bg-red-500');
-            } else {
-                confirmBtn.disabled = true;
-                confirmBtn.classList.add('bg-red-600/20', 'text-red-600/40');
-                confirmBtn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-500');
-            }
-        });
-
-        confirmBtn?.addEventListener('click', async () => {
-            confirmBtn.disabled = true;
-            confirmBtn.innerText = "SUPPRESSION...";
-
-            try {
-                const { data, error } = await supabase.functions.invoke('delete-tenant-account');
-
-                if (error) throw error;
-
-                alert("Compte supprimé avec succès.");
-                await supabase.auth.signOut();
-                window.location.href = "/";
-            } catch (err) {
-                console.error(err);
-                alert("Une erreur est survenue lors de la suppression.");
-                confirmBtn.disabled = false;
-                confirmBtn.innerText = "Supprimer définitivement";
-            }
-        });
-
-        // Close on Escape
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal?.classList.contains('is-active')) {
-                toggleModal();
             }
         });
 
