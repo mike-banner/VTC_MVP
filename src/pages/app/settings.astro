@@ -477,25 +477,16 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
             saveVatBtn.disabled = true;
             saveVatBtn.textContent = 'ENREGISTREMENT...';
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) throw new Error('Session introuvable');
-                const { data: profileData } = await supabase
-                    .from('profiles').select('tenant_id').eq('id', user.id).single();
-                const tid = profileData?.tenant_id;
-                if (!tid) throw new Error('Tenant introuvable');
-
                 const form = legalFormSelect.value;
-                const isExempt = EXEMPT_FORMS.includes(form);
-                const vatNum = isExempt ? null : (vatNumberInput?.value.trim() || null);
+                const vatNum = vatNumberInput?.value.trim() || null;
 
-                const { error } = await supabase.from('tenants').update({
-                    legal_form: form,
-                    vat_number: vatNum,
-                    is_vat_exempt: isExempt,
-                    vat_rate: isExempt ? 0 : 10,
-                }).eq('id', tid);
-
-                if (error) throw error;
+                const res = await fetch('/api/tenant/update-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ legal_form: form, vat_number: vatNum }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error ?? 'Erreur serveur');
 
                 if (vatSaveMsg) {
                     vatSaveMsg.textContent = 'Paramètres TVA enregistrés.';
