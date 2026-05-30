@@ -12,10 +12,10 @@ try {
     return Astro.redirect("/app/dashboard");
 }
 
-// 1️⃣ Récupérer les infos du tenant pour la confirmation
+// 1️⃣ Récupérer les infos du tenant
 const { data: tenant } = await supabase
   .from("tenants")
-  .select("name, logo_url")
+  .select("name, logo_url, legal_form, is_vat_exempt, vat_rate, vat_number")
   .eq("id", profile!.tenant_id)
   .single();
 
@@ -93,7 +93,7 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
                                     <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    <p class="text-[8px] font-black uppercase tracking-widest text-center">Aucun Logo</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-center">Aucun Logo</p>
                                 </div>
                             )}
                             <img id="logo-preview-new" class="hidden w-full h-full object-contain p-4" />
@@ -147,6 +147,74 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
                         />
                     </div>
                 </div>
+            </div>
+
+            <!-- TVA & Forme Juridique -->
+            <div class="glass p-10 rounded-[2.5rem] border border-white/5 bg-white/[0.01]">
+                <h3 class="text-xl font-black uppercase italic tracking-tighter text-white mb-2 flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Fiscalité &amp; TVA
+                </h3>
+                <p class="text-slate-500 text-xs mb-8 italic">Le taux TVA est calculé automatiquement selon votre forme juridique. Les prix de votre grille tarifaire sont traités comme TTC.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Forme juridique -->
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-2">Forme juridique</label>
+                        <select
+                            id="legal-form-select"
+                            class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/40 font-bold text-sm appearance-none"
+                        >
+                            {[
+                                { value: "auto_entrepreneur", label: "Auto-entrepreneur" },
+                                { value: "ei",                label: "Entreprise Individuelle (EI)" },
+                                { value: "sasu",              label: "SASU" },
+                                { value: "sas",               label: "SAS" },
+                                { value: "eurl",              label: "EURL" },
+                                { value: "sarl",              label: "SARL" },
+                                { value: "other",             label: "Autre" },
+                            ].map(opt => (
+                                <option value={opt.value} selected={tenant?.legal_form === opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <!-- Statut TVA (read-only) -->
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-2">Statut TVA</label>
+                        <div class={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${tenant?.is_vat_exempt !== false ? "bg-amber-500/5 border-amber-500/20" : "bg-emerald-500/5 border-emerald-500/20"}`}>
+                            <span class={`w-2 h-2 rounded-full flex-shrink-0 ${tenant?.is_vat_exempt !== false ? "bg-amber-400" : "bg-emerald-400"}`}></span>
+                            <div>
+                                <div class={`text-sm font-black ${tenant?.is_vat_exempt !== false ? "text-amber-300" : "text-emerald-300"}`}>
+                                    {tenant?.is_vat_exempt !== false ? "Exonéré (Art. 293 B CGI)" : `Assujetti — ${tenant?.vat_rate ?? 10} %`}
+                                </div>
+                                <div class="text-[10px] text-slate-600 mt-0.5">
+                                    {tenant?.is_vat_exempt !== false ? "Aucune TVA facturée" : "TVA déduite du montant TTC"}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Numéro TVA (affiché uniquement si assujetti) -->
+                <div id="vat-number-section" class={tenant?.is_vat_exempt !== false ? "hidden" : ""}>
+                    <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-2">Numéro TVA intracommunautaire</label>
+                    <input
+                        type="text"
+                        id="vat-number-input"
+                        placeholder="FR00 000 000 000"
+                        value={tenant?.vat_number ?? ""}
+                        class="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/40 font-bold text-sm font-mono mb-4"
+                    />
+                </div>
+
+                <button
+                    id="save-vat-btn"
+                    class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                >
+                    Enregistrer
+                </button>
+                <p id="vat-save-msg" class="hidden text-xs text-emerald-400 font-bold mt-3"></p>
             </div>
 
             <div
@@ -386,6 +454,58 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modal?.classList.contains('is-active')) {
                 toggleModal();
+            }
+        });
+
+        // --- GESTION TVA ---
+        const legalFormSelect  = document.getElementById('legal-form-select') as HTMLSelectElement;
+        const vatNumberSection = document.getElementById('vat-number-section');
+        const vatNumberInput   = document.getElementById('vat-number-input') as HTMLInputElement;
+        const saveVatBtn       = document.getElementById('save-vat-btn') as HTMLButtonElement;
+        const vatSaveMsg       = document.getElementById('vat-save-msg');
+
+        const EXEMPT_FORMS = ['auto_entrepreneur', 'ei'];
+
+        legalFormSelect?.addEventListener('change', () => {
+            const isExempt = EXEMPT_FORMS.includes(legalFormSelect.value);
+            if (vatNumberSection) {
+                vatNumberSection.classList.toggle('hidden', isExempt);
+            }
+        });
+
+        saveVatBtn?.addEventListener('click', async () => {
+            saveVatBtn.disabled = true;
+            saveVatBtn.textContent = 'ENREGISTREMENT...';
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error('Session introuvable');
+                const { data: profileData } = await supabase
+                    .from('profiles').select('tenant_id').eq('id', user.id).single();
+                const tid = profileData?.tenant_id;
+                if (!tid) throw new Error('Tenant introuvable');
+
+                const form = legalFormSelect.value;
+                const isExempt = EXEMPT_FORMS.includes(form);
+                const vatNum = isExempt ? null : (vatNumberInput?.value.trim() || null);
+
+                const { error } = await supabase.from('tenants').update({
+                    legal_form: form,
+                    vat_number: vatNum,
+                }).eq('id', tid);
+
+                if (error) throw error;
+
+                if (vatSaveMsg) {
+                    vatSaveMsg.textContent = 'Paramètres TVA enregistrés.';
+                    vatSaveMsg.classList.remove('hidden');
+                    setTimeout(() => vatSaveMsg.classList.add('hidden'), 3000);
+                }
+                window.location.reload();
+            } catch (err) {
+                alert('Erreur : ' + err.message);
+            } finally {
+                saveVatBtn.disabled = false;
+                saveVatBtn.textContent = 'Enregistrer';
             }
         });
     </script>
