@@ -1,0 +1,33 @@
+# 📂 Historique (PASSÉ)
+
+- [2026-03-28] Initialisation du protocole Mike-Standard via @bootstrap.
+- [2026-03-28] Configuration de `repomix` et génération du premier digest contextuel (`repomix-output.md`).
+- [2026-03-28] Création de `.agent/rules.md` incluant les standards V10.0 et les spécificités VTC HUB.
+- [2026-03-28] Migration du contenu de `PROJECT_STATE.md` vers `PLAN_ARCHITECTURE.md` pour centraliser la planification.
+- [2026-03-31] Unification du flux Inscription + Onboarding (Wizard 3 étapes : Compte, Profil, Entreprise).
+- [2026-03-31] Migration Schéma Onboarding V4 (Suppression colonnes obsolètes, ajout SIRET/Licence VTC).
+- [2026-03-31] Planification du "Elite Driver Dashboard v5.0" (Refonte UX/UI Premium).
+- [2026-04-01] Déploiement du module "Suivi Global" (Ledger Fiscal) avec KPIs dynamiques.
+- [2026-04-01] Restauration du Chauffeur Principal et personnalisation Elite badge "CHAUFFEUR N°1".
+- [2026-04-02] **Optimisation Mobile Fleet v2.0** : Refactoring responsive des cartes véhicules (Dashboard + Liste).
+- [2026-04-02] **Business Logic Exclusivity** : Implémentation de la règle "un seul véhicule actif" par tenant (services + UI).
+- [2026-04-02] **Data Enrichment** : Ajout du champ `luggage_capacity` (bagages) et affichage badges unitaires.
+- [2026-04-02] **UX Custom UI** : Remplacement des `window.confirm` par des modales floutées et confirmations intégrées tactiles.
+- [2026-04-02] **Refining Visual Identity** : Suppression des icônes génériques, mise en valeur des plaques d'immatriculation.
+- [2026-04-02] **Roadmap Evolution** : Documentation du futur flux de course dynamique (Mail, Start, Finish, Facture, QR).
+- [2026-04-16] **Front Rule** : Priorité ultime Mobile First ajoutée dans `.ai_memory/MEMORY.md`.
+- [2026-04-17] **Mission Lifecycle v1.0** : Formalisation du cycle opérationnel (`to_validate`, `not_started`, `in_progress`, `completed`).
+- [2026-04-17] **Manual Booking Refinement** : Attribution auto au chauffeur, sélection du véhicule et bypass des règles tarifaires.
+- [2026-04-17] **Edge Functions Sync** : Mise à jour de `stripe_webhook` et `accept-booking` pour le respect du nouveau lifecycle.
+- [2026-04-17] **Completion Incentive** : Blocage du QR Code et de la facturation tant que la mission n'est pas `completed`.
+- [2026-05-20] **Document Restructuring & Agent Governance** : Restructuration complète de `docs/` en dossiers typés (business, architecture, modules, decisions), conversion des règles d'agents en ADR-005, réécriture de `CLAUDE.md`/`ANTIGRAVITY.md` pour réduction de tokens, migration de la Tri-Mémoire à la racine de `docs/` (`docs/HISTORY.md`, `docs/PLAN_ARCHITECTURE.md`, `docs/MEMORY.md`, `docs/EVOLUTION.md`), et mise à jour des `.cursor/rules/*.mdc`.
+- [2026-05-20] **Codebase Mapping** : Initialisation du dossier de planification `.planning/codebase/` et cartographie complète de l'application (STACK, ARCHITECTURE, STRUCTURE, CONVENTIONS, TESTING, INTEGRATIONS, CONCERNS).
+- [2026-05-20] **Mobile Navigation & Smart Ratings** : Remplacement du menu tiroir par la Bottom Bar fixe (5 boutons maximum) adaptative selon les rôles. Consolidation des réglages administratifs sous `/app/settings`. Intégration de la génération de QR codes d'évaluation locale et d'un système de Smart Feedback Routing (redirection automatique des avis positifs >= 4/5 vers Google Reviews et stockage interne des avis négatifs).
+- [2026-05-20] **Pricing & Predefined Bookings Integration** : Connexion des trajets prédéfinis (forfaits) au formulaire de réservation manuelle. Détecte le véhicule assigné pour adapter le tarif selon la catégorie (ex: Berline vs Van) et pré-remplit les adresses de zones. Création ordonnée de la migration locale pour l'enum `booking_type_enum` pour le mode "Mise à disposition" (hourly) sans l'appliquer en base.
+- [2026-05-30] **Auth Redirect** : Redirection automatique de `/` vers le dashboard quand une session active est détectée (middleware `src/middleware.ts`).
+- [2026-05-30] **Security Audit (gsd-audit-fix)** : Audit pipeline sur `SECURITY_REVIEW.md` — 4 fixes auto-appliqués (F-01 sanitisation adresses webhook Stripe, F-02 URL notation QR depuis `PUBLIC_SITE_URL`, F-03 guard JWT sur Edge Function `delete-tenant-account`, F-04 headers HTTP sécurité via `public/_headers` Cloudflare). 6 findings manuels documentés (F-05 à F-10).
+- [2026-05-30] **Pipeline Fiscal (trigger DB)** : Migration `20260530000000_auto_financial_movements_trigger.sql` — trigger `SECURITY DEFINER` `trg_auto_financial_movement` qui alimente automatiquement `financial_movements` sur chaque `INSERT/UPDATE` de `bookings` (Stripe card → `status = paid`, Cash → `mission_status = completed`). Backfill des bookings existants inclus. Résolution du conflit d'historique migrations via `supabase migration repair`.
+- [2026-05-30] **Onglet Fiscal (refonte UX/UI)** : Refonte complète de `/app/ledger` renommé "Fiscal". Vue annuelle avec bilan 12 mois cliquable, KPI strip (Courses / CA HT / TVA / Total TTC), sélecteur d'exercice par pills. Correction du client Supabase SSR (passage de `createBrowserClient` à `Astro.locals.supabase`).
+- [2026-05-30] **Pipeline TVA complet** : Migration `20260530000001_vat_config_sync.sql` — trigger `trg_sync_tenant_vat` synchronise `is_vat_exempt` + `vat_rate` (10%) selon `legal_form` (auto_entrepreneur/EI → exonéré, SASU/SAS/EURL/SARL → assujetti). Helper `computeVat()` dans `pricing.ts` extrait TVA du TTC (prix grille = TTC). `create-booking.ts` calcule `subtotal_amount` HT + `vat_amount` réels. `stripe_webhook` recalcule TVA serveur depuis tenant au lieu des metadata. Section Fiscalité TVA ajoutée dans `/app/settings` (forme juridique, badge statut, numéro TVA intracommunautaire).
+- [2026-05-30] **Fiscal — Vue Mois Pleine Page** : Clic sur un mois bascule en vue pleine page remplaçant l'overview annuel. Header compact avec 3 stats inline (courses / HT / TVA / TTC). React island `MonthDetail` (`src/components/fiscal/MonthDetail.tsx`) avec filtrage temps réel par nom de client, pills mode de paiement (Tous / Carte / Espèces), export CSV côté client (`fiscal-{mois}-{année}.csv`), empty state contextuel selon filtre actif.
+
