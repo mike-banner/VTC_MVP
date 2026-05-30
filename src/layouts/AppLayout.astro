@@ -50,7 +50,7 @@ const tenantName = tenant?.name || "VTC HUB";
 <html lang="fr" class="dark">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="generator" content={Astro.generator} />
         <title>{title} | VTC App</title>
@@ -217,6 +217,36 @@ const tenantName = tenant?.name || "VTC HUB";
         </div>
 
         <!-- ═══════════════════════════════════
+             MISSION COMPLETION BANNER — sticky above mobile nav
+             Visible uniquement sur mobile, uniquement si mission in_progress
+             JS retire la classe "hidden" quand une mission active est détectée
+             ═══════════════════════════════════ -->
+        <div id="mission-banner" class="hidden md:hidden flex-shrink-0 bg-gradient-to-r from-green-950/90 to-emerald-950/70 border-t border-green-500/25 px-4 py-3">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <span class="relative flex-shrink-0">
+                        <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-[9px] font-black uppercase tracking-widest text-green-400 leading-none mb-0.5">Mission en cours</p>
+                        <p id="mission-banner-addr" class="text-[11px] text-slate-300 truncate font-medium leading-none"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button id="mission-complete-btn" class="text-[9px] font-black uppercase tracking-widest bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 whitespace-nowrap">
+                        Terminer
+                    </button>
+                    <button id="mission-dismiss-btn" class="w-7 h-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-slate-500 transition-all active:scale-95 flex-shrink-0" aria-label="Masquer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════
              MOBILE FOOTER NAV — in-flow, flex-shrink-0
              Toujours visible, jamais scrollable
              ═══════════════════════════════════ -->
@@ -281,6 +311,38 @@ const tenantName = tenant?.name || "VTC HUB";
             </div>
         </div>
 
+        <!-- Correction datetime modal (mission complétée en retard) -->
+        <div id="correction-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 opacity-0 pointer-events-none transition-all duration-300">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm correction-overlay"></div>
+            <div class="relative glass max-w-sm w-full rounded-[2.5rem] border border-white/10 shadow-2xl p-8 transform scale-95 transition-all duration-300">
+                <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-400 mb-6">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-fluid-2xl font-black italic uppercase text-white mb-2 tracking-tighter">Fin de course</h3>
+                <p class="text-slate-400 text-sm font-medium mb-6 leading-relaxed italic">
+                    La mission est en cours depuis plus de 4h. Quelle était l'heure réelle de fin ?
+                </p>
+                <div class="mb-6">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Heure réelle de fin</label>
+                    <input
+                        id="correction-datetime"
+                        type="datetime-local"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-colors"
+                    />
+                </div>
+                <div class="flex flex-col gap-3 font-black uppercase text-[10px] tracking-widest">
+                    <button id="correction-confirm" class="py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
+                        Confirmer l'heure corrigée
+                    </button>
+                    <button id="correction-now" class="py-4 bg-white/5 hover:bg-white/10 text-slate-400 rounded-xl transition-all border border-white/5 active:scale-95">
+                        Utiliser l'heure actuelle
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <style is:global>
             /*
              * --app-h est défini par le script inline dans <head> : window.innerHeight + 'px'
@@ -305,12 +367,18 @@ const tenantName = tenant?.name || "VTC HUB";
                 border-radius: 10px;
             }
 
-            #logout-modal.is-active {
+            #logout-modal.is-active,
+            #correction-modal.is-active {
                 opacity: 1;
                 pointer-events: auto;
             }
-            #logout-modal.is-active > div:last-child {
+            #logout-modal.is-active > div:last-child,
+            #correction-modal.is-active > div:last-child {
                 transform: scale(1);
+            }
+
+            #correction-datetime {
+                color-scheme: dark;
             }
 
             /*
