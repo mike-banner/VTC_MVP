@@ -60,8 +60,10 @@ export const onRequest = defineMiddleware(async ({ cookies, request, redirect, l
 
   locals.profile = profile || null;
 
+  const isHomePage = path === '/';
+
   // 3. LOGIQUE DE REDIRECTION (Pour connectés sur Login/Dashboard/Apps)
-  if (isSaaSRoute || isAuthPage) {
+  if (isSaaSRoute || isAuthPage || isHomePage) {
     // --- PRIORITÉ : ADMIN Plateforme ---
     if (profile?.platform_role) {
       // Toujours vers l'admin dashboard
