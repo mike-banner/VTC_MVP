@@ -144,7 +144,7 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId, hidePr
                   </p>
                   <button
                     onClick={() => setConfirmInit(true)}
-                    className='px-6 py-3 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-50 transition-all active:scale-95'>
+                    className='px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-50 transition-all active:scale-95'>
                     {initLoading ? 'Initialisation...' : "M'ajouter comme chauffeur"}
                   </button>
                 </div>
@@ -251,7 +251,7 @@ const DriverCard: React.FC<DriverCardProps> = ({ driver, onEdit, onDelete, isPri
         </div>
         <div className='flex items-center gap-1'>
           {isPrimary && (
-            <span className='mr-2 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[8px] font-black text-indigo-400 uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/5'>
+            <span className='mr-2 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/5'>
               CHAUFFEUR N°1
             </span>
           )}

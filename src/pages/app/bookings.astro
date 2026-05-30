@@ -157,7 +157,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                 {tabs.map(tab => (
                                     <a
                                         href={getFilterUrl({ status: tab.id })}
-                                        class={`px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                        class={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                             currentStatus === tab.id
                                             ? "bg-slate-100 text-black"
                                             : "text-slate-500 hover:bg-slate-50 hover:text-black"
@@ -186,7 +186,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                 {typeFilters.map(filter => (
                                     <a
                                         href={getFilterUrl({ type: filter.id })}
-                                        class={`px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                        class={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                             currentType === filter.id
                                             ? "bg-slate-100 text-black"
                                             : "text-slate-500 hover:bg-slate-50 hover:text-black"
@@ -237,7 +237,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                             <p class="text-xl font-black text-white tabular-nums leading-none">
                                                 {Number(booking.total_amount).toFixed(0)}€
                                             </p>
-                                            <div class={`mt-1 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                            <div class={`mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
                                                 booking.mission_status === "completed" ? "bg-emerald-500/10 text-emerald-500" :
                                                 booking.mission_status === "to_validate" ? "bg-amber-500/10 text-amber-500" :
                                                 booking.mission_status === "in_progress" ? "bg-indigo-500/10 text-indigo-500" :
@@ -269,23 +269,23 @@ const getFilterUrl = (params: Record<string, string>) => {
                                     <div class="space-y-1.5 pb-3 border-b border-white/5 mb-3">
                                         <div class="flex items-start gap-2">
                                             <div class="w-1 h-1 rounded-full bg-indigo-500 mt-1 shrink-0" />
-                                            <p class="text-[8px] font-bold text-slate-400 truncate tracking-tight">{booking.pickup_address}</p>
+                                            <p class="text-[10px] font-bold text-slate-400 truncate tracking-tight">{booking.pickup_address}</p>
                                         </div>
                                         {(booking.booking_type as any) === 'transfer' && (
                                             <div class="flex items-start gap-2">
                                                 <div class="w-1 h-1 rounded-full bg-rose-500 mt-1 shrink-0" />
-                                                <p class="text-[8px] font-bold text-slate-400 truncate tracking-tight">{booking.dropoff_address}</p>
+                                                <p class="text-[10px] font-bold text-slate-400 truncate tracking-tight">{booking.dropoff_address}</p>
                                             </div>
                                         )}
                                     </div>
 
                                     <div class="flex justify-between items-center">
                                         <div class="flex items-center gap-2">
-                                            <span class="text-[9px] font-black text-white tabular-nums">
+                                            <span class="text-[10px] font-black text-white tabular-nums">
                                                 {new Date(booking.pickup_time).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                                             </span>
                                             <span class="w-1 h-1 rounded-full bg-white/10" />
-                                            <span class="text-[9px] text-slate-500 font-bold tabular-nums">
+                                            <span class="text-[10px] text-slate-500 font-bold tabular-nums">
                                                 {new Date(booking.pickup_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                                             </span>
                                         </div>
@@ -335,7 +335,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                                         <div class="flex items-start gap-2">
                                                             <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1"></span>
                                                             <div>
-                                                                <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Départ</div>
+                                                                <div class="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Départ</div>
                                                                 <div class="text-[11px] font-bold text-slate-300 uppercase tracking-tight line-clamp-1">{booking.pickup_address}</div>
                                                             </div>
                                                         </div>
@@ -343,7 +343,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                                             <div class="flex items-start gap-2 mt-2">
                                                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1"></span>
                                                                 <div>
-                                                                    <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Arrivée</div>
+                                                                    <div class="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Arrivée</div>
                                                                     <div class="text-[11px] font-bold text-slate-400 uppercase tracking-tight line-clamp-1">{booking.dropoff_address}</div>
                                                                 </div>
                                                             </div>
@@ -351,7 +351,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                                             <div class="flex items-start gap-2 mt-2 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
                                                                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1"></span>
                                                                 <div>
-                                                                    <div class="text-[9px] text-amber-500 font-black uppercase tracking-widest leading-none mb-1">Service</div>
+                                                                    <div class="text-[10px] text-amber-500 font-black uppercase tracking-widest leading-none mb-1">Service</div>
                                                                     <div class="text-[11px] font-black text-amber-400 uppercase tracking-tighter">Mise à Disposition</div>
                                                                 </div>
                                                             </div>
@@ -390,7 +390,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                                         <span class="text-2xl font-black text-white tabular-nums leading-none">
                                                             {Number(booking.total_amount).toFixed(0)}€
                                                         </span>
-                                                        <div class={`mt-2 text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border ${
+                                                        <div class={`mt-2 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border ${
                                                             booking.status === "completed" || booking.status === "paid" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                                                             booking.status === "pending" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
                                                             booking.status === "cancelled" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
@@ -459,7 +459,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <!-- TYPE DE COURSE -->
                         <div class="space-y-2">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Type de Course</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Type de Course</p>
                             <div class="relative group/type w-full">
                                 <button type="button" id="type-custom-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                     <span id="type-custom-label">🚗 Transfert Classique</span>
@@ -475,7 +475,7 @@ const getFilterUrl = (params: Record<string, string>) => {
 
                         <!-- VÉHICULE -->
                         <div class="space-y-2">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Véhicule Assigné</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Véhicule Assigné</p>
                             <div class="relative group/veh w-full">
                                 <button type="button" id="vehicle-custom-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                     <span id="vehicle-custom-label" class="truncate">
@@ -498,7 +498,7 @@ const getFilterUrl = (params: Record<string, string>) => {
 
                         <!-- FORFAIT APPLIQUÉ (OPTIONNEL) — visible seulement en mode Transfert -->
                         <div class="col-span-full space-y-2" id="forfait-selector-container">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Forfait Tarifaire (Optionnel)</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Forfait Tarifaire (Optionnel)</p>
                             <div class="relative group/forfait w-full">
                                 <button type="button" id="forfait-custom-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                     <span id="forfait-custom-label">❌ Aucun forfait appliqué</span>
@@ -520,7 +520,7 @@ const getFilterUrl = (params: Record<string, string>) => {
 
                         <!-- MODE MISE À DISPOSITION — visible seulement en mode Hourly -->
                         <div class="col-span-full space-y-2 hidden" id="mads-mode-container">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Mode de facturation</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Mode de facturation</p>
                             <div class="relative group/mads w-full">
                                 <button type="button" id="mads-mode-btn" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold flex items-center justify-between">
                                     <span id="mads-mode-label">📏 Au kilomètre</span>
@@ -538,11 +538,11 @@ const getFilterUrl = (params: Record<string, string>) => {
                     <!-- PASSAGERS & BAGAGES -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Passagers (Max 8)</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Passagers (Max 8)</p>
                             <input type="number" name="passenger_count" value="1" min="1" max="8" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
                         <div class="space-y-2">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Bagages</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-1">Bagages</p>
                             <input type="number" name="luggage_count" value="0" min="0" max="12" class="w-full min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         </div>
                     </div>
@@ -550,7 +550,7 @@ const getFilterUrl = (params: Record<string, string>) => {
 
                 <!-- CLIENT -->
                 <div class="space-y-4">
-                    <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Informations Client</p>
+                    <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Informations Client</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <input type="text" name="client_name" placeholder="Nom Complet" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
                         <input type="email" name="client_email" placeholder="Email Client" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" />
@@ -560,7 +560,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                 <!-- ITINÉRAIRE -->
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Itinéraire & Temps</p>
+                        <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Itinéraire & Temps</p>
                     </div>
                     <div class="space-y-4">
                         <input type="text" name="pickup" placeholder="Adresse de Départ" required class="w-full min-w-0 bg-white border border-white/5 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-sm text-black placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold italic" />
@@ -574,11 +574,11 @@ const getFilterUrl = (params: Record<string, string>) => {
                             </div>
                         </div>
                         <div id="distance-km-container" class="flex items-center gap-3" style="display:flex">
-                            <label class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] whitespace-nowrap">Distance (km)</label>
+                            <label class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] whitespace-nowrap">Distance (km)</label>
                             <input type="number" id="distance_km" name="distance_km" value="" min="0" step="0.1" placeholder="0.0" class="w-28 min-w-0 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold tabular-nums" />
                         </div>
                         <div id="duration-hours-container" class="hidden flex items-center gap-3">
-                            <label class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] whitespace-nowrap">Durée (heures)</label>
+                            <label class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] whitespace-nowrap">Durée (heures)</label>
                             <input type="number" id="duration_hours" name="duration_hours" value="1" min="1" max="24" class="w-20 min-w-0 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold tabular-nums" />
                         </div>
                     </div>
@@ -586,7 +586,7 @@ const getFilterUrl = (params: Record<string, string>) => {
 
                 <!-- PRIX -->
                 <div class="space-y-4">
-                    <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em]">Facturation & Paiement</p>
+                    <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Facturation & Paiement</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="relative group">
                             <input type="number" name="manual_total" placeholder="Prix (€)" required class="w-full min-w-0 bg-white border border-emerald-500/20 rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 text-xl text-emerald-600 font-black tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all" />
@@ -629,8 +629,8 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <div>
                             <h2 class="text-3xl font-black uppercase text-white tracking-tighter leading-none mb-2">Détails <span class="text-indigo-500">Mission</span></h2>
                             <div class="flex items-center gap-2">
-                                <p id="modal-booking-ref" class="text-slate-600 text-[9px] font-black uppercase tracking-widest leading-none">REF: #---</p>
-                                <span id="modal-booking-type" class="px-2 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-widest border border-white/10 text-slate-500 leading-none">---</span>
+                                <p id="modal-booking-ref" class="text-slate-600 text-[10px] font-black uppercase tracking-widest leading-none">REF: #---</p>
+                                <span id="modal-booking-type" class="px-2 py-0.5 rounded-[4px] text-[10px] font-black uppercase tracking-widest border border-white/10 text-slate-500 leading-none">---</span>
                             </div>
                         </div>
                     </div>
@@ -643,7 +643,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                     <!-- CLIENT INFO -->
                     <div class="relative">
                         <div class="absolute -left-6 top-0 bottom-0 w-1 bg-indigo-500 rounded-full opacity-50"></div>
-                        <p class="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-4">Passager Premium</p>
+                        <p class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-4">Passager Premium</p>
                         <div class="flex items-center justify-between gap-6">
                             <h3 id="modal-client-name" class="text-2xl font-black text-white uppercase tracking-tighter leading-none">---</h3>
                             <div class="flex gap-2">
@@ -661,12 +661,12 @@ const getFilterUrl = (params: Record<string, string>) => {
                                  <div class="absolute left-1 top-2 bottom-2 w-0.5 border-l-2 border-dashed border-white/10"></div>
                                  <div class="relative">
                                     <div class="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(79,70,229,0.5)]"></div>
-                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Point de Prise en charge</p>
+                                    <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Point de Prise en charge</p>
                                     <p id="modal-pickup" class="text-sm font-bold text-slate-200 leading-tight">---</p>
                                  </div>
                                  <div class="relative">
                                     <div class="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_100px_rgba(244,63,94,0.5)]"></div>
-                                    <p class="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Destination Finale</p>
+                                    <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1">Destination Finale</p>
                                     <p id="modal-dropoff" class="text-sm font-bold text-slate-200 leading-tight">---</p>
                                  </div>
                             </div>
@@ -690,7 +690,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                             </div>
                             <div>
-                                <p class="text-[8px] font-black uppercase text-slate-500 mb-0.5">Passagers</p>
+                                <p class="text-[10px] font-black uppercase text-slate-500 mb-0.5">Passagers</p>
                                 <span id="modal-passengers" class="text-lg font-black text-white">---</span>
                             </div>
                         </div>
@@ -699,7 +699,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                             </div>
                             <div>
-                                <p class="text-[8px] font-black uppercase text-slate-500 mb-0.5">Valises</p>
+                                <p class="text-[10px] font-black uppercase text-slate-500 mb-0.5">Valises</p>
                                 <span id="modal-luggage" class="text-lg font-black text-white">---</span>
                             </div>
                         </div>
@@ -710,7 +710,7 @@ const getFilterUrl = (params: Record<string, string>) => {
 
                     <!-- NOTES -->
                     <div class="glass p-6 rounded-[2rem] border border-white/5">
-                        <p class="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-3">Instructions Chauffeur</p>
+                        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Instructions Chauffeur</p>
                         <p id="modal-notes" class="text-xs text-slate-500 font-medium leading-relaxed">---</p>
                     </div>
 
@@ -718,13 +718,13 @@ const getFilterUrl = (params: Record<string, string>) => {
                     <div id="modal-rating-section" class="glass p-6 rounded-[2rem] border border-white/5 hidden">
                         <!-- Cas 1: avis existant -->
                         <div id="modal-rating-display" class="hidden">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-3">Avis Passager</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-3">Avis Passager</p>
                             <div id="modal-rating-stars" class="flex gap-1.5 mb-3"></div>
                             <p id="modal-rating-comment" class="text-xs text-slate-400 font-medium leading-relaxed italic"></p>
                         </div>
                         <!-- Cas 2: pas encore noté -->
                         <div id="modal-qr-section" class="hidden">
-                            <p class="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-3">Recueillir l'Avis Passager</p>
+                            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-3">Recueillir l'Avis Passager</p>
                             <div class="flex flex-col sm:flex-row items-center gap-6">
                                 <canvas id="modal-qr-canvas" class="w-28 h-28 rounded-2xl bg-white p-1.5 flex-shrink-0"></canvas>
                                 <div class="text-center sm:text-left">

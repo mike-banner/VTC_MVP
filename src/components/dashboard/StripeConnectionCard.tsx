@@ -142,7 +142,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
         <div className='grid grid-cols-3 gap-2 md:gap-10 flex-1'>
           {/* Col 1: Total Revenue */}
           <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all'>
-            <p className='text-[7px] md:text-[8px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
+            <p className='text-[10px] md:text-[10px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
               Balance
             </p>
             <div className='flex items-baseline gap-0.5 md:gap-1 leading-none'>
@@ -159,7 +159,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
           {/* Col 2: Total Mission (All-time) */}
           <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all border-l border-white/5'>
-            <p className='text-[7px] md:text-[8px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
+            <p className='text-[10px] md:text-[10px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-indigo-400 transition-colors'>
               Missions
             </p>
             <div className='flex items-baseline leading-none'>
@@ -171,7 +171,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
           {/* Col 3: Note */}
           <div className='flex flex-col items-center text-center group/kpi hover:bg-white/[0.03] p-2 rounded-2xl transition-all border-l border-white/5'>
-            <p className='text-[7px] md:text-[8px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-amber-400 transition-colors'>
+            <p className='text-[10px] md:text-[10px] font-black uppercase text-slate-500 tracking-wider md:tracking-[0.2em] mb-1 md:mb-2 h-3 flex items-center justify-center whitespace-nowrap group-hover/kpi:text-amber-400 transition-colors'>
               Note
             </p>
             <div className='flex items-baseline gap-0.5 md:gap-1 leading-none'>
@@ -189,7 +189,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
         <div className='flex flex-col md:items-end gap-5 shrink-0'>
           <div className='flex items-center gap-3'>
             <div
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors duration-500 ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors duration-500 ${
                 initialAccountIdMissing
                   ? 'bg-slate-500/10 text-slate-500 border-slate-500/10'
                   : stripeStatus?.type === 'onboarding'

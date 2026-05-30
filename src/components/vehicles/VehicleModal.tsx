@@ -157,7 +157,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                   <Car className='w-4 h-4 opacity-40' />
                 </div>
               </div>
-              <p className='text-[7px] font-bold text-indigo-400/70 uppercase tracking-[0.05em] px-2 italic'>
+              <p className='text-[10px] font-bold text-indigo-400/70 uppercase tracking-[0.05em] px-2 italic'>
                 L'activation désactive automatiquement les autres véhicules de votre flotte.
               </p>
             </div>
@@ -277,7 +277,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
             </button>
           </div>
           {error === 'CONFIRM_DELETE' && (
-            <p className='text-[8px] font-bold text-rose-500 uppercase tracking-widest text-center mt-4 animate-pulse'>
+            <p className='text-[10px] font-bold text-rose-500 uppercase tracking-widest text-center mt-4 animate-pulse'>
               Cliquez à nouveau pour confirmer la suppression
             </p>
           )}

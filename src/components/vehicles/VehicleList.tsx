@@ -127,7 +127,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ tenantId }) => {
 
       <div className='flex justify-between items-end mb-6 md:mb-10'>
         <div>
-          <p className='text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-slate-500'>
+          <p className='text-[10px] md:text-[10px] font-bold uppercase tracking-widest text-slate-500'>
             Liste de vos véhicules ({vehicles.length})
           </p>
         </div>
@@ -158,7 +158,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ tenantId }) => {
                     {v.plate_number}
                   </div>
                   <div
-                    className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${statusStyle.classes}`}>
+                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusStyle.classes}`}>
                     {statusStyle.label}
                   </div>
                 </div>
@@ -167,7 +167,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ tenantId }) => {
                   <h3 className='text-lg md:text-xl font-black text-white uppercase tracking-tighter mb-1'>
                     {v.brand} {v.model}
                   </h3>
-                  <p className='text-[8px] font-bold text-slate-500 uppercase tracking-widest italic'>
+                  <p className='text-[10px] font-bold text-slate-500 uppercase tracking-widest italic'>
                     {v.category} — {v.capacity} Places
                   </p>
                 </div>
@@ -175,7 +175,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ tenantId }) => {
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between border-t border-white/5 pt-6 gap-4 sm:gap-0 mt-auto'>
                   <div className='flex gap-4 shrink-0'>
                     <div>
-                      <p className='text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1'>
+                      <p className='text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1'>
                         Passagers
                       </p>
                       <div className='flex items-center gap-1.5 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/10 w-fit shrink-0'>
@@ -185,7 +185,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ tenantId }) => {
                       </div>
                     </div>
                     <div>
-                      <p className='text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1'>
+                      <p className='text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1'>
                         Bagages
                       </p>
                       <div className='flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded border border-white/10 w-fit shrink-0'>

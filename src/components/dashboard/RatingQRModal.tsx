@@ -52,10 +52,10 @@ export const RatingQRModal: React.FC<RatingQRModalProps> = ({
         </div>
 
         <div className='w-full p-4 bg-white/5 border border-white/5 rounded-2xl'>
-          <p className='text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2'>
+          <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2'>
             Lien direct
           </p>
-          <p className='text-[9px] font-bold text-indigo-400 truncate'>{ratingUrl}</p>
+          <p className='text-[10px] font-bold text-indigo-400 truncate'>{ratingUrl}</p>
         </div>
 
         <button

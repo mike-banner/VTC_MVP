@@ -129,7 +129,7 @@ export const TransferManager: React.FC<{ tenantId: string }> = ({ tenantId }) =>
             <div className='absolute -bottom-12 -right-12 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full group-hover:bg-indigo-500/10 transition-all' />
 
             <div className='flex justify-between items-center mb-4'>
-              <div className='flex items-center gap-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20'>
+              <div className='flex items-center gap-2 text-[10px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20'>
                 {r.vehicle_category}
               </div>
               {r.is_bidirectional && (

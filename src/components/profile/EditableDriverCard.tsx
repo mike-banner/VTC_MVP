@@ -65,7 +65,7 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
         </div>
         <div className='flex-1 min-w-0'>
           <div className='flex items-center gap-3'>
-            <p className='text-[9px] md:text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em] leading-none mb-1'>
+            <p className='text-[10px] md:text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em] leading-none mb-1'>
               Chauffeur Titulaire
             </p>
             {!isEditing && (
@@ -87,7 +87,7 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
         {isEditing ? (
           <div className='space-y-5 animate-in fade-in slide-in-from-top-2 duration-300 max-w-lg'>
             <div className='space-y-2'>
-              <label className='text-[9px] font-black uppercase text-slate-500 tracking-widest ml-1'>
+              <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
                 Portable
               </label>
               <div className='relative'>
@@ -102,7 +102,7 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
             </div>
 
             <div className='space-y-2'>
-              <label className='text-[9px] font-black uppercase text-slate-500 tracking-widest ml-1'>
+              <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
                 Carte Pro VTC
               </label>
               <div className='relative'>
@@ -150,7 +150,7 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
                 <Phone className='w-5 h-5' />
               </div>
               <div>
-                <p className='text-[8px] font-black uppercase text-slate-500 tracking-widest mb-0.5'>
+                <p className='text-[10px] font-black uppercase text-slate-500 tracking-widest mb-0.5'>
                   Portable
                 </p>
                 <p className='text-sm md:text-base font-bold text-white tracking-widest'>
@@ -165,7 +165,7 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
                 <CreditCard className='w-5 h-5' />
               </div>
               <div className='flex-1'>
-                <p className='text-[8px] font-black uppercase text-slate-500 tracking-widest mb-0.5'>
+                <p className='text-[10px] font-black uppercase text-slate-500 tracking-widest mb-0.5'>
                   Carte VTC
                 </p>
                 <p className='text-sm md:text-base font-black text-indigo-400 tabular-nums tracking-widest'>
