@@ -25,6 +25,8 @@ type AnyBooking = Record<string, unknown> & {
   };
 };
 
+let currentDetailBooking: AnyBooking | null = null;
+
 const parseBookingFromRow = (row: Element): AnyBooking => {
   const encodedData = row.getAttribute("data-booking") ?? "";
   if (!encodedData) return {};
@@ -372,6 +374,22 @@ const run = (): void => {
         if (timeEl) timeEl.innerText = "---";
         if (dateEl) dateEl.innerText = "---";
       }
+
+      // Boutons pré-mission : Modifier + Annuler
+      currentDetailBooking = booking;
+      const preMission = ["to_validate", "not_started"].includes(String(booking.mission_status ?? ""));
+
+      const editBtn = document.getElementById("modal-edit-btn");
+      if (editBtn) editBtn.classList.toggle("hidden", !preMission);
+
+      const cancelSection = document.getElementById("cancel-section");
+      if (cancelSection) cancelSection.classList.toggle("hidden", !preMission);
+
+      // Reset panneau annulation
+      document.getElementById("cancel-trigger-area")?.classList.remove("hidden");
+      document.getElementById("cancel-form-area")?.classList.add("hidden");
+      const cancelReasonEl = document.getElementById("cancel-reason") as HTMLTextAreaElement | null;
+      if (cancelReasonEl) cancelReasonEl.value = "";
 
       toggleDetailModal();
   };
@@ -732,10 +750,193 @@ const run = (): void => {
     }
   });
 
+  // ── ANNULATION CHAUFFEUR ──────────────────────────────────────────────────
+  const cancelBookingBtn = document.getElementById("cancel-booking-btn");
+  const cancelFormArea = document.getElementById("cancel-form-area");
+  const cancelTriggerArea = document.getElementById("cancel-trigger-area");
+  const cancelConfirmBtn = document.getElementById("cancel-confirm-btn");
+  const cancelBackBtn = document.getElementById("cancel-back-btn");
+
+  cancelBookingBtn?.addEventListener("click", () => {
+    cancelTriggerArea?.classList.add("hidden");
+    cancelFormArea?.classList.remove("hidden");
+  });
+
+  cancelBackBtn?.addEventListener("click", () => {
+    cancelFormArea?.classList.add("hidden");
+    cancelTriggerArea?.classList.remove("hidden");
+    const r = document.getElementById("cancel-reason") as HTMLTextAreaElement | null;
+    if (r) r.value = "";
+  });
+
+  cancelConfirmBtn?.addEventListener("click", async () => {
+    const reasonEl = document.getElementById("cancel-reason") as HTMLTextAreaElement | null;
+    const reason = reasonEl?.value.trim() ?? "";
+    if (!reason) {
+      reasonEl?.focus();
+      reasonEl?.classList.add("border-rose-500");
+      return;
+    }
+    reasonEl?.classList.remove("border-rose-500");
+
+    const bookingId = currentDetailBooking?.id;
+    if (!bookingId) return;
+
+    cancelConfirmBtn.textContent = "Annulation…";
+    (cancelConfirmBtn as HTMLButtonElement).disabled = true;
+
+    try {
+      const res = await fetch("/api/tenant/booking-actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", booking_id: bookingId, reason }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert(data.error ?? "Erreur lors de l'annulation.");
+        cancelConfirmBtn.textContent = "Confirmer l'annulation";
+        (cancelConfirmBtn as HTMLButtonElement).disabled = false;
+      }
+    } catch {
+      alert("Erreur réseau.");
+      cancelConfirmBtn.textContent = "Confirmer l'annulation";
+      (cancelConfirmBtn as HTMLButtonElement).disabled = false;
+    }
+  });
+
+  // ── MODIFICATION COURSE ───────────────────────────────────────────────────
+  const editModal = document.getElementById("edit-booking-modal");
+  const editModalInner = document.getElementById("edit-modal-inner");
+  const closeEditModalBtn = document.getElementById("close-edit-modal");
+  const editModalOverlay = editModal?.querySelector<HTMLElement>(".edit-modal-overlay");
+  const editForm = document.getElementById("edit-booking-form") as HTMLFormElement | null;
+
+  const openEditModal = () => {
+    if (!editModal || !currentDetailBooking) return;
+    const b = currentDetailBooking;
+
+    (document.getElementById("edit-booking-id") as HTMLInputElement).value = String(b.id ?? "");
+    (document.getElementById("edit-booking-type") as HTMLInputElement).value = String(b.booking_type ?? "");
+    (document.getElementById("edit-vehicle-id") as HTMLInputElement).value = String((b as any).vehicle_id ?? "");
+
+    // Pickup time → format datetime-local
+    if (b.pickup_time) {
+      const d = new Date(b.pickup_time as string);
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+      (document.getElementById("edit-pickup-time") as HTMLInputElement).value = local;
+    }
+
+    (document.getElementById("edit-pickup-address") as HTMLInputElement).value = String(b.pickup_address ?? "");
+    (document.getElementById("edit-dropoff-address") as HTMLInputElement).value = String(b.dropoff_address ?? "");
+
+    const isHourly = b.booking_type === "hourly";
+    document.getElementById("edit-dropoff-container")?.classList.toggle("hidden", isHourly);
+    document.getElementById("edit-distance-container")?.classList.toggle("hidden", isHourly);
+    document.getElementById("edit-duration-container")?.classList.toggle("hidden", !isHourly);
+
+    if (!isHourly) {
+      (document.getElementById("edit-distance-km") as HTMLInputElement).value = String((b as any).distance_km ?? "");
+    } else {
+      (document.getElementById("edit-duration-hours") as HTMLInputElement).value = String((b as any).duration_hours ?? 1);
+    }
+
+    updateEditPricePreview();
+
+    editModal.style.display = "flex";
+    requestAnimationFrame(() => editModalInner?.classList.remove("scale-95"));
+  };
+
+  const closeEditModal = () => {
+    if (!editModal) return;
+    editModalInner?.classList.add("scale-95");
+    setTimeout(() => { editModal.style.display = "none"; }, 300);
+  };
+
+  document.getElementById("modal-edit-btn")?.addEventListener("click", openEditModal);
+  closeEditModalBtn?.addEventListener("click", closeEditModal);
+  editModalOverlay?.addEventListener("click", closeEditModal);
+
+  // Live price preview dans le modal édition
+  const updateEditPricePreview = () => {
+    const priceEl = document.getElementById("edit-price-preview");
+    if (!priceEl || !editForm) return;
+
+    const rules = JSON.parse(editForm.getAttribute("data-pricing-rules") || "[]") as import("@/lib/pricing").PricingRule[];
+    const vehicleCategory = (document.getElementById("edit-vehicle-id") as HTMLInputElement)?.value ?? "";
+    const bookingType = (document.getElementById("edit-booking-type") as HTMLInputElement)?.value ?? "transfer";
+
+    const rule = findPricingRule(rules, vehicleCategory);
+    if (!rule) { priceEl.textContent = "---€"; return; }
+
+    const km = Number((document.getElementById("edit-distance-km") as HTMLInputElement)?.value || 0);
+    const hours = Number((document.getElementById("edit-duration-hours") as HTMLInputElement)?.value || 1);
+
+    const price = calculatePrice({
+      bookingType: bookingType === "hourly" ? "hourly" : "transfer",
+      distanceKm: km,
+      durationHours: hours,
+      rule,
+    });
+
+    priceEl.textContent = price > 0 ? `${price.toFixed(2)}€` : "---€";
+  };
+
+  document.getElementById("edit-distance-km")?.addEventListener("input", updateEditPricePreview);
+  document.getElementById("edit-duration-hours")?.addEventListener("input", updateEditPricePreview);
+
+  editForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = document.getElementById("edit-submit-btn") as HTMLButtonElement | null;
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Enregistrement…"; }
+
+    const bookingId = (document.getElementById("edit-booking-id") as HTMLInputElement)?.value;
+    const bookingType = (document.getElementById("edit-booking-type") as HTMLInputElement)?.value;
+    const pickupTime = (document.getElementById("edit-pickup-time") as HTMLInputElement)?.value;
+    const pickupAddress = (document.getElementById("edit-pickup-address") as HTMLInputElement)?.value;
+    const dropoffAddress = (document.getElementById("edit-dropoff-address") as HTMLInputElement)?.value;
+    const distanceKm = (document.getElementById("edit-distance-km") as HTMLInputElement)?.value;
+    const durationHours = (document.getElementById("edit-duration-hours") as HTMLInputElement)?.value;
+
+    const payload: Record<string, unknown> = {
+      action: "update",
+      booking_id: bookingId,
+      pickup_time: new Date(pickupTime).toISOString(),
+      pickup_address: pickupAddress,
+    };
+
+    if (bookingType !== "hourly") {
+      payload.dropoff_address = dropoffAddress;
+      if (distanceKm) payload.distance_km = Number(distanceKm);
+    } else {
+      if (durationHours) payload.duration_hours = Number(durationHours);
+    }
+
+    try {
+      const res = await fetch("/api/tenant/booking-actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert(data.error ?? "Erreur lors de la modification.");
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Enregistrer les modifications"; }
+      }
+    } catch {
+      alert("Erreur réseau.");
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Enregistrer les modifications"; }
+    }
+  });
+
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (modal?.style.display === "flex") toggleNewBookingModal();
     if (detailModal?.style.display === "flex") toggleDetailModal();
+    if (editModal?.style.display === "flex") closeEditModal();
   });
 };
 

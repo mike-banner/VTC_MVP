@@ -15,10 +15,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!profile) return new Response('Unauthorized', { status: 401 });
 
   try {
-    const { booking_id, action } = await request.json();
+    const { booking_id, action, corrected_at } = await request.json();
 
     if (!booking_id || !action || !(action in TERRAIN_TAGS)) {
       return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
+    }
+
+    if (!profile.tenant_id) {
+      return new Response('Forbidden', { status: 403 });
+    }
+
+    let resolvedCorrectedAt: string | null = null;
+    if (action === 'completed' && corrected_at) {
+      const d = new Date(corrected_at);
+      if (!isNaN(d.getTime())) resolvedCorrectedAt = d.toISOString();
     }
 
     // 1. Fetch booking and verify ownership (tenant)
@@ -46,11 +56,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // 3. Prepare Notes Update
-    const nowIso = new Date().toISOString();
+    const nowIso = resolvedCorrectedAt ?? new Date().toISOString();
     const marker = `[terrain] ${TERRAIN_TAGS[action as TerrainAction]}=${nowIso}`;
     const currentNotes = (booking.mission_note ?? '').toString();
     const alreadyMarked = currentNotes.includes(`[terrain] ${TERRAIN_TAGS[action as TerrainAction]}=`);
-    const nextNotes = alreadyMarked ? currentNotes : `${currentNotes}${currentNotes ? '\n' : ''}${marker}`;
+    const correctionFlag = resolvedCorrectedAt ? '\n[terrain] completed_at_was_corrected=true' : '';
+    const nextNotes = alreadyMarked ? currentNotes : `${currentNotes}${currentNotes ? '\n' : ''}${marker}${correctionFlag}`;
 
     const updatePayload: any = { mission_note: nextNotes };
 

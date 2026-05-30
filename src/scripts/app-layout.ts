@@ -1,5 +1,172 @@
 import { supabase } from "@/lib/supabase/client";
 
+// --- Mission completion banner ---
+
+type ActiveBooking = {
+  id: string;
+  dropoff_address: string;
+  pickup_time: string;
+  mission_note: string | null;
+};
+
+let currentBannerBooking: ActiveBooking | null = null;
+
+function toLocalInputValue(date: Date): string {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function parseEnRouteAt(missionNote: string | null, fallback: string): Date {
+  const match = missionNote?.match(/\[terrain\] en_route_at=([^\s\n]+)/);
+  return match ? new Date(match[1]) : new Date(fallback);
+}
+
+async function completeMission(bookingId: string, correctedAt?: string): Promise<boolean> {
+  const payload: Record<string, string> = { booking_id: bookingId, action: "completed" };
+  if (correctedAt) payload.corrected_at = correctedAt;
+
+  const res = await fetch("/api/missions/terrain-transition", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  return res.ok;
+}
+
+function openCorrectionModal(booking: ActiveBooking): void {
+  const modal = document.querySelector<HTMLElement>("#correction-modal");
+  const datetimeInput = document.querySelector<HTMLInputElement>("#correction-datetime");
+  const confirmBtn = document.querySelector<HTMLButtonElement>("#correction-confirm");
+  const nowBtn = document.querySelector<HTMLButtonElement>("#correction-now");
+  const overlay = document.querySelector<HTMLElement>(".correction-overlay");
+
+  if (!modal || !datetimeInput || !confirmBtn || !nowBtn) return;
+
+  const enRouteAt = parseEnRouteAt(booking.mission_note, booking.pickup_time);
+  const now = new Date();
+
+  datetimeInput.value = toLocalInputValue(now);
+  datetimeInput.min = toLocalInputValue(enRouteAt);
+  datetimeInput.max = toLocalInputValue(now);
+
+  modal.classList.add("is-active");
+
+  const close = () => modal.classList.remove("is-active");
+
+  const afterComplete = (ok: boolean) => {
+    close();
+    if (ok) {
+      document.querySelector<HTMLElement>("#mission-banner")?.classList.add("hidden");
+      currentBannerBooking = null;
+      setTimeout(() => window.location.reload(), 300);
+    }
+  };
+
+  const onConfirm = async () => {
+    confirmBtn.removeEventListener("click", onConfirm);
+    nowBtn.removeEventListener("click", onNow);
+    overlay?.removeEventListener("click", close);
+    const correctedAt = datetimeInput.value ? new Date(datetimeInput.value).toISOString() : undefined;
+    const ok = await completeMission(booking.id, correctedAt);
+    afterComplete(ok);
+  };
+
+  const onNow = async () => {
+    confirmBtn.removeEventListener("click", onConfirm);
+    nowBtn.removeEventListener("click", onNow);
+    overlay?.removeEventListener("click", close);
+    const ok = await completeMission(booking.id);
+    afterComplete(ok);
+  };
+
+  confirmBtn.addEventListener("click", onConfirm);
+  nowBtn.addEventListener("click", onNow);
+  overlay?.addEventListener("click", close);
+}
+
+function initMissionBanner(): void {
+  const banner = document.querySelector<HTMLElement>("#mission-banner");
+  const addrEl = document.querySelector<HTMLElement>("#mission-banner-addr");
+  const completeBtn = document.querySelector<HTMLButtonElement>("#mission-complete-btn");
+  const dismissBtn = document.querySelector<HTMLButtonElement>("#mission-dismiss-btn");
+
+  if (!banner || !addrEl || !completeBtn || !dismissBtn) return;
+
+  const showBanner = (booking: ActiveBooking) => {
+    currentBannerBooking = booking;
+    addrEl.textContent = booking.dropoff_address.split(",")[0].trim();
+    banner.classList.remove("hidden");
+  };
+
+  const hideBanner = () => {
+    banner.classList.add("hidden");
+    currentBannerBooking = null;
+  };
+
+  const checkBanner = async () => {
+    const { data: bookings } = await supabase
+      .from("bookings")
+      .select("id, dropoff_address, pickup_time, mission_note")
+      .eq("mission_status", "in_progress")
+      .order("pickup_time", { ascending: true })
+      .limit(1);
+
+    const booking = bookings?.[0] ?? null;
+    if (!booking) { hideBanner(); return; }
+
+    if (sessionStorage.getItem(`banner_dismissed_${booking.id}`)) { hideBanner(); return; }
+
+    showBanner(booking);
+  };
+
+  // Dismiss via X button
+  dismissBtn.addEventListener("click", () => {
+    if (currentBannerBooking) {
+      sessionStorage.setItem(`banner_dismissed_${currentBannerBooking.id}`, "1");
+    }
+    hideBanner();
+  });
+
+  // Swipe down to dismiss
+  let touchStartY = 0;
+  banner.addEventListener("touchstart", (e) => {
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  banner.addEventListener("touchend", (e) => {
+    const deltaY = e.changedTouches[0].clientY - touchStartY;
+    if (deltaY > 50 && currentBannerBooking) {
+      sessionStorage.setItem(`banner_dismissed_${currentBannerBooking.id}`, "1");
+      hideBanner();
+    }
+  }, { passive: true });
+
+  // Complete button
+  completeBtn.addEventListener("click", async () => {
+    if (!currentBannerBooking) return;
+
+    const booking = currentBannerBooking;
+    const enRouteAt = parseEnRouteAt(booking.mission_note, booking.pickup_time);
+    const hoursSinceStart = (Date.now() - enRouteAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceStart > 4) {
+      openCorrectionModal(booking);
+    } else {
+      const ok = await completeMission(booking.id);
+      if (ok) {
+        hideBanner();
+        setTimeout(() => window.location.reload(), 300);
+      }
+    }
+  });
+
+  void checkBanner();
+  setInterval(checkBanner, 60_000);
+}
+
+// ---
+
 const run = (): void => {
   const logoutBtn = document.querySelector<HTMLButtonElement>("#logout-btn");
   const modal = document.querySelector<HTMLElement>("#logout-modal");
@@ -25,6 +192,8 @@ const run = (): void => {
     if (e.key !== "Escape") return;
     if (modal?.classList.contains("is-active")) toggleModal();
   });
+
+  initMissionBanner();
 };
 
 if (document.readyState === "loading") {

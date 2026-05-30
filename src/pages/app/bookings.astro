@@ -15,17 +15,25 @@ const safeProfile = profile;
 
 const currentStatus = Astro.url.searchParams.get("status") || "all";
 const currentType = Astro.url.searchParams.get("type") || "all";
+const PAGE_SIZE = 10;
+const currentPage = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1", 10));
 
 /**
  * 🎯 LOGIQUE SÉCURISÉE (BACKEND SSR)
  */
 let query = supabaseServer
     .from("bookings")
-    .select("*, customers(*)")
+    .select("*, customers(*)", { count: "exact" })
     .eq("current_tenant_id", profile.tenant_id as string);
 
-if (currentStatus !== "all") {
-    query = query.eq("mission_status", currentStatus as any);
+const CANCELLED_STATUSES = ["cancelled", "cancelled_no_refund", "cancelled_pending_refund", "cancelled_refunded", "deprecated_refunded"] as const;
+
+if (currentStatus === "cancelled") {
+    query = query.in("status", CANCELLED_STATUSES as unknown as string[]);
+} else if (currentStatus !== "all") {
+    query = query.eq("mission_status", currentStatus as any).not("status", "in", `(${CANCELLED_STATUSES.join(",")})`);
+} else {
+    query = query.not("status", "in", `(${CANCELLED_STATUSES.join(",")})`);
 }
 
 if (currentType !== "all") {
@@ -72,19 +80,25 @@ const { data: pricingRules } = await supabaseServer
     .eq("tenant_id", profile.tenant_id!)
     .eq("active", true);
 
-const { data: bookings, error } = await query.order("created_at", {
-    ascending: false,
-});
+const offset = (currentPage - 1) * PAGE_SIZE;
+
+const { data: bookings, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1);
+
+const totalCount = count ?? 0;
+const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
 if (error) console.error("Bookings Fetch Error:", error);
-console.log(`[Bookings] SSR Render: ${bookings?.length || 0} bookings found`);
+console.log(`[Bookings] page=${currentPage}/${totalPages} — ${bookings?.length || 0} bookings`);
 
 const tabs = [
     { id: 'all', label: 'Toutes' },
-    { id: 'to_validate', label: 'À Valider' }, // Mike's priority
+    { id: 'to_validate', label: 'À Valider' },
     { id: 'not_started', label: 'Non Démarré' },
     { id: 'in_progress', label: 'En Cours' },
     { id: 'completed', label: 'Terminée' },
+    { id: 'cancelled', label: 'Annulées' },
 ];
 
 const STATUS_LABELS_FR: Record<string, string> = {
@@ -109,11 +123,13 @@ const typeFilters = [
     { id: 'hourly', label: 'Mises à Dispo' },
 ];
 
-// Helper to build URLs with multiple filters
+// Helper to build URLs with multiple filters — réinitialise la page si filtre change
 const getFilterUrl = (params: Record<string, string>) => {
     const url = new URL(Astro.url.href);
+    const isPageOnly = Object.keys(params).every(k => k === 'page');
+    if (!isPageOnly) url.searchParams.delete('page'); // reset pagination on filter change
     Object.entries(params).forEach(([key, value]) => {
-        if (value === 'all') {
+        if (value === 'all' || value === '') {
             url.searchParams.delete(key);
         } else {
             url.searchParams.set(key, value);
@@ -229,12 +245,14 @@ const getFilterUrl = (params: Record<string, string>) => {
                                             {(booking.booking_type as any) === 'hourly' ? 'Mise à Dispo' : 'Transfert'}
                                         </Badge>
                                         <Badge variant={
+                                            String(booking.status).startsWith("cancel") ? "rose" :
                                             booking.mission_status === "completed" ? "emerald" :
                                             booking.mission_status === "in_progress" ? "indigo" :
                                             booking.mission_status === "to_validate" ? "amber" :
                                             "slate"
                                         }>
-                                            {booking.mission_status === 'to_validate' ? 'À Valider' :
+                                            {String(booking.status).startsWith("cancel") ? 'Annulée' :
+                                             booking.mission_status === 'to_validate' ? 'À Valider' :
                                              booking.mission_status === 'not_started' ? 'Non Démarré' :
                                              booking.mission_status === 'in_progress' ? 'En Cours' : 'Terminée'}
                                         </Badge>
@@ -349,12 +367,14 @@ const getFilterUrl = (params: Record<string, string>) => {
                                                 </td>
                                                 <td class="px-8 py-4">
                                                     <Badge variant={
+                                                        String(booking.status).startsWith("cancel") ? "rose" :
                                                         booking.mission_status === "completed" ? "emerald" :
                                                         booking.mission_status === "in_progress" ? "indigo" :
                                                         booking.mission_status === "to_validate" ? "amber" :
                                                         "slate"
                                                     }>
-                                                        {booking.mission_status === 'to_validate' ? 'À Valider' :
+                                                        {String(booking.status).startsWith("cancel") ? 'Annulée' :
+                                                         booking.mission_status === 'to_validate' ? 'À Valider' :
                                                          booking.mission_status === 'not_started' ? 'Non Démarré' :
                                                          booking.mission_status === 'in_progress' ? 'En Cours' : 'Terminée'}
                                                     </Badge>
@@ -365,9 +385,9 @@ const getFilterUrl = (params: Record<string, string>) => {
                                                             {Number(booking.total_amount).toFixed(0)}€
                                                         </span>
                                                         <div class={`mt-2 text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full border ${
+                                                            String(booking.status).startsWith("cancel") ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
                                                             booking.status === "completed" || booking.status === "paid" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                                                             booking.status === "pending" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                                                            booking.status === "cancelled" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
                                                             "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
                                                         }`}>
                                                             {STATUS_LABELS_FR[booking.status] || booking.status}
@@ -408,6 +428,56 @@ const getFilterUrl = (params: Record<string, string>) => {
                     </div>
                 )
             }
+
+            {/* PAGINATION — visible seulement si plus d'une page */}
+            {totalPages > 1 && (
+                <div class="flex items-center justify-between gap-4 pt-6 mt-2 border-t border-white/5">
+                    <a
+                        href={currentPage > 1 ? getFilterUrl({ page: String(currentPage - 1) }) : "#"}
+                        aria-disabled={currentPage <= 1}
+                        class={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            currentPage <= 1
+                                ? "text-slate-700 pointer-events-none"
+                                : "text-slate-400 hover:text-white hover:bg-white/5 border border-white/5"
+                        }`}
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Préc.
+                    </a>
+
+                    <div class="flex items-center gap-1.5">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                            <a
+                                href={getFilterUrl({ page: String(p) })}
+                                class={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-black tabular-nums transition-all ${
+                                    p === currentPage
+                                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                                        : "text-slate-500 hover:bg-white/5 hover:text-white"
+                                }`}
+                            >
+                                {p}
+                            </a>
+                        ))}
+                    </div>
+
+                    <a
+                        href={currentPage < totalPages ? getFilterUrl({ page: String(currentPage + 1) }) : "#"}
+                        aria-disabled={currentPage >= totalPages}
+                        class={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            currentPage >= totalPages
+                                ? "text-slate-700 pointer-events-none"
+                                : "text-slate-400 hover:text-white hover:bg-white/5 border border-white/5"
+                        }`}
+                    >
+                        Suiv.
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            )}
         </div>
     </div>
 
@@ -590,6 +660,74 @@ const getFilterUrl = (params: Record<string, string>) => {
         </div>
     </div>
 
+    <!-- 🎭 MODAL: ÉDITION COURSE (pré-mission) -->
+    <div slot="modals" id="edit-booking-modal" style="display: none;" class="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 transition-all duration-300">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md edit-modal-overlay"></div>
+        <div id="edit-modal-inner" class="relative max-w-lg w-full rounded-2xl md:rounded-3xl border border-white/8 shadow-2xl bg-[#0A0A0B] overflow-y-auto max-h-[90dvh] custom-scrollbar transform scale-95 transition-all duration-300" style="-webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
+            <div class="sticky top-0 z-10 bg-[#0A0A0B] border-b border-white/5 px-5 py-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-black uppercase tracking-wide text-white leading-none">Modifier la course</h2>
+                    <p class="text-[10px] text-slate-500 mt-0.5 font-medium">Le tarif est recalculé automatiquement</p>
+                </div>
+                <button id="close-edit-modal" class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            <form id="edit-booking-form" class="px-5 py-6 space-y-5" data-pricing-rules={JSON.stringify(pricingRules)}>
+                <input type="hidden" id="edit-booking-id" name="booking_id" />
+                <input type="hidden" id="edit-booking-type" />
+                <input type="hidden" id="edit-vehicle-id" />
+
+                <!-- Date / heure -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Date et heure de prise en charge</label>
+                    <div class="relative">
+                        <input type="datetime-local" id="edit-pickup-time" name="pickup_time" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-colors" style="color-scheme: dark;" />
+                        <div class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adresse départ -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Adresse de départ</label>
+                    <input type="text" id="edit-pickup-address" name="pickup_address" required placeholder="Adresse de départ" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-colors placeholder:text-slate-600" />
+                </div>
+
+                <!-- Adresse arrivée (transfert uniquement) -->
+                <div id="edit-dropoff-container" class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Adresse d'arrivée</label>
+                    <input type="text" id="edit-dropoff-address" name="dropoff_address" placeholder="Adresse d'arrivée" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-colors placeholder:text-slate-600" />
+                </div>
+
+                <!-- Distance / durée -->
+                <div id="edit-distance-container" class="space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Distance (km)</label>
+                    <input type="number" id="edit-distance-km" name="distance_km" min="0" step="0.1" placeholder="0.0" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-colors placeholder:text-slate-600" />
+                </div>
+                <div id="edit-duration-container" class="hidden space-y-2">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500">Durée (heures)</label>
+                    <input type="number" id="edit-duration-hours" name="duration_hours" min="1" max="24" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-colors" />
+                </div>
+
+                <!-- Aperçu tarif -->
+                <div class="flex items-center justify-between p-4 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400">Tarif estimé</p>
+                        <p class="text-[9px] text-slate-600 mt-0.5">Calculé côté serveur à la validation</p>
+                    </div>
+                    <p id="edit-price-preview" class="text-2xl font-black text-white tabular-nums">---€</p>
+                </div>
+
+                <button type="submit" id="edit-submit-btn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-lg shadow-indigo-600/20">
+                    Enregistrer les modifications
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- 🎭 MODAL: DÉTAILS MISSION ELITE -->
     <div slot="modals" id="detail-booking-modal" data-driver-id={driverId} class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 transition-all duration-500" style="display: none;">
         <div class="absolute inset-0 bg-black/90 backdrop-blur-md modal-overlay"></div>
@@ -726,9 +864,38 @@ const getFilterUrl = (params: Record<string, string>) => {
                             <button id="modal-accept-btn" class="hidden flex-1 py-5 bg-white text-slate-950 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl active:scale-95 disabled:opacity-50">
                                 Prendre la main sur la course
                             </button>
+                            <button id="modal-edit-btn" class="hidden flex-1 py-5 bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all border border-white/10 active:scale-95">
+                                Modifier
+                            </button>
                             <button class="close-detail-modal flex-1 py-5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all border border-white/5 active:scale-95">
                                 Fermer
                             </button>
+                        </div>
+
+                        <!-- Annulation chauffeur (pré-mission uniquement) -->
+                        <div id="cancel-section" class="hidden mt-2">
+                            <div id="cancel-trigger-area">
+                                <button id="cancel-booking-btn" class="w-full py-4 bg-rose-500/5 hover:bg-rose-500/10 text-rose-400/60 hover:text-rose-400 border border-rose-500/10 hover:border-rose-500/20 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95">
+                                    Annuler la course
+                                </button>
+                            </div>
+                            <div id="cancel-form-area" class="hidden mt-3 space-y-3">
+                                <div class="flex items-start gap-3 p-4 bg-rose-500/5 border border-rose-500/15 rounded-2xl">
+                                    <svg class="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                    </svg>
+                                    <p class="text-[11px] text-rose-300/70 font-medium leading-relaxed">Convention VTC — un motif d'annulation est obligatoire et sera conservé dans le dossier.</p>
+                                </div>
+                                <textarea id="cancel-reason" placeholder="Décrivez le motif d'annulation…" rows="3" class="w-full bg-white/5 border border-rose-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-rose-500/40 resize-none transition-colors"></textarea>
+                                <div class="flex gap-3">
+                                    <button id="cancel-confirm-btn" class="flex-1 py-4 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95">
+                                        Confirmer l'annulation
+                                    </button>
+                                    <button id="cancel-back-btn" class="flex-1 py-4 bg-white/5 hover:bg-white/10 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all border border-white/5 active:scale-95">
+                                        Retour
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
