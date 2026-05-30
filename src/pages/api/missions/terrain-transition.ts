@@ -1,6 +1,6 @@
 // src/pages/api/missions/terrain-transition.ts
-import { supabase } from '@/lib/supabase/client';
 import type { APIRoute } from 'astro';
+import { createAdminClient } from '@/lib/supabase/server';
 
 type TerrainAction = 'en_route' | 'on_board' | 'completed';
 
@@ -13,6 +13,8 @@ const TERRAIN_TAGS: Record<TerrainAction, string> = {
 export const POST: APIRoute = async ({ request, locals }) => {
   const { profile } = locals;
   if (!profile) return new Response('Unauthorized', { status: 401 });
+
+  const supabase = createAdminClient(locals);
 
   try {
     const { booking_id, action, corrected_at } = await request.json();
