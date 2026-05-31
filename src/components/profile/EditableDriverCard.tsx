@@ -10,8 +10,8 @@ interface EditableDriverCardProps {
 export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, profile }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [firstName, setFirstName] = useState(driver?.first_name || profile?.first_name || '');
-  const [lastName, setLastName] = useState(driver?.last_name || profile?.last_name || '');
+  const [firstName, setFirstName] = useState(driver?.first_name?.trim() || profile?.first_name?.trim() || '');
+  const [lastName, setLastName] = useState(driver?.last_name?.trim() || profile?.last_name?.trim() || '');
   const [phone, setPhone] = useState(driver?.phone || '');
   const [licenseNumber, setLicenseNumber] = useState(driver?.license_number || '');
   const [error, setError] = useState<string | null>(null);
@@ -54,8 +54,8 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
   };
 
   const handleCancel = () => {
-    setFirstName(driver?.first_name || profile?.first_name || '');
-    setLastName(driver?.last_name || profile?.last_name || '');
+    setFirstName(driver?.first_name?.trim() || profile?.first_name?.trim() || '');
+    setLastName(driver?.last_name?.trim() || profile?.last_name?.trim() || '');
     setPhone(driver?.phone || '');
     setLicenseNumber(formatVtc(driver?.license_number || ''));
     setIsEditing(false);
