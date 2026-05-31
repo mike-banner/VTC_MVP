@@ -1,5 +1,5 @@
 import { deleteDriver, getDrivers, initializePrimaryDriver } from '@/services/drivers';
-import { CreditCard, Edit2, Phone, Trash2, UserCheck, Users } from 'lucide-react';
+import { CreditCard, Edit2, Phone, Trash2, UserCheck, UserPlus, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 import { DriverModal } from './DriverModal';
