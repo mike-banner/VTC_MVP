@@ -22,9 +22,8 @@ export const RatingQRModal: React.FC<RatingQRModalProps> = ({
   const [ratingUrl, setRatingUrl] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setRatingUrl(`${window.location.origin}/rate/${bookingId}`);
-    }
+    const siteOrigin = (import.meta.env.PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, "") || window.location.origin;
+    setRatingUrl(`${siteOrigin}/rate/${bookingId}`);
   }, [bookingId]);
 
   return (
