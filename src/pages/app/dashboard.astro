@@ -224,87 +224,84 @@ const fiscalYear = fiscalYearData as any;
                 </div>
             )}
 
-            {/* Tout le reste : masqué pendant une mission active */}
+            {/* COURSE EN RETARD — masquée pendant une mission active */}
+            {!immediateMission && overdueBooking && (
+                <div class="animate-in fade-in slide-in-from-top-2 duration-[400ms]">
+                    <div class="rounded-2xl border border-rose-500/40 bg-rose-500/[0.04] shadow-2xl shadow-rose-500/10 overflow-hidden">
+                        <div class="flex items-center gap-3 px-4 py-2 bg-rose-500/10 border-b border-rose-500/20">
+                            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse flex-shrink-0"></span>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-rose-400">Course non démarrée — en retard</p>
+                        </div>
+                        <div class="flex flex-col lg:flex-row lg:items-center">
+                            <div class="flex items-center gap-4 p-5 lg:border-r border-rose-500/10 min-w-[200px]">
+                                <div class="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/30 flex flex-col items-center justify-center text-rose-400 shadow-lg">
+                                    <span class="text-[10px] font-black uppercase leading-none opacity-70">{new Date(overdueBooking.pickup_time).toLocaleDateString('fr-FR', { month: 'short' })}</span>
+                                    <span class="text-lg font-black leading-none">{new Date(overdueBooking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit' })}</span>
+                                </div>
+                                <div>
+                                    <p class="text-2xl font-black text-rose-300 tracking-tighter tabular-nums leading-none mb-1">
+                                        {new Date(overdueBooking.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                    <p class="text-[10px] font-black text-rose-400/70 uppercase tracking-widest">Heure dépassée</p>
+                                </div>
+                            </div>
+                            <div class="flex-1 p-5 space-y-1">
+                                <p class="text-base font-black text-white uppercase tracking-tighter truncate">
+                                    {overdueBooking.customers.first_name} {overdueBooking.customers.last_name}
+                                </p>
+                                <p class="text-[11px] text-rose-400/60 truncate">{overdueBooking.pickup_address}</p>
+                                <a href="/app/bookings" class="inline-flex items-center gap-1.5 mt-3 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95">
+                                    Démarrer maintenant →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* KPIs — masqués pendant une mission active */}
             {!immediateMission && (
-                <>
-                    {/* COURSE EN RETARD — 5+ min après l'heure de prise en charge, non démarrée */}
-                    {overdueBooking && (
-                        <div class="animate-in fade-in slide-in-from-top-2 duration-[400ms]">
-                            <div class="rounded-2xl border border-rose-500/40 bg-rose-500/[0.04] shadow-2xl shadow-rose-500/10 overflow-hidden">
-                                <div class="flex items-center gap-3 px-4 py-2 bg-rose-500/10 border-b border-rose-500/20">
-                                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse flex-shrink-0"></span>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-rose-400">Course non démarrée — en retard</p>
-                                </div>
-                                <div class="flex flex-col lg:flex-row lg:items-center">
-                                    <div class="flex items-center gap-4 p-5 lg:border-r border-rose-500/10 min-w-[200px]">
-                                        <div class="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/30 flex flex-col items-center justify-center text-rose-400 shadow-lg">
-                                            <span class="text-[10px] font-black uppercase leading-none opacity-70">{new Date(overdueBooking.pickup_time).toLocaleDateString('fr-FR', { month: 'short' })}</span>
-                                            <span class="text-lg font-black leading-none">{new Date(overdueBooking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit' })}</span>
-                                        </div>
-                                        <div>
-                                            <p class="text-2xl font-black text-rose-300 tracking-tighter tabular-nums leading-none mb-1">
-                                                {new Date(overdueBooking.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                            <p class="text-[10px] font-black text-rose-400/70 uppercase tracking-widest">Heure dépassée</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1 p-5 space-y-1">
-                                        <p class="text-base font-black text-white uppercase tracking-tighter truncate">
-                                            {overdueBooking.customers.first_name} {overdueBooking.customers.last_name}
-                                        </p>
-                                        <p class="text-[11px] text-rose-400/60 truncate">{overdueBooking.pickup_address}</p>
-                                        <a href="/app/bookings" class="inline-flex items-center gap-1.5 mt-3 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95">
-                                            Démarrer maintenant →
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                <StripeConnectionCard
+                    client:only="react"
+                    tenantId={profile.tenant_id!}
+                    monthlyRevenue={monthlyRevenue}
+                    totalCount={totalCount || 0}
+                    rating={rating}
+                />
+            )}
 
-                    {/* KPIs — remonté au-dessus des actions requises */}
-                    <StripeConnectionCard
-                        client:only="react"
-                        tenantId={profile.tenant_id!}
-                        monthlyRevenue={monthlyRevenue}
-                        totalCount={totalCount || 0}
-                        rating={rating}
-                    />
-
-                    {/* À VALIDER (MODALITÉ MISE À DISPO) */}
-                    {validatingBookings && validatingBookings.length > 0 && (
-                        <div class="animate-in fade-in duration-500">
-                            <h3 class="text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 text-amber-500 mb-3">
-                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                Actions Requises
-                            </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {validatingBookings.map((booking) => (
-                                    <Card padding="sm" rounded="xl" class="border-amber-500/10 bg-amber-500/[0.02] hover:border-amber-500/20 group">
-                                        <div class="flex justify-between items-center mb-3">
-                                            <Badge variant="amber">Mise à Disposition</Badge>
-                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                                                {new Date(booking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                                            </span>
-                                        </div>
-                                        <div class="mb-3">
-                                            <p class="text-base font-black text-white uppercase tracking-tighter truncate">
-                                                {booking.customers.first_name} {booking.customers.last_name}
-                                            </p>
-                                        </div>
-                                        <div class="flex justify-between items-center bg-black/20 p-2 rounded-lg border border-white/5 mb-3">
-                                            <span class="text-[11px] font-black uppercase text-slate-400">Estimation</span>
-                                            <span class="text-lg font-black text-white tabular-nums">{Number(booking.total_amount).toFixed(0)}€</span>
-                                        </div>
-                                        <Button href={`/app/bookings?status=pending`} variant="amber" class="w-full">
-                                            Finaliser
-                                        </Button>
-                                    </Card>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </>
+            {/* À VALIDER (MODALITÉ MISE À DISPO) — masqué pendant une mission active */}
+            {!immediateMission && validatingBookings && validatingBookings.length > 0 && (
+                <div class="animate-in fade-in duration-500">
+                    <h3 class="text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 text-amber-500 mb-3">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Actions Requises
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {validatingBookings.map((booking) => (
+                            <Card padding="sm" rounded="xl" class="border-amber-500/10 bg-amber-500/[0.02] hover:border-amber-500/20 group">
+                                <div class="flex justify-between items-center mb-3">
+                                    <Badge variant="amber">Mise à Disposition</Badge>
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                                        {new Date(booking.pickup_time).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                </div>
+                                <div class="mb-3">
+                                    <p class="text-base font-black text-white uppercase tracking-tighter truncate">
+                                        {booking.customers.first_name} {booking.customers.last_name}
+                                    </p>
+                                </div>
+                                <div class="flex justify-between items-center bg-black/20 p-2 rounded-lg border border-white/5 mb-3">
+                                    <span class="text-[11px] font-black uppercase text-slate-400">Estimation</span>
+                                    <span class="text-lg font-black text-white tabular-nums">{Number(booking.total_amount).toFixed(0)}€</span>
+                                </div>
+                                <Button href={`/app/bookings?status=pending`} variant="amber" class="w-full">
+                                    Finaliser
+                                </Button>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
             )}
 
         </div>
