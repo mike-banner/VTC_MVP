@@ -84,7 +84,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
               {vehicle ? 'Modifier' : 'Nouveau'} véhicule
             </h3>
             <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500'>
-              {vehicle ? 'Mise à jour des informations' : 'Enregistrer un véhicule dans la flotte'}
+              {vehicle ? 'Mise à jour des informations' : 'Enregistrer un véhicule'}
             </p>
           </div>
         </div>
@@ -158,7 +158,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                 </div>
               </div>
               <p className='text-[10px] font-bold text-indigo-400/70 uppercase tracking-[0.05em] px-2'>
-                L'activation désactive automatiquement les autres véhicules de votre flotte.
+                L'activation désactive automatiquement vos autres véhicules.
               </p>
             </div>
           </div>

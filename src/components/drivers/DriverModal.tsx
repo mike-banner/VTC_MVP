@@ -72,7 +72,7 @@ export const DriverModal: React.FC<DriverModalProps> = ({
             <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500'>
               {driver
                 ? "Mettre à jour les informations"
-                : "Ajouter un collaborateur à la flotte"}
+                : "Ajouter un collaborateur"}
             </p>
           </div>
         </div>
