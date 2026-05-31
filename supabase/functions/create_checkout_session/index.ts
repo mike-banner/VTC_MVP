@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2024-06-20',
-});
+}) as any;
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -44,13 +44,6 @@ Deno.serve(async (req) => {
     if (!booking_data.tenant_id) throw new Error('tenant_id missing');
 
     const tenantId = booking_data.tenant_id;
-
-    const total = Number(booking_data?.total_amount ?? booking_data?.total ?? 0);
-
-    const safeTotal = total > 0 ? total : 1;
-
-    console.log('TOTAL =', total);
-    console.log('SAFE TOTAL =', safeTotal);
 
     // =========================
     // CUSTOMER UPSERT
@@ -100,7 +93,7 @@ Deno.serve(async (req) => {
 
     const { data: vehicle, error: vErr } = await supabaseAdmin
       .from('vehicles')
-      .select('tenant_id,status')
+      .select('tenant_id,status,category')
       .eq('id', vehicleId)
       .single();
 
@@ -147,6 +140,64 @@ Deno.serve(async (req) => {
     }
 
     // =========================
+    // PRICE CALCULATION
+    // =========================
+
+    let calculatedTotal = 0;
+    const fixedRouteId = booking_data.fixed_route_id;
+
+    if (fixedRouteId) {
+      const { data: route, error: rErr } = await supabaseAdmin
+        .from('fixed_routes')
+        .select('price, tenant_id, active')
+        .eq('id', fixedRouteId)
+        .single();
+
+      if (rErr || !route) {
+        throw new Error('Fixed route not found');
+      }
+      if (!route.active) {
+        throw new Error('Fixed route is inactive');
+      }
+      if (route.tenant_id !== tenantId) {
+        throw new Error('Fixed route tenant mismatch');
+      }
+      calculatedTotal = Number(route.price);
+    } else {
+      const { data: allPricingRules, error: prErr } = await supabaseAdmin
+        .from('pricing_rules')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('active', true);
+
+      if (prErr || !allPricingRules || allPricingRules.length === 0) {
+        throw new Error('No pricing rules found for tenant');
+      }
+
+      const cat = (vehicle.category ?? "").toLowerCase().trim();
+      const rule = allPricingRules.find((r: any) => (r.service_category ?? "").toLowerCase().trim() === cat) || allPricingRules[0];
+
+      const base = Number(rule.base_price) || 0;
+      const minFare = Number(rule.minimum_fare) || 0;
+      const type = booking_data.type;
+
+      if (type === 'hourly') {
+        const durationHours = Number(booking_data.duration_hours || 1);
+        calculatedTotal = base + (Number(rule.price_per_hour) || 0) * durationHours;
+      } else {
+        const distanceKm = Number(booking_data.distance_km || 0);
+        calculatedTotal = base + (Number(rule.price_per_km) || 0) * distanceKm;
+      }
+
+      calculatedTotal = Math.max(calculatedTotal, minFare);
+    }
+
+    const safeTotal = calculatedTotal > 0 ? calculatedTotal : 1;
+
+    console.log('CALCULATED TOTAL =', calculatedTotal);
+    console.log('SAFE TOTAL =', safeTotal);
+
+    // =========================
     // STRIPE SESSION
     // =========================
 
@@ -167,11 +218,16 @@ Deno.serve(async (req) => {
         tenant_id: tenantId,
         booking_type: booking_data.type,
         pickup_address: booking_data.pickup_address,
-        dropoff_address: booking_data.dropoff_address,
+        dropoff_address: booking_data.dropoff_address || "",
         pickup_time: booking_data.pickup_time,
         vehicle_id: booking_data.vehicle_id,
-        total_amount: safeTotal,
+        total_amount: String(safeTotal),
         customer_id: customer.id,
+        distance_km: String(booking_data.distance_km || "0"),
+        duration_hours: String(booking_data.duration_hours || "0"),
+        fixed_route_id: booking_data.fixed_route_id || "",
+        passenger_count: String(booking_data.passenger_count || "1"),
+        luggage_count: String(booking_data.luggage_count || "0"),
       },
 
       line_items: [
