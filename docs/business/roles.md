@@ -39,3 +39,5 @@ Signup → profiles.tenant_role = 'pending'
 - Toute table métier filtrée par `current_tenant_id()`.
 - `platform_role` = accès via service role dans Edge Functions uniquement.
 - Jamais de donnée cross-tenant visible via anon key ou SSR standard.
+- **INSERT `drivers`** : restreint aux `tenant_role = 'owner'` uniquement (policy `drivers_insert_owner_only`). Un `driver` collaborateur ne peut pas créer d'autres chauffeurs.
+- **INSERT `financial_movements`** : restreint au `service_role` uniquement (immuabilité comptable).
