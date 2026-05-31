@@ -110,7 +110,7 @@ const logoUrl = tenant?.logo_url;
 
         <!-- 👥 SECTION 3: COLLABORATEURS -->
         <div class="mb-12">
-            <DriverList client:only="react" tenantId={profile.tenant_id!} userId={profile.id} hidePrimary={true} />
+            <DriverList client:only="react" tenantId={profile.tenant_id!} userId={profile.id} hidePrimary={true} isOwner={profile.tenant_role === 'owner'} />
         </div>
 
         <!-- ⚠️ ZONE DE DANGER -->

@@ -10,6 +10,8 @@ interface EditableDriverCardProps {
 export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, profile }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [firstName, setFirstName] = useState(driver?.first_name || profile?.first_name || '');
+  const [lastName, setLastName] = useState(driver?.last_name || profile?.last_name || '');
   const [phone, setPhone] = useState(driver?.phone || '');
   const [licenseNumber, setLicenseNumber] = useState(driver?.license_number || '');
   const [error, setError] = useState<string | null>(null);
@@ -33,8 +35,10 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
       const { error: updateError } = await supabase
         .from('drivers')
         .update({
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
           phone,
-          license_number: licenseNumber.replace(/\s/g, ''), // Nettoyage avant sauvegarde
+          license_number: licenseNumber.replace(/\s/g, ''),
         })
         .eq('id', driver.id);
 
@@ -50,6 +54,8 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
   };
 
   const handleCancel = () => {
+    setFirstName(driver?.first_name || profile?.first_name || '');
+    setLastName(driver?.last_name || profile?.last_name || '');
     setPhone(driver?.phone || '');
     setLicenseNumber(formatVtc(driver?.license_number || ''));
     setIsEditing(false);
@@ -77,7 +83,7 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
             )}
           </div>
           <h3 className='text-xl md:text-3xl font-black text-white uppercase tracking-tighter italic leading-none'>
-            {profile.first_name} {profile.last_name}
+            {firstName} {lastName}
           </h3>
         </div>
       </div>
@@ -86,6 +92,26 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
       <div className='space-y-4 pt-6 border-t border-white/5 w-full'>
         {isEditing ? (
           <div className='space-y-5 animate-in fade-in slide-in-from-top-2 duration-300 max-w-lg'>
+            <div className='grid grid-cols-2 gap-4'>
+              <div className='space-y-2'>
+                <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>Prénom</label>
+                <input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder='Jean'
+                  className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-medium'
+                />
+              </div>
+              <div className='space-y-2'>
+                <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>Nom</label>
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder='Dupont'
+                  className='w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-medium'
+                />
+              </div>
+            </div>
             <div className='space-y-2'>
               <label className='text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1'>
                 Portable

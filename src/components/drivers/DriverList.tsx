@@ -18,9 +18,10 @@ interface DriverListProps {
   tenantId: string;
   userId: string;
   hidePrimary?: boolean;
+  isOwner?: boolean;
 }
 
-export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId, hidePrimary }) => {
+export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId, hidePrimary, isOwner }) => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [initLoading, setInitLoading] = useState(false);
@@ -154,11 +155,19 @@ export const DriverList: React.FC<DriverListProps> = ({ tenantId, userId, hidePr
 
           {/* SECTION 2: COLLABORATEURS */}
           <div>
-            <div className='mb-6'>
+            <div className='mb-6 flex items-center justify-between'>
               <p className='text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-3'>
                 <span className='w-8 h-[1px] bg-slate-800'></span>
                 Équipe & Collaborateurs
               </p>
+              {isOwner && (
+                <button
+                  onClick={handleCreate}
+                  className='flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-500/20 transition-all active:scale-95'>
+                  <UserPlus className='w-3.5 h-3.5' />
+                  Ajouter
+                </button>
+              )}
             </div>
 
             {collaborators.length > 0 ? (
