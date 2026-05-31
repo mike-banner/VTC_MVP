@@ -157,7 +157,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                   <Car className='w-4 h-4 opacity-40' />
                 </div>
               </div>
-              <p className='text-[10px] font-bold text-indigo-400/70 uppercase tracking-[0.05em] px-2 italic'>
+              <p className='text-[10px] font-bold text-indigo-400/70 uppercase tracking-[0.05em] px-2'>
                 L'activation désactive automatiquement les autres véhicules de votre flotte.
               </p>
             </div>

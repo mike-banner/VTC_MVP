@@ -82,7 +82,7 @@ export const EditableDriverCard: React.FC<EditableDriverCardProps> = ({ driver, 
               </button>
             )}
           </div>
-          <h3 className='text-xl md:text-3xl font-black text-white uppercase tracking-tighter italic leading-none'>
+          <h3 className='text-xl md:text-3xl font-black text-white uppercase tracking-tighter leading-none'>
             {firstName} {lastName}
           </h3>
         </div>

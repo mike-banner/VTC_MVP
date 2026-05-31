@@ -185,7 +185,7 @@ const getStatusBadge = (s: string) => {
                                     <span class="text-[10px] font-black uppercase tracking-widest text-slate-600">#{b.id?.slice(0, 8)}</span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <p class="text-[11px] font-black italic uppercase text-white">
+                                    <p class="text-[11px] font-black uppercase text-white">
                                         {b.display_customer_first_name} {b.display_customer_last_name || ''}
                                     </p>
                                     <p class="text-[9px] font-bold text-slate-500 mt-0.5">{b.display_customer_email}</p>
@@ -200,14 +200,14 @@ const getStatusBadge = (s: string) => {
                                         </p>
                                     ) : (
                                         <div>
-                                            <p class="text-[10px] font-black uppercase text-amber-500/80 italic">Chauffeur (Non assigné)</p>
+                                            <p class="text-[10px] font-black uppercase text-amber-500/80">Chauffeur (Non assigné)</p>
                                             <p class="text-[9px] font-bold text-slate-500 mt-0.5">{b.original_tenant_name || 'Inconnu'}</p>
                                             <p class="text-[8px] text-slate-600 truncate max-w-[120px]">{b.original_tenant_domain}</p>
                                         </div>
                                     )}
                                 </td>
                                 <td class="px-6 py-4">
-                                    <p class="text-[10px] font-black text-white italic">
+                                    <p class="text-[10px] font-black text-white">
                                         {new Date(b.pickup_time).toLocaleDateString('fr-FR')} {new Date(b.pickup_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                     <p class="text-[9px] font-medium text-slate-500 max-w-xs truncate mt-0.5" title={b.pickup_address}>
@@ -220,7 +220,7 @@ const getStatusBadge = (s: string) => {
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <span class="text-xs font-black italic text-white">
+                                    <span class="text-xs font-black text-white">
                                         {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(b.total_amount)}
                                     </span>
                                 </td>
@@ -290,7 +290,7 @@ const getStatusBadge = (s: string) => {
                                 </div>
                                 <div class="text-right">
                                     <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Montant</p>
-                                    <p id="m-amount" class="text-lg font-black italic text-white mt-1 tabular-nums">---</p>
+                                    <p id="m-amount" class="text-lg font-black text-white mt-1 tabular-nums">---</p>
                                 </div>
                             </div>
                         </div>

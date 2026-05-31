@@ -51,10 +51,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <AlertCircle className='w-6 h-6' />
         </div>
 
-        <h3 className='text-2xl font-black italic uppercase text-white mb-2 tracking-tighter'>
+        <h3 className='text-2xl font-black uppercase text-white mb-2 tracking-tighter'>
           {title}
         </h3>
-        <p className='text-slate-400 text-sm font-medium mb-8 leading-relaxed italic'>
+        <p className='text-slate-400 text-sm font-medium mb-8 leading-relaxed'>
           {message}
         </p>
 

@@ -26,10 +26,10 @@ if (error) console.error("Tenants Fetch Error:", error);
 
 <AdminLayout title="Gestion des Partenaires">
     <div class="mb-10">
-        <h1 class="text-4xl font-black italic uppercase tracking-tighter text-white">
+        <h1 class="text-4xl font-black uppercase tracking-tighter text-white">
             Partenaires & Flottes
         </h1>
-        <p class="text-slate-500 text-sm font-medium mt-2 italic">Vision consolidée basée sur le Ledger financier.</p>
+        <p class="text-slate-500 text-sm font-medium mt-2">Vision consolidée basée sur le Ledger financier.</p>
     </div>
 
     <div class="glass rounded-3xl overflow-hidden border border-white/5 bg-white/[0.01]">
@@ -47,7 +47,7 @@ if (error) console.error("Tenants Fetch Error:", error);
                 {tenants?.map((t) => (
                     <tr class="hover:bg-white/5 transition-colors group">
                         <td class="px-6 py-4">
-                            <p class="text-[11px] font-black italic uppercase text-white">{t.tenant_name}</p>
+                            <p class="text-[11px] font-black uppercase text-white">{t.tenant_name}</p>
                             <p class="text-[9px] font-bold text-slate-500 mt-0.5">{t.primary_domain}</p>
                             <p class="text-[8px] text-slate-600 mt-1">ID: {t.tenant_id.slice(0,8)}</p>
                         </td>
@@ -57,12 +57,12 @@ if (error) console.error("Tenants Fetch Error:", error);
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="text-xs font-black text-white italic">
+                            <span class="text-xs font-black text-white">
                                 {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(t.total_gross_revenue || 0)}
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="text-xs font-black text-green-400 italic">
+                            <span class="text-xs font-black text-green-400">
                                 {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(t.total_net_revenue || 0)}
                             </span>
                         </td>

@@ -94,7 +94,7 @@ const monthlyChartData = (monthlySummary || []).map(d => ({
     <!-- DERNIÈRES RÉSERVATIONS -->
     <div class="mt-12">
         <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-black uppercase italic tracking-tighter flex items-center gap-3 text-white">
+            <h3 class="text-lg font-black uppercase tracking-tighter flex items-center gap-3 text-white">
                 <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                 Dernières Activités Plateforme
             </h3>
@@ -115,7 +115,7 @@ const monthlyChartData = (monthlySummary || []).map(d => ({
                     {latestBookings?.map((b) => (
                         <tr class="hover:bg-white/5 transition-colors group">
                             <td class="px-6 py-4">
-                                <p class="text-[11px] font-black italic uppercase text-white">
+                                <p class="text-[11px] font-black uppercase text-white">
                                     {b.display_customer_first_name} {b.display_customer_last_name || ''}
                                 </p>
                                 <p class="text-[9px] font-bold text-slate-500 mt-0.5">{b.display_customer_email}</p>
@@ -129,10 +129,10 @@ const monthlyChartData = (monthlySummary || []).map(d => ({
                                         {b.driver_first_name} {b.driver_last_name}
                                     </p>
                                 ) : (
-                                    <p class="text-[9px] font-black uppercase text-amber-500/80 italic">Chauffeur non assigné</p>
+                                    <p class="text-[9px] font-black uppercase text-amber-500/80">Chauffeur non assigné</p>
                                 )}
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">{b.original_tenant_name}</p>
-                                <p class="text-[8px] text-slate-600 italic">{b.original_tenant_domain}</p>
+                                <p class="text-[8px] text-slate-600">{b.original_tenant_domain}</p>
                             </td>
                             <td class="px-6 py-4">
                                 <span class={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${
@@ -144,7 +144,7 @@ const monthlyChartData = (monthlySummary || []).map(d => ({
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <span class="text-sm font-black italic text-white">
+                                <span class="text-sm font-black text-white">
                                     {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(b.total_amount)}
                                 </span>
                             </td>

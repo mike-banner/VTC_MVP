@@ -167,7 +167,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ tenantId }) => {
                   <h3 className='text-lg md:text-xl font-black text-white uppercase tracking-tighter mb-1'>
                     {v.brand} {v.model}
                   </h3>
-                  <p className='text-[10px] font-bold text-slate-500 uppercase tracking-widest italic'>
+                  <p className='text-[10px] font-bold text-slate-500 uppercase tracking-widest'>
                     {v.category} — {v.capacity} Places
                   </p>
                 </div>
@@ -224,7 +224,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({ tenantId }) => {
           <h3 className='text-2xl font-black text-white uppercase tracking-tighter mb-2'>
             Aucun véhicule enregistré
           </h3>
-          <p className='text-slate-500 text-sm italic mb-8 max-w-sm'>
+          <p className='text-slate-500 text-sm mb-8 max-w-sm'>
             Ajoutez votre premier véhicule pour commencer à gérer vos courses.
           </p>
           <button

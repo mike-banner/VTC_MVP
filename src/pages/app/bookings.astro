@@ -316,7 +316,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                                 data-booking={encodeURIComponent(JSON.stringify(booking))}
                                             >
                                                 <td class="px-8 py-4">
-                                                    <div class="font-black text-white uppercase italic tracking-tighter text-lg leading-tight">
+                                                    <div class="font-black text-white uppercase tracking-tighter text-lg leading-tight">
                                                         {booking.customers?.first_name || ""} {booking.customers?.last_name || ""}
                                                         {(!booking.customers?.first_name && !booking.customers?.last_name) && "Client"}
                                                     </div>
@@ -418,7 +418,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                                 />
                             </svg>
                         </div>
-                        <h3 class="text-xl font-black uppercase italic tracking-wider text-slate-100 mb-2">
+                        <h3 class="text-xl font-black uppercase tracking-wider text-slate-100 mb-2">
                             Historique vide
                         </h3>
                         <p class="text-slate-500 max-w-xs font-medium leading-relaxed">
@@ -833,7 +833,7 @@ const getFilterUrl = (params: Record<string, string>) => {
                         <div id="modal-rating-display" class="hidden">
                             <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-3">Avis Passager</p>
                             <div id="modal-rating-stars" class="flex gap-1.5 mb-3"></div>
-                            <p id="modal-rating-comment" class="text-xs text-slate-400 font-medium leading-relaxed italic"></p>
+                            <p id="modal-rating-comment" class="text-xs text-slate-400 font-medium leading-relaxed"></p>
                         </div>
                         <!-- Cas 2: pas encore noté -->
                         <div id="modal-qr-section" class="hidden">

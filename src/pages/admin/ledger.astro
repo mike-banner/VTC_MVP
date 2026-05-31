@@ -83,13 +83,13 @@ const getTypeBadge = (type: string) => {
                 <td class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     {new Date(m.created_at).toLocaleDateString('fr-FR')} {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </td>
-                <td class="px-6 py-4 text-xs font-black text-white italic">
+                <td class="px-6 py-4 text-xs font-black text-white">
                     {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(m.gross_amount || 0)}
                 </td>
-                <td class="px-6 py-4 text-xs font-black text-red-400/80 italic">
+                <td class="px-6 py-4 text-xs font-black text-red-400/80">
                     -{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(m.platform_commission_amount || 0)}
                 </td>
-                <td class="px-6 py-4 text-sm font-black text-green-500 italic">
+                <td class="px-6 py-4 text-sm font-black text-green-500">
                     {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(m.net_amount || 0)}
                 </td>
                 <td class="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-widest">

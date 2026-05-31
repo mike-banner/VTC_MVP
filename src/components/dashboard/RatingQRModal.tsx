@@ -40,7 +40,7 @@ export const RatingQRModal: React.FC<RatingQRModalProps> = ({
           <Star className='w-8 h-8 fill-current' />
         </div>
 
-        <h3 className='text-2xl font-black uppercase italic text-white tracking-widest leading-tight mb-2'>
+        <h3 className='text-2xl font-black uppercase text-white tracking-widest leading-tight mb-2'>
           Évaluer la course
         </h3>
         <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-10 leading-relaxed'>
