@@ -705,8 +705,10 @@ const run = (): void => {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
+    const rawPickupTime = data.pickup_time as string;
     const payload = {
       ...data,
+      pickup_time: rawPickupTime ? new Date(rawPickupTime).toISOString() : rawPickupTime,
       manual_total: data.manual_total,
     };
 
