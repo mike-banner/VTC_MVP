@@ -37,4 +37,12 @@
 - [2026-05-31] **Navigation — Réorganisation onglets Profil/Entreprise** : Séparation claire entre l'onglet "Profil" (identité personnelle, chauffeurs, zone danger) et l'onglet "Entreprise" (identité visuelle, fiscal, configuration). Bottom Bar mise à jour en conséquence.
 - [2026-05-31] **Settings Entreprise — Refonte UX** : Réorganisation de l'onglet Entreprise (`/app/settings`) dans l'ordre : identité (nom d'entreprise + logo sans fond sur fond en damier), grille tarifaire (lien), gestion de flotte (lien), fiscalité. Card identité unifiée nom+logo.
 - [2026-05-31] **Drivers — Sécurité & Complétude** : `first_name`/`last_name` rendus éditables dans `EditableDriverCard` (profil) — sauvegarde dans la table `drivers`. Bouton "Ajouter un chauffeur" visible uniquement pour le rôle `owner`. Migration RLS `20260531100000_drivers_insert_owner_only.sql` : INSERT sur `drivers` restreint aux owners au niveau base de données.
+- [2026-05-31] **Sécurisation de l'infrastructure V1 (Hardening)** : 
+  - Durcissement de Stripe (Checkout recalculé côté serveur, Webhook vérifiant `tenant_id` en DB et prix, sanitisation des adresses).
+  - Sécurité RPC `delete_tenant_account` vérifiée via `auth.uid()`.
+  - Headers HTTP et CSP renforcés dans `public/_headers`.
+  - Remplacement de `window.location.origin` par `PUBLIC_SITE_URL` dans les QR Codes.
+- [2026-05-31] **Refactoring Terminologique "Flotte" → "Véhicule"** :
+  - Remplacement intégral de la terminologie "flotte" / "flottes" par "véhicule" / "véhicules" (ou partenaires / entreprises selon le contexte) dans `DriverModal`, `VehicleModal`, la landing page, l'onglet paramètres entreprise, le tableau d'administration et le dashboard.
+
 
