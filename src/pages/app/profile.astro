@@ -20,11 +20,23 @@ const { data: tenant } = await supabaseAdmin
 if (!tenant) return Astro.redirect("/login");
 
 // 2. Récupérer les infos du chauffeur principal (l'utilisateur connecté)
-const { data: driverFull } = await supabaseAdmin
+// Priorité : user_id lié → sinon premier driver non-lié du tenant (cas onboarding legacy)
+let { data: driverFull } = await supabaseAdmin
     .from("drivers")
     .select("*, vehicles(*)")
     .eq("user_id", profile.id)
     .maybeSingle();
+
+if (!driverFull && profile.tenant_id) {
+    const { data: fallback } = await supabaseAdmin
+        .from("drivers")
+        .select("*, vehicles(*)")
+        .eq("tenant_id", profile.tenant_id)
+        .is("user_id", null)
+        .order("created_at", { ascending: true })
+        .maybeSingle();
+    driverFull = fallback;
+}
 
 const isAuto = tenant.legal_form === 'auto_entrepreneur';
 
