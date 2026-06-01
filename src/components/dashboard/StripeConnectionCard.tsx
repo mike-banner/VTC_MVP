@@ -127,9 +127,10 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
 
   return (
     <div
+      onClick={stripeStatus?.url ? handleAction : undefined}
       className={`relative overflow-hidden bg-[#0A0A0B]/80 backdrop-blur-xl border rounded-[2rem] px-4 sm:px-8 py-5 sm:py-6 shadow-2xl transition-all duration-500 group w-full ${
-        isDashboard ? 'border-emerald-500/20' : 'border-indigo-500/20'
-      }`}>
+        stripeStatus?.url ? 'cursor-pointer' : ''
+      } ${isDashboard ? 'border-emerald-500/20' : 'border-indigo-500/20'}`}>
       {/* Background Glow */}
       <div
         className={`absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-10 rounded-full transition-all duration-700 ${
@@ -217,7 +218,7 @@ export const StripeConnectionCard: React.FC<StripeConnectionCardProps> = ({
           </div>
 
           <button
-            onClick={handleAction}
+            onClick={(e) => { e.stopPropagation(); handleAction(); }}
             disabled={!stripeStatus?.url}
             className={`group relative flex items-center justify-center gap-3 px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 overflow-hidden shrink-0 ${
               isDashboard

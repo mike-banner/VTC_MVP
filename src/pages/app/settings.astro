@@ -208,7 +208,7 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
         const logoPreviewOld = document.getElementById('logo-preview');
         const logoPlaceholder = document.getElementById('logo-placeholder');
         const logoPreviewNew = document.getElementById('logo-preview-new') as HTMLImageElement;
-        let selectedLogoFile = null;
+        let selectedLogoFile: File | null = null;
 
         logoInput?.addEventListener('change', (e) => {
             const target = e.target as HTMLInputElement;
@@ -286,7 +286,7 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
                 console.log("[Logo] Success! New URL:", finalUrl);
                 alert("Logo mis à jour avec succès !");
                 window.location.reload();
-            } catch (err) {
+            } catch (err: any) {
                 console.error("[Logo] Error:", err);
                 alert("Erreur lors du téléchargement du logo : " + err.message);
                 saveLogoBtn.disabled = false;
@@ -331,7 +331,7 @@ const confirmationPhrase = `SUPPRESSION COMPTE ${tenantName}`;
                     setTimeout(() => vatSaveMsg.classList.add('hidden'), 3000);
                 }
                 window.location.reload();
-            } catch (err) {
+            } catch (err: any) {
                 alert('Erreur : ' + err.message);
             } finally {
                 saveVatBtn.disabled = false;
