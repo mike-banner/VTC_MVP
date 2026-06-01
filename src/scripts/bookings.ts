@@ -721,17 +721,20 @@ const run = (): void => {
 
       const result = (await res.json()) as { success?: boolean; error?: string };
       if (result.success) {
-        alert("Réservation créée avec succès !");
-        window.location.href = "/app/bookings";
+        const { showToast } = await import('./toast');
+        showToast('Course créée', 'success');
+        setTimeout(() => { window.location.href = "/app/bookings"; }, 1600);
       } else {
-        alert(`Erreur: ${result.error || "Inconnue"}`);
+        const { showToast } = await import('./toast');
+        showToast(`Erreur : ${result.error || "Inconnue"}`, 'error');
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
         }
       }
     } catch {
-      alert("Erreur réseau ou crash serveur");
+      const { showToast } = await import('./toast');
+      showToast('Erreur réseau — vérifie ta connexion', 'error');
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
